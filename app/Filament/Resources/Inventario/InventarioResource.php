@@ -24,11 +24,11 @@ class InventarioResource extends Resource
 
     protected static ?string $navigationLabel = 'Inventario';
 
-    protected static ?string $breadcrumb = 'Movimientos de Inventario';
+    protected static ?string $breadcrumb = 'Inventario';
 
-    protected static ?string $label = 'Movimiento de Inventario';
+    protected static ?string $label = 'Inventario';
 
-    protected static ?string $pluralLabel = 'Movimientos de Inventario';
+    protected static ?string $pluralLabel = 'Inventario';
 
     public static function form(Schema $schema): Schema
     {
