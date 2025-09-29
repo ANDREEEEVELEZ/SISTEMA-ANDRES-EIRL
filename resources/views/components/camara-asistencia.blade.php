@@ -135,11 +135,76 @@ document.addEventListener('DOMContentLoaded', function() {
         imagenCapturada.src = imageDataUrl;
         fotoCapturada.style.display = 'block';
         
-        console.log('Foto capturada correctamente');
+        // Guardar la foto en el servidor
+        guardarFotoServidor(imageDataUrl);
         
-        // Opcional: cerrar la cámara después de capturar
-        // btnCerrarCamara.click();
+        console.log('Foto capturada correctamente');
     });
+    
+    // Función para guardar foto en servidor
+    function guardarFotoServidor(imagenBase64) {
+        // Obtener el empleado_id del formulario (si existe)
+        const empleadoSelect = document.querySelector('select[name="empleado_id"]');
+        const empleadoId = empleadoSelect ? empleadoSelect.value : 1; // Default 1 si no hay empleado
+        
+        if (!empleadoId) {
+            alert('Debe seleccionar un empleado antes de capturar la foto.');
+            return;
+        }
+        
+        // Preparar datos para enviar
+        const formData = new FormData();
+        formData.append('foto', imagenBase64);
+        formData.append('empleado_id', empleadoId);
+        
+        // Obtener token CSRF de manera más robusta
+        let csrfToken = '';
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        if (metaToken) {
+            csrfToken = metaToken.getAttribute('content');
+        } else {
+            const hiddenToken = document.querySelector('input[name="_token"]');
+            if (hiddenToken) {
+                csrfToken = hiddenToken.value;
+            }
+        }
+        
+        if (csrfToken) {
+            formData.append('_token', csrfToken);
+        }
+        
+        // Enviar foto al servidor
+        fetch('/asistencia/guardar-foto', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Foto guardada exitosamente:', data);
+                
+                // Opcional: Mostrar mensaje de éxito
+                const mensaje = document.createElement('div');
+                mensaje.className = 'mt-2 p-2 bg-green-100 border border-green-400 text-green-700 rounded';
+                mensaje.textContent = 'Foto guardada correctamente';
+                fotoCapturada.appendChild(mensaje);
+                
+                // Remover mensaje después de 3 segundos
+                setTimeout(() => {
+                    if (mensaje.parentNode) {
+                        mensaje.parentNode.removeChild(mensaje);
+                    }
+                }, 3000);
+            } else {
+                console.error('Error al guardar foto:', data.mensaje);
+                alert('Error al guardar la foto: ' + data.mensaje);
+            }
+        })
+        .catch(error => {
+            console.error('Error de red:', error);
+            alert('Error de conexión al guardar la foto.');
+        });
+    }
     
     // Tomar nueva foto
     btnNuevaFoto.addEventListener('click', function() {
