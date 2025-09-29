@@ -6,6 +6,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Schemas\Schema;
 
 class AsistenciaForm
@@ -24,6 +25,9 @@ class AsistenciaForm
                 TimePicker::make('hora_salida')
                     ->required(),
                 TextInput::make('observacion'),
+                Placeholder::make('camara')
+                    ->label('Verificación Facial')
+                    ->content(view('components.camara-asistencia')),
             ]);
     }
 }
