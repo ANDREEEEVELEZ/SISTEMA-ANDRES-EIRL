@@ -25,12 +25,38 @@ class Empleado extends Model
         'distrito',
         'fecha_incorporacion',
         'estado_empleado',
+        'foto_facial_path',
+        'face_descriptors',
     ];
 
     protected $casts = [
         'fecha_nacimiento' => 'date',
         'fecha_incorporacion' => 'date',
     ];
+
+    /**
+     * Accessor para obtener el nombre completo
+     */
+    public function getNombreAttribute()
+    {
+        return $this->nombres;
+    }
+
+    /**
+     * Accessor para obtener el apellido
+     */
+    public function getApellidoAttribute()
+    {
+        return $this->apellidos;
+    }
+
+    /**
+     * Accessor para obtener el nombre completo
+     */
+    public function getNombreCompletoAttribute()
+    {
+        return $this->nombres . ' ' . $this->apellidos;
+    }
 
     /**
      * Relación con usuario

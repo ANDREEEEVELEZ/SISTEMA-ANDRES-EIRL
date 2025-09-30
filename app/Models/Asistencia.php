@@ -17,6 +17,7 @@ class Asistencia extends Model
         'fecha',
         'hora_entrada',
         'hora_salida',
+        'estado',
         'observacion',
         'foto_path',
     ];
