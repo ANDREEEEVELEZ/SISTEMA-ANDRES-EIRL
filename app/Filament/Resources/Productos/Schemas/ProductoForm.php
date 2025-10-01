@@ -13,7 +13,7 @@ class ProductoForm
         return $schema
             ->components([
                 Select::make('categoria_id')
-                    ->relationship('categoria', 'id')
+                    ->relationship('categoria', 'NombreCategoria')
                     ->required(),
                 TextInput::make('nombre_producto')
                     ->required(),
