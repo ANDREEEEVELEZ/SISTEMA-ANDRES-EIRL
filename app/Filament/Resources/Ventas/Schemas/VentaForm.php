@@ -18,10 +18,11 @@ class VentaForm
                     ->relationship('user', 'name')
                     ->required(),
                 Select::make('cliente_id')
-                    ->relationship('cliente', 'id')
+                    ->relationship('cliente', 'nombre_razon')
                     ->required(),
                 Select::make('caja_id')
                     ->relationship('caja', 'id')
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "Caja #{$record->id} - {$record->fecha_apertura->format('d/m/Y')} ({$record->estado})")
                     ->required(),
                 TextInput::make('subtotal_venta')
                     ->required()
