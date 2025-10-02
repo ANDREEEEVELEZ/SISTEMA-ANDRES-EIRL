@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Inventario\Schemas;
 
+use App\Models\Producto;
+use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -15,13 +17,13 @@ class InventarioForm
         return $schema
             ->components([
                 Select::make('producto_id')
-                    ->relationship('producto', 'nombre_producto')
+                    ->options(Producto::where('estado', 'activo')->pluck('nombre_producto', 'id'))
                     ->searchable()
                     ->required()
                     ->label('Producto'),
                 
                 Select::make('user_id')
-                    ->relationship('user', 'name')
+                    ->options(User::pluck('name', 'id'))
                     ->required()
                     ->label('Usuario'),
                 
