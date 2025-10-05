@@ -16,7 +16,8 @@ class VentaForm
             ->components([
                 Select::make('user_id')
                     ->relationship('user', 'name')
-                    ->required(),
+                    ->required()
+                    ->hiddenOn('create'),
                 Select::make('cliente_id')
                     ->relationship('cliente', 'nombre_razon')
                     ->required(),
