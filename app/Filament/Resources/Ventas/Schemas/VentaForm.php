@@ -18,9 +18,12 @@ class VentaForm
                     ->relationship('user', 'name')
                     ->required()
                     ->hiddenOn('create'),
-                Select::make('cliente_id')
-                    ->relationship('cliente', 'nombre_razon')
-                    ->required(),
+                TextInput::make('cliente_id')
+                    ->label('DNI del Cliente')
+                    ->required()
+                    ->numeric()
+                    ->maxLength(20)
+                    ->placeholder('Ingrese el DNI del cliente'),
                 Select::make('caja_id')
                     ->relationship('caja', 'id')
                     ->getOptionLabelFromRecordUsing(fn ($record) => "Caja #{$record->id} - {$record->fecha_apertura->format('d/m/Y')} ({$record->estado})")
