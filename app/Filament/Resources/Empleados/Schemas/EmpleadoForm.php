@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Empleados\Schemas;
 
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
@@ -13,9 +12,6 @@ class EmpleadoForm
     {
         return $schema
             ->components([
-                Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->required(),
                 TextInput::make('nombres')
                     ->required(),
                 TextInput::make('apellidos')
