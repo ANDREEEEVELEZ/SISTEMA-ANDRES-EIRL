@@ -19,7 +19,6 @@ class Asistencia extends Model
         'hora_salida',
         'estado',
         'observacion',
-        'foto_path',
     ];
 
     protected $casts = [
