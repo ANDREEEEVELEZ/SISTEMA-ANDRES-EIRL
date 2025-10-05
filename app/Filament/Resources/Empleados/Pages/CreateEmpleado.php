@@ -24,8 +24,8 @@ class CreateEmpleado extends CreateRecord
             'password' => Hash::make($data['dni']), // Contraseña inicial es el DNI
         ]);
 
-        // Asignar el rol de empleado (si usas Spatie Laravel Permission)
-        // $user->assignRole('empleado');
+        // Asignar automáticamente el rol de vendedor
+        $user->assignRole('vendedor');
 
         // Asignar el user_id al empleado
         $data['user_id'] = $user->id;
