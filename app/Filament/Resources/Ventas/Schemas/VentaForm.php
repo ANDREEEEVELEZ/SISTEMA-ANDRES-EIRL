@@ -133,10 +133,14 @@ class VentaForm
                                 $precio = self::obtenerPrecioSegunCantidad($state, $cantidad);
                                 $set('precio_unitario', $precio);
                                 
-                                // Recalcular subtotal
+                                // Recalcular subtotal del item
                                 $descuento = $get('descuento_unitario') ?? 0;
                                 $subtotal = ($precio - $descuento) * $cantidad;
                                 $set('subtotal', round($subtotal, 2));
+                                
+                                // Recalcular totales generales - usar ruta relativa correcta
+                                $detalles = $get('../../detalleVentas');
+                                self::actualizarTotales($detalles, $set);
                             })
                             ->helperText('Seleccione el producto a vender'),
                         
@@ -156,10 +160,14 @@ class VentaForm
                                 $precio = self::obtenerPrecioSegunCantidad($productoId, $state);
                                 $set('precio_unitario', $precio);
                                 
-                                // Recalcular subtotal
+                                // Recalcular subtotal del item
                                 $descuento = $get('descuento_unitario') ?? 0;
                                 $subtotal = ($precio - $descuento) * $state;
                                 $set('subtotal', round($subtotal, 2));
+                                
+                                // Recalcular totales generales
+                                $detalles = $get('../../detalleVentas');
+                                self::actualizarTotales($detalles, $set);
                             }),
                         
                         TextInput::make('precio_unitario')
@@ -175,6 +183,10 @@ class VentaForm
                                 $descuento = $get('descuento_unitario') ?? 0;
                                 $subtotal = ($state - $descuento) * $cantidad;
                                 $set('subtotal', round($subtotal, 2));
+                                
+                                // Recalcular totales generales
+                                $detalles = $get('../../detalleVentas');
+                                self::actualizarTotales($detalles, $set);
                             })
                             ->helperText('Verifique el precio según la cantidad'),
                         
@@ -191,6 +203,10 @@ class VentaForm
                                 $precio = $get('precio_unitario') ?? 0;
                                 $subtotal = ($precio - ($state ?? 0)) * $cantidad;
                                 $set('subtotal', round($subtotal, 2));
+                                
+                                // Recalcular totales generales
+                                $detalles = $get('../../detalleVentas');
+                                self::actualizarTotales($detalles, $set);
                             }),
                         
                         TextInput::make('subtotal')
@@ -376,5 +392,62 @@ class VentaForm
         $set('descuento_total', round($descuentoTotal, 2));
         $set('igv', round($igv, 2));
         $set('total_venta', round($total, 2));
+    }
+
+    /**
+     * Actualiza los totales desde dentro del Repeater
+     * Usa rutas relativas para $set
+     */
+    protected static function actualizarTotales(?array $detalles, $set): void
+    {
+        if (!$detalles || empty($detalles)) {
+            $set('../../subtotal_venta', 0);
+            $set('../../descuento_total', 0);
+            $set('../../igv', 0);
+            $set('../../total_venta', 0);
+            return;
+        }
+
+        $subtotalSinDescuento = 0;
+        $descuentoTotal = 0;
+        $subtotalConDescuento = 0;
+
+        foreach ($detalles as $detalle) {
+            if (!isset($detalle['cantidad_venta']) || !isset($detalle['precio_unitario'])) {
+                continue;
+            }
+
+            $cantidad = (float) $detalle['cantidad_venta'];
+            $precioUnitario = (float) $detalle['precio_unitario'];
+            $descuentoUnitario = (float) ($detalle['descuento_unitario'] ?? 0);
+
+            // Calcular subtotal sin descuento
+            $subtotalSinDescuento += $precioUnitario * $cantidad;
+
+            // Calcular descuento total
+            $descuentoTotal += $descuentoUnitario * $cantidad;
+
+            // Calcular subtotal con descuento
+            if (isset($detalle['subtotal'])) {
+                $subtotalConDescuento += (float) $detalle['subtotal'];
+            } else {
+                $subtotalConDescuento += ($precioUnitario - $descuentoUnitario) * $cantidad;
+            }
+        }
+
+        // Base imponible (subtotal después de descuentos)
+        $baseImponible = $subtotalConDescuento;
+
+        // Calcular IGV (18%)
+        $igv = $baseImponible * 0.18;
+
+        // Calcular total
+        $total = $baseImponible + $igv;
+
+        // Establecer los valores con 2 decimales usando rutas relativas
+        $set('../../subtotal_venta', round($subtotalSinDescuento, 2));
+        $set('../../descuento_total', round($descuentoTotal, 2));
+        $set('../../igv', round($igv, 2));
+        $set('../../total_venta', round($total, 2));
     }
 }
