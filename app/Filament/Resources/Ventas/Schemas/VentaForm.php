@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Ventas\Schemas;
 
 use App\Models\Cliente;
 use App\Models\Producto;
+use App\Models\PrecioProducto;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -12,6 +13,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
+use Closure;
 
 class VentaForm
 {
@@ -123,6 +125,19 @@ class VentaForm
                             )
                             ->searchable()
                             ->required()
+                            ->live()
+                            ->afterStateUpdated(function ($state, $set, $get) {
+                                if (!$state) return;
+                                
+                                $cantidad = $get('cantidad_venta') ?? 1;
+                                $precio = self::obtenerPrecioSegunCantidad($state, $cantidad);
+                                $set('precio_unitario', $precio);
+                                
+                                // Recalcular subtotal
+                                $descuento = $get('descuento_unitario') ?? 0;
+                                $subtotal = ($precio - $descuento) * $cantidad;
+                                $set('subtotal', round($subtotal, 2));
+                            })
                             ->helperText('Seleccione el producto a vender'),
                         
                         TextInput::make('cantidad_venta')
@@ -131,7 +146,21 @@ class VentaForm
                             ->numeric()
                             ->default(1)
                             ->minValue(1)
-                            ->suffix('unidades'),
+                            ->suffix('unidades')
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, $set, $get) {
+                                $productoId = $get('producto_id');
+                                if (!$productoId || !$state) return;
+                                
+                                // Actualizar precio según cantidad
+                                $precio = self::obtenerPrecioSegunCantidad($productoId, $state);
+                                $set('precio_unitario', $precio);
+                                
+                                // Recalcular subtotal
+                                $descuento = $get('descuento_unitario') ?? 0;
+                                $subtotal = ($precio - $descuento) * $state;
+                                $set('subtotal', round($subtotal, 2));
+                            }),
                         
                         TextInput::make('precio_unitario')
                             ->label('Precio Unitario')
@@ -140,6 +169,13 @@ class VentaForm
                             ->prefix('S/')
                             ->step(0.01)
                             ->minValue(0.01)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, $set, $get) {
+                                $cantidad = $get('cantidad_venta') ?? 1;
+                                $descuento = $get('descuento_unitario') ?? 0;
+                                $subtotal = ($state - $descuento) * $cantidad;
+                                $set('subtotal', round($subtotal, 2));
+                            })
                             ->helperText('Verifique el precio según la cantidad'),
                         
                         TextInput::make('descuento_unitario')
@@ -148,7 +184,14 @@ class VentaForm
                             ->prefix('S/')
                             ->default(0)
                             ->minValue(0)
-                            ->step(0.01),
+                            ->step(0.01)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, $set, $get) {
+                                $cantidad = $get('cantidad_venta') ?? 1;
+                                $precio = $get('precio_unitario') ?? 0;
+                                $subtotal = ($precio - ($state ?? 0)) * $cantidad;
+                                $set('subtotal', round($subtotal, 2));
+                            }),
                         
                         TextInput::make('subtotal')
                             ->label('Subtotal')
@@ -156,6 +199,8 @@ class VentaForm
                             ->prefix('S/')
                             ->required()
                             ->step(0.01)
+                            ->disabled()
+                            ->dehydrated()
                             ->helperText('(Precio - Descuento) x Cantidad'),
                     ])
                     ->columns(5)
@@ -168,6 +213,13 @@ class VentaForm
                             : 'Nuevo producto'
                     )
                     ->reorderable(false)
+                    ->live()
+                    ->afterStateUpdated(function ($state, $set) {
+                        self::calcularTotalesVenta($state, $set);
+                    })
+                    ->deleteAction(
+                        fn ($action) => $action->after(fn ($state, $set) => self::calcularTotalesVenta($state, $set))
+                    )
                     ->helperText('Agregue todos los productos que se están vendiendo. El sistema calculará los totales.')
                     ->columnSpanFull(),
                 
@@ -178,6 +230,8 @@ class VentaForm
                     ->prefix('S/')
                     ->required()
                     ->step(0.01)
+                    ->disabled()
+                    ->dehydrated()
                     ->helperText('Suma de todos los productos sin descuentos'),
                 
                 TextInput::make('descuento_total')
@@ -186,7 +240,9 @@ class VentaForm
                     ->prefix('S/')
                     ->default(0)
                     ->required()
-                    ->step(0.01),
+                    ->step(0.01)
+                    ->disabled()
+                    ->dehydrated(),
                 
                 TextInput::make('igv')
                     ->label('IGV (18%)')
@@ -194,6 +250,8 @@ class VentaForm
                     ->prefix('S/')
                     ->required()
                     ->step(0.01)
+                    ->disabled()
+                    ->dehydrated()
                     ->helperText('Calculado sobre base imponible'),
                 
                 TextInput::make('total_venta')
@@ -202,6 +260,8 @@ class VentaForm
                     ->prefix('S/')
                     ->required()
                     ->step(0.01)
+                    ->disabled()
+                    ->dehydrated()
                     ->extraAttributes(['class' => 'font-bold text-lg'])
                     ->helperText('Monto total que debe pagar el cliente'),
                 
@@ -234,5 +294,87 @@ class VentaForm
                     ->default('emitida')
                     ->required(),
             ]);
+    }
+
+    /**
+     * Obtiene el precio del producto según la cantidad
+     */
+    protected static function obtenerPrecioSegunCantidad(int $productoId, float $cantidad): float
+    {
+        // Obtener todos los precios del producto ordenados por cantidad mínima descendente
+        $precios = PrecioProducto::where('producto_id', $productoId)
+            ->orderBy('cantidad_minima', 'desc')
+            ->get();
+
+        // Si no hay precios configurados, retornar 0
+        if ($precios->isEmpty()) {
+            return 0;
+        }
+
+        // Buscar el precio adecuado según la cantidad
+        foreach ($precios as $precio) {
+            if ($cantidad >= $precio->cantidad_minima) {
+                return (float) $precio->precio_unitario;
+            }
+        }
+
+        // Si no encuentra ninguno, retornar el precio del rango más bajo
+        return (float) $precios->last()->precio_unitario;
+    }
+
+    /**
+     * Calcula los totales de la venta
+     */
+    protected static function calcularTotalesVenta(?array $detalles, $set): void
+    {
+        if (!$detalles || empty($detalles)) {
+            $set('subtotal_venta', 0);
+            $set('descuento_total', 0);
+            $set('igv', 0);
+            $set('total_venta', 0);
+            return;
+        }
+
+        $subtotalSinDescuento = 0;
+        $descuentoTotal = 0;
+        $subtotalConDescuento = 0;
+
+        foreach ($detalles as $detalle) {
+            if (!isset($detalle['cantidad_venta']) || !isset($detalle['precio_unitario'])) {
+                continue;
+            }
+
+            $cantidad = (float) $detalle['cantidad_venta'];
+            $precioUnitario = (float) $detalle['precio_unitario'];
+            $descuentoUnitario = (float) ($detalle['descuento_unitario'] ?? 0);
+
+            // Calcular subtotal sin descuento
+            $subtotalSinDescuento += $precioUnitario * $cantidad;
+
+            // Calcular descuento total
+            $descuentoTotal += $descuentoUnitario * $cantidad;
+
+            // Calcular subtotal con descuento (ya viene calculado)
+            if (isset($detalle['subtotal'])) {
+                $subtotalConDescuento += (float) $detalle['subtotal'];
+            } else {
+                $subtotalConDescuento += ($precioUnitario - $descuentoUnitario) * $cantidad;
+            }
+        }
+
+        // Base imponible (subtotal después de descuentos)
+        $baseImponible = $subtotalConDescuento;
+
+        // Calcular IGV (18%)
+        $igv = $baseImponible * 0.18;
+
+        // Calcular total
+        $total = $baseImponible + $igv;
+
+        // Establecer los valores con 2 decimales
+        $set('subtotal_venta', round($subtotalSinDescuento, 2));
+        $set('descuento_total', round($descuentoTotal, 2));
+        $set('igv', round($igv, 2));
+        $set('total_venta', round($total, 2));
     }
 }
