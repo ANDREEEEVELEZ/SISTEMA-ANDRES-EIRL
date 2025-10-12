@@ -210,14 +210,14 @@ class VentaForm
                             }),
                         
                         TextInput::make('subtotal')
-                            ->label('Subtotal')
+                            ->label('Total')
                             ->numeric()
                             ->prefix('S/')
                             ->required()
                             ->step(0.01)
                             ->disabled()
-                            ->dehydrated()
-                            ->helperText('(Precio - Descuento) x Cantidad'),
+                            ->dehydrated(),
+                           
                     ])
                     ->columns(5)
                     ->defaultItems(1)
@@ -236,19 +236,18 @@ class VentaForm
                     ->deleteAction(
                         fn ($action) => $action->after(fn ($state, $set) => self::calcularTotalesVenta($state, $set))
                     )
-                    ->helperText('Agregue todos los productos que se están vendiendo. El sistema calculará los totales.')
                     ->columnSpanFull(),
                 
                 // === TOTALES DE LA VENTA ===
                 TextInput::make('subtotal_venta')
-                    ->label('Subtotal (Con IGV Incluido)')
+                    ->label('Subtotal')
                     ->numeric()
                     ->prefix('S/')
                     ->required()
                     ->step(0.01)
                     ->disabled()
-                    ->dehydrated()
-                    ->helperText('Suma de todos los productos (precios incluyen IGV)'),
+                    ->dehydrated(),
+                    
                 
                 TextInput::make('descuento_total')
                     ->label('Descuento Total Aplicado')
@@ -268,10 +267,10 @@ class VentaForm
                     ->step(0.01)
                     ->disabled()
                     ->dehydrated()
-                    ->helperText('IGV extraído del total (ya incluido en precios)'),
+                    ->helperText('IGV extraído del total'),
                 
                 TextInput::make('total_venta')
-                    ->label('TOTAL A PAGAR')
+                    ->label('TOTAL A PAGAR (Con IGV)')
                     ->numeric()
                     ->prefix('S/')
                     ->required()
@@ -352,7 +351,7 @@ class VentaForm
             return;
         }
 
-        $subtotalSinDescuento = 0;
+        $totalProductosSinDescuento = 0;
         $descuentoTotal = 0;
         $totalConIgvIncluido = 0;
 
@@ -365,8 +364,8 @@ class VentaForm
             $precioUnitario = (float) $detalle['precio_unitario'];
             $descuentoUnitario = (float) ($detalle['descuento_unitario'] ?? 0);
 
-            // Calcular subtotal sin descuento (con IGV incluido)
-            $subtotalSinDescuento += $precioUnitario * $cantidad;
+            // Calcular total de productos sin descuento (con IGV incluido)
+            $totalProductosSinDescuento += $precioUnitario * $cantidad;
 
             // Calcular descuento total
             $descuentoTotal += $descuentoUnitario * $cantidad;
@@ -379,20 +378,20 @@ class VentaForm
             }
         }
 
-        // El total final es el subtotal con descuento (ya tiene IGV incluido)
+        // El total final es el total con IGV incluido
         $totalVenta = $totalConIgvIncluido;
 
         // Extraer el IGV del total (IGV ya está incluido en los precios)
-        // Fórmula: Base Imponible = Total / 1.18
-        // IGV = Total - Base Imponible
-        $baseImponible = $totalVenta / 1.18;
-        $igv = $totalVenta - $baseImponible;
+        // Fórmula: Base Imponible (Subtotal) = Total / 1.18
+        // IGV = Total - Subtotal
+        $subtotalVenta = $totalVenta / 1.18;  // Base imponible sin IGV
+        $igv = $totalVenta - $subtotalVenta;
 
         // Establecer los valores con 2 decimales
-        $set('subtotal_venta', round($subtotalSinDescuento, 2));
+        $set('subtotal_venta', round($subtotalVenta, 2));      // Base imponible (sin IGV)
         $set('descuento_total', round($descuentoTotal, 2));
         $set('igv', round($igv, 2));
-        $set('total_venta', round($totalVenta, 2));
+        $set('total_venta', round($totalVenta, 2));            // Total con IGV
     }
 
     /**
@@ -410,7 +409,7 @@ class VentaForm
             return;
         }
 
-        $subtotalSinDescuento = 0;
+        $totalProductosSinDescuento = 0;
         $descuentoTotal = 0;
         $totalConIgvIncluido = 0;
 
@@ -423,8 +422,8 @@ class VentaForm
             $precioUnitario = (float) $detalle['precio_unitario'];
             $descuentoUnitario = (float) ($detalle['descuento_unitario'] ?? 0);
 
-            // Calcular subtotal sin descuento (con IGV incluido)
-            $subtotalSinDescuento += $precioUnitario * $cantidad;
+            // Calcular total de productos sin descuento (con IGV incluido)
+            $totalProductosSinDescuento += $precioUnitario * $cantidad;
 
             // Calcular descuento total
             $descuentoTotal += $descuentoUnitario * $cantidad;
@@ -437,19 +436,19 @@ class VentaForm
             }
         }
 
-        // El total final es el subtotal con descuento (ya tiene IGV incluido)
+        // El total final es el total con IGV incluido
         $totalVenta = $totalConIgvIncluido;
 
         // Extraer el IGV del total (IGV ya está incluido en los precios)
-        // Fórmula: Base Imponible = Total / 1.18
-        // IGV = Total - Base Imponible
-        $baseImponible = $totalVenta / 1.18;
-        $igv = $totalVenta - $baseImponible;
+        // Fórmula: Base Imponible (Subtotal) = Total / 1.18
+        // IGV = Total - Subtotal
+        $subtotalVenta = $totalVenta / 1.18;  // Base imponible sin IGV
+        $igv = $totalVenta - $subtotalVenta;
 
         // Establecer los valores con 2 decimales usando rutas relativas
-        $set('../../subtotal_venta', round($subtotalSinDescuento, 2));
+        $set('../../subtotal_venta', round($subtotalVenta, 2));      // Base imponible (sin IGV)
         $set('../../descuento_total', round($descuentoTotal, 2));
         $set('../../igv', round($igv, 2));
-        $set('../../total_venta', round($totalVenta, 2));
+        $set('../../total_venta', round($totalVenta, 2));            // Total con IGV
     }
 }
