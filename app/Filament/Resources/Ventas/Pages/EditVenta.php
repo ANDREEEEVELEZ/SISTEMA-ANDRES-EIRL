@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Ventas\Pages;
 use App\Filament\Resources\Ventas\VentaResource;
 use App\Models\Producto;
 use App\Models\MovimientoInventario;
+use App\Models\Comprobante;
+use App\Models\SerieComprobante;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Notifications\Notification;
@@ -17,6 +19,9 @@ class EditVenta extends EditRecord
 
     // Guardamos el estado original de la venta antes de editarla
     protected array $detallesOriginales = [];
+    
+    // Guardar datos del comprobante para actualizar después
+    protected array $datosComprobante = [];
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
@@ -31,20 +36,84 @@ class EditVenta extends EditRecord
                     ];
                 })
                 ->toArray();
+
+            // CARGAR DATOS DEL COMPROBANTE si existe
+            $comprobante = $this->record->comprobantes()->first();
+            if ($comprobante) {
+                $data['tipo_comprobante'] = $comprobante->tipo;
+                $data['serie'] = $comprobante->serie;
+                $data['numero'] = str_pad($comprobante->correlativo, 6, '0', STR_PAD_LEFT);
+                $data['fecha_emision'] = $comprobante->fecha_emision;
+            }
         }
 
         return $data;
     }
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // Guardar datos del comprobante para actualizarlos después
+        $this->datosComprobante = [
+            'tipo' => $data['tipo_comprobante'] ?? null,
+            'serie' => $data['serie'] ?? null,
+            'numero' => $data['numero'] ?? null,
+            'fecha_emision' => $data['fecha_emision'] ?? now(),
+        ];
+
+        // Eliminar campos que no pertenecen a la tabla ventas
+        unset($data['tipo_comprobante']);
+        unset($data['serie']);
+        unset($data['numero']);
+        unset($data['fecha_emision']);
+
+        return $data;
+    }
+
     /**
-     * Actualizar inventario después de editar la venta
+     * Actualizar inventario y comprobante después de editar la venta
      */
     protected function afterSave(): void
     {
         DB::transaction(function () {
             $venta = $this->record;
             
-            // 1. Devolver el stock de los productos originales
+            // 1. ACTUALIZAR O CREAR COMPROBANTE
+            if (!empty($this->datosComprobante['tipo'])) {
+                $comprobante = $venta->comprobantes()->first();
+                
+                if ($comprobante) {
+                    // Actualizar comprobante existente
+                    $comprobante->update([
+                        'tipo' => $this->datosComprobante['tipo'],
+                        'serie' => $this->datosComprobante['serie'],
+                        'correlativo' => (int) $this->datosComprobante['numero'],
+                        'fecha_emision' => $this->datosComprobante['fecha_emision'],
+                        'sub_total' => $venta->subtotal_venta,
+                        'igv' => $venta->igv,
+                        'total' => $venta->total_venta,
+                    ]);
+                } else {
+                    // Crear comprobante si no existe
+                    $serieComprobante = SerieComprobante::where('tipo', $this->datosComprobante['tipo'])->first();
+                    
+                    if ($serieComprobante) {
+                        Comprobante::create([
+                            'venta_id' => $venta->id,
+                            'serie_comprobante_id' => $serieComprobante->id,
+                            'tipo' => $this->datosComprobante['tipo'],
+                            'serie' => $this->datosComprobante['serie'],
+                            'correlativo' => (int) $this->datosComprobante['numero'],
+                            'fecha_emision' => $this->datosComprobante['fecha_emision'],
+                            'sub_total' => $venta->subtotal_venta,
+                            'igv' => $venta->igv,
+                            'total' => $venta->total_venta,
+                            'estado' => 'emitido',
+                        ]);
+                    }
+                }
+            }
+            
+            // 2. PROCESAR INVENTARIO - Devolver el stock de los productos originales
             foreach ($this->detallesOriginales as $detalleOriginal) {
                 $producto = Producto::find($detalleOriginal['producto_id']);
                 
@@ -64,7 +133,7 @@ class EditVenta extends EditRecord
                 }
             }
 
-            // 2. Descontar el stock de los productos nuevos/editados
+            // 3. DESCONTAR EL STOCK DE LOS PRODUCTOS NUEVOS/EDITADOS
             $productosActualizados = [];
             foreach ($venta->detalleVentas as $detalleNuevo) {
                 $producto = Producto::find($detalleNuevo->producto_id);
@@ -109,9 +178,9 @@ class EditVenta extends EditRecord
                 }
             }
 
-            // Notificación de éxito
+            // 4. NOTIFICACIÓN DE ÉXITO
             Notification::make()
-                ->title('✅ Venta Actualizada')
+                ->title('✅ Venta y Comprobante Actualizados')
                 ->body("La venta #{$venta->id} se actualizó correctamente.\n\n📦 Inventario actualizado:\n" . implode("\n", $productosActualizados))
                 ->success()
                 ->duration(6000)

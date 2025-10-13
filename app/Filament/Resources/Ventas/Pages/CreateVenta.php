@@ -7,6 +7,8 @@ use App\Filament\Resources\Cajas\CajaResource;
 use App\Services\CajaService;
 use App\Models\Producto;
 use App\Models\MovimientoInventario;
+use App\Models\Comprobante;
+use App\Models\SerieComprobante;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 use Filament\Actions\Action;
@@ -19,6 +21,9 @@ use Illuminate\Support\Facades\DB;
 class CreateVenta extends CreateRecord
 {
     protected static string $resource = VentaResource::class;
+
+    // Almacenar temporalmente los datos del comprobante
+    protected array $datosComprobante = [];
 
     protected function getHeaderActions(): array
     {
@@ -242,11 +247,25 @@ class CreateVenta extends CreateRecord
         $data['user_id'] = Auth::id();
         $data['fecha_venta'] = $data['fecha_emision'] ?? now();
 
+        // Guardar temporalmente los datos del comprobante para usarlos después
+        $this->datosComprobante = [
+            'tipo' => $data['tipo_comprobante'] ?? null,
+            'serie' => $data['serie'] ?? null,
+            'numero' => $data['numero'] ?? null,
+            'fecha_emision' => $data['fecha_emision'] ?? now(),
+        ];
+
+        // Eliminar campos que no pertenecen a la tabla ventas
+        unset($data['tipo_comprobante']);
+        unset($data['serie']);
+        unset($data['numero']);
+        unset($data['fecha_emision']);
+
         return $data;
     }
 
     /**
-     * Descontar inventario y registrar movimientos después de crear la venta
+     * Descontar inventario, crear comprobante y registrar movimientos después de crear la venta
      */
     protected function afterCreate(): void
     {
@@ -255,7 +274,34 @@ class CreateVenta extends CreateRecord
             $productosActualizados = [];
             $alertasStockBajo = [];
             
-            // Procesar cada detalle de venta
+            // 1. CREAR EL COMPROBANTE ASOCIADO A LA VENTA
+            if (!empty($this->datosComprobante['tipo'])) {
+                // Buscar la serie del comprobante
+                $serieComprobante = SerieComprobante::where('tipo', $this->datosComprobante['tipo'])->first();
+                
+                if ($serieComprobante) {
+                    // Crear el comprobante
+                    $comprobante = Comprobante::create([
+                        'venta_id' => $venta->id,
+                        'serie_comprobante_id' => $serieComprobante->id,
+                        'tipo' => $this->datosComprobante['tipo'],
+                        'serie' => $this->datosComprobante['serie'],
+                        'correlativo' => (int) $this->datosComprobante['numero'],
+                        'fecha_emision' => $this->datosComprobante['fecha_emision'],
+                        'sub_total' => $venta->subtotal_venta,
+                        'igv' => $venta->igv,
+                        'total' => $venta->total_venta,
+                        'estado' => 'emitido',
+                    ]);
+
+                    // Actualizar el último número de la serie
+                    $serieComprobante->update([
+                        'ultimo_numero' => (int) $this->datosComprobante['numero']
+                    ]);
+                }
+            }
+
+            // 2. PROCESAR INVENTARIO - Descontar stock de cada producto
             foreach ($venta->detalleVentas as $detalle) {
                 $producto = Producto::find($detalle->producto_id);
                 
@@ -287,8 +333,12 @@ class CreateVenta extends CreateRecord
                 }
             }
 
-            // Notificación de éxito con detalles
-            $mensaje = "La venta #{$venta->id} se registró correctamente.\n\n📦 Inventario actualizado:\n" . implode("\n", $productosActualizados);
+            // 3. NOTIFICACIONES
+            $mensaje = "La venta #{$venta->id} se registró correctamente";
+            if (isset($comprobante)) {
+                $mensaje .= " con {$comprobante->tipo} {$comprobante->serie}-{$comprobante->correlativo}";
+            }
+            $mensaje .= ".\n\n📦 Inventario actualizado:\n" . implode("\n", $productosActualizados);
             
             Notification::make()
                 ->title('✅ Venta Registrada Exitosamente')
