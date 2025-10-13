@@ -9,7 +9,9 @@ use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProductosTable
 {
@@ -21,7 +23,17 @@ class ProductosTable
                     ->label('Producto')
                     ->searchable()
                     ->sortable()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->icon(fn ($record) => match(true) {
+                        $record->estaAgotado() => 'heroicon-o-exclamation-circle',
+                        $record->tieneStockBajo() => 'heroicon-o-exclamation-triangle',
+                        default => null,
+                    })
+                    ->iconColor(fn ($record) => match(true) {
+                        $record->estaAgotado() => 'danger',
+                        $record->tieneStockBajo() => 'warning',
+                        default => null,
+                    }),
                 
                 TextColumn::make('categoria.NombreCategoria')
                     ->label('Categoría')
@@ -40,9 +52,31 @@ class ProductosTable
                     ->sortable()
                     ->alignCenter()
                     ->badge()
-                    ->color(fn (string $state, $record): string => 
-                        (int)$state <= $record->stock_minimo ? 'danger' : 'success'
-                    ),
+                    ->color(fn ($record): string => match(true) {
+                        $record->estaAgotado() => 'danger',
+                        $record->tieneStockBajo() => 'warning',
+                        default => 'success',
+                    })
+                    ->formatStateUsing(function ($state, $record) {
+                        if ($record->estaAgotado()) {
+                            return '⚠️ ' . $state . ' (AGOTADO)';
+                        }
+                        if ($record->tieneStockBajo()) {
+                            return '⚠️ ' . $state . ' (STOCK BAJO)';
+                        }
+                        return $state;
+                    })
+                    ->tooltip(function ($record) {
+                        if ($record->estaAgotado()) {
+                            return '🔴 PRODUCTO AGOTADO: Stock actual: ' . $record->stock_total . ' | Stock mínimo: ' . $record->stock_minimo . ' | Es necesario reponer urgentemente.';
+                        }
+                        if ($record->tieneStockBajo()) {
+                            $faltante = $record->stock_minimo - $record->stock_total;
+                            return '🟡 STOCK BAJO: Stock actual: ' . $record->stock_total . ' | Stock mínimo: ' . $record->stock_minimo . ' | Faltante: ' . $faltante . ' unidades.';
+                        }
+                        $excedente = $record->stock_total - $record->stock_minimo;
+                        return '🟢 Stock normal: ' . $record->stock_total . ' unidades disponibles (' . $excedente . ' unidades por encima del mínimo).';
+                    }),
                 
                 TextColumn::make('stock_minimo')
                     ->label('Stock Mínimo')
@@ -123,6 +157,52 @@ class ProductosTable
                         'activo' => 'Activo',
                         'inactivo' => 'Inactivo',
                     ]),
+                
+                Filter::make('estado_stock')
+                    ->label('Estado de Stock')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('tipo')
+                            ->label('Filtrar por')
+                            ->options([
+                                'agotado' => '🔴 Productos Agotados',
+                                'bajo' => '🟡 Stock Bajo',
+                                'alerta' => '⚠️ Con Alerta (Agotados + Stock Bajo)',
+                                'normal' => '🟢 Stock Normal',
+                            ])
+                            ->placeholder('Seleccionar estado'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['tipo'] === 'agotado',
+                                fn (Builder $query) => $query->agotados()
+                            )
+                            ->when(
+                                $data['tipo'] === 'bajo',
+                                fn (Builder $query) => $query->stockBajo()
+                            )
+                            ->when(
+                                $data['tipo'] === 'alerta',
+                                fn (Builder $query) => $query->conAlertaStock()
+                            )
+                            ->when(
+                                $data['tipo'] === 'normal',
+                                fn (Builder $query) => $query->whereRaw('stock_total > stock_minimo')
+                            );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (!isset($data['tipo'])) {
+                            return null;
+                        }
+                        
+                        return match($data['tipo']) {
+                            'agotado' => '🔴 Productos Agotados',
+                            'bajo' => '🟡 Stock Bajo',
+                            'alerta' => '⚠️ Con Alerta de Stock',
+                            'normal' => '🟢 Stock Normal',
+                            default => null,
+                        };
+                    }),
             ])
             ->recordActions([
                 ViewAction::make(),
