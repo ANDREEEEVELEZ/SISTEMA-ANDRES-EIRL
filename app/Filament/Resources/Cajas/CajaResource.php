@@ -8,6 +8,7 @@ use App\Filament\Resources\Cajas\Pages\ListCajas;
 use App\Filament\Resources\Cajas\Schemas\CajaForm;
 use App\Filament\Resources\Cajas\Tables\CajasTable;
 use App\Models\Caja;
+use App\Services\CajaService;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -20,7 +21,7 @@ class CajaResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'FechaApertura';
+    protected static ?string $recordTitleAttribute = 'fecha_apertura';
 
     public static function form(Schema $schema): Schema
     {
@@ -37,6 +38,13 @@ class CajaResource extends Resource
         return [
             //
         ];
+    }
+
+    public static function canCreate(): bool
+    {
+        // No permitir crear una nueva caja si hay una caja abierta del día actual
+        // Las cajas del día anterior deben cerrarse primero
+        return !CajaService::tieneCajaAbiertaHoy() && !CajaService::tieneCajaAbiertaDiaAnterior();
     }
 
     public static function getPages(): array

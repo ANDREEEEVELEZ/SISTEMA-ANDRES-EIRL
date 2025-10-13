@@ -19,25 +19,31 @@ class VentasTable
     {
         return $table
             ->columns([
-                TextColumn::make('id')
-                    ->label('N° Venta')
-                    ->sortable()
-                    ->searchable()
-                    ->prefix('#')
-                    ->weight('bold'),
-                
+                                TextColumn::make('comprobantes')
+                    ->label('Comprobante')
+                    ->formatStateUsing(function ($record) {
+                        $comprobante = $record->comprobantes->first();
+                        if (!$comprobante) {
+                            return 'Sin comprobante';
+                        }
+                        return "{$comprobante->tipo} {$comprobante->serie}-{$comprobante->correlativo}";
+                    })
+                    ->badge()
+                    ->color(fn ($record) => $record->comprobantes->first() ? 'success' : 'danger'),
+
+
                 TextColumn::make('fecha_venta')
                     ->label('Fecha')
                     ->date('d/m/Y')
                     ->sortable()
                     ->searchable(),
-                
-                TextColumn::make('hora_venta')
+
+               /* TextColumn::make('hora_venta')
                     ->label('Hora')
                     ->time('H:i')
                     ->sortable()
-                    ->toggleable(),
-                
+                    ->toggleable(),*/
+
                 TextColumn::make('cliente.nombre_razon')
                     ->label('Cliente')
                     ->searchable()
@@ -50,25 +56,25 @@ class VentasTable
                         }
                         return $state;
                     }),
-                
+
                 TextColumn::make('cliente.num_doc')
                     ->label('Doc. Cliente')
-                    ->searchable()
-                    ->toggleable(),
-                
-                TextColumn::make('user.name')
+                    ->searchable(),
+                    //->toggleable(),
+
+                /*TextColumn::make('user.name')
                     ->label('Vendedor')
                     ->sortable()
                     ->searchable()
-                    ->toggleable(),
-                
-                TextColumn::make('caja.id')
+                    ->toggleable(),*/
+
+               /* TextColumn::make('caja.id')
                     ->label('Caja')
                     ->sortable()
                     ->formatStateUsing(fn ($state) => "Caja #{$state}")
-                    ->toggleable(),
-                
-                TextColumn::make('detalleVentas')
+                    ->toggleable(),*/
+
+              /*  TextColumn::make('detalleVentas')
                     ->label('Productos')
                     ->formatStateUsing(function ($record) {
                         $cantidad = $record->detalleVentas->count();
@@ -88,32 +94,32 @@ class VentasTable
                             return 'No hay productos registrados';
                         }
                         return $productos->map(function ($detalle) {
-                            return "• {$detalle->producto->nombre_producto} x{$detalle->cantidad_venta} = S/ " . 
-                                   number_format($detalle->subtotal, 2);
+                            return "• {$detalle->producto->nombre_producto} x{$detalle->cantidad_venta} = S/ " .
+                            number_format($detalle->subtotal, 2);
                         })->join("\n");
                     }),
-                
+
                 TextColumn::make('subtotal_venta')
                     ->label('Subtotal')
                     ->money('PEN')
                     ->sortable()
                     ->alignEnd()
                     ->toggleable(isToggledHiddenByDefault: true),
-                
+
                 TextColumn::make('descuento_total')
                     ->label('Descuento')
                     ->money('PEN')
                     ->sortable()
                     ->alignEnd()
                     ->toggleable(isToggledHiddenByDefault: true),
-                
+
                 TextColumn::make('igv')
                     ->label('IGV')
                     ->money('PEN')
                     ->sortable()
                     ->alignEnd()
-                    ->toggleable(),
-                
+                    ->toggleable(),*/
+
                 TextColumn::make('total_venta')
                     ->label('Total')
                     ->money('PEN')
@@ -121,9 +127,9 @@ class VentasTable
                     ->alignEnd()
                     ->weight('bold')
                     ->color('success'),
-                
+
                 BadgeColumn::make('metodo_pago')
-                    ->label('Pago')
+                    ->label('Método Pago')
                     ->colors([
                         'success' => 'efectivo',
                         'primary' => 'tarjeta',
@@ -140,7 +146,7 @@ class VentasTable
                         default => $state,
                     })
                     ->sortable(),
-                
+
                 BadgeColumn::make('estado_venta')
                     ->label('Estado')
                     ->colors([
@@ -155,37 +161,24 @@ class VentasTable
                         default => $state,
                     })
                     ->sortable(),
-                
-                TextColumn::make('comprobantes')
-                    ->label('Comprobante')
-                    ->formatStateUsing(function ($record) {
-                        $comprobante = $record->comprobantes->first();
-                        if (!$comprobante) {
-                            return 'Sin comprobante';
-                        }
-                        return "{$comprobante->tipo} {$comprobante->serie}-{$comprobante->correlativo}";
-                    })
-                    ->badge()
-                    ->color(fn ($record) => $record->comprobantes->first() ? 'success' : 'danger')
-                    ->toggleable(),
-                
-                TextColumn::make('cod_operacion')
+
+
+
+               /* TextColumn::make('cod_operacion')
                     ->label('Cód. Operación')
                     ->searchable()
                     ->limit(20)
                     ->toggleable(isToggledHiddenByDefault: true),
-                
+
                 TextColumn::make('created_at')
                     ->label('Registrado')
                     ->dateTime('d/m/Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                
+                    ->sortable(),
+
                 TextColumn::make('updated_at')
                     ->label('Actualizado')
                     ->dateTime('d/m/Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),*/
             ])
             ->filters([
                 SelectFilter::make('estado_venta')
@@ -195,7 +188,7 @@ class VentasTable
                         'anulada' => 'Anulada',
                         'rechazada' => 'Rechazada',
                     ]),
-                
+
                 SelectFilter::make('metodo_pago')
                     ->label('Método de Pago')
                     ->options([
@@ -205,13 +198,30 @@ class VentasTable
                         'plin' => 'Plin',
                         'transferencia' => 'Transferencia',
                     ]),
-                
-                SelectFilter::make('user_id')
-                    ->label('Vendedor')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->preload(),
-                
+
+                SelectFilter::make('tipo_comprobante')
+                    ->label('Tipo de Comprobante')
+                    ->options([
+                        'boleta' => 'Boleta',
+                        'factura' => 'Factura',
+                        'ticket' => 'Ticket',
+                        'nota_credito' => 'Nota de Crédito',
+                        'nota_debito' => 'Nota de débito',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!isset($data['value']) || $data['value'] === null) {
+                            return $query;
+                        }
+
+                        if ($data['value'] === 'sin_comprobante') {
+                            return $query->whereDoesntHave('comprobantes');
+                        }
+
+                        return $query->whereHas('comprobantes', function (Builder $query) use ($data) {
+                            $query->where('tipo', $data['value']);
+                        });
+                    }),
+
                 Filter::make('fecha_venta')
                     ->label('Rango de Fechas')
                     ->form([

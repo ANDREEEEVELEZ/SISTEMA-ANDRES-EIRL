@@ -15,6 +15,7 @@ class CajaForm
             ->components([
                 Select::make('user_id')
                     ->relationship('user', 'name')
+                    ->label('Usuario')
                     ->required(),
                 DateTimePicker::make('fecha_apertura')
                     ->required(),
@@ -25,8 +26,13 @@ class CajaForm
                 TextInput::make('saldo_final')
                     ->numeric(),
                 Select::make('estado')
+                    ->label('Estado')
                     ->options(['abierta' => 'Abierta', 'cerrada' => 'Cerrada'])
-                    ->required(),
+                    ->default('abierta')
+                    ->required()
+                    ->disabled()
+                    ->dehydrated(),
+
                 TextInput::make('observacion'),
             ]);
     }

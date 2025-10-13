@@ -8,6 +8,7 @@ use App\Filament\Resources\Ventas\Pages\ListVentas;
 use App\Filament\Resources\Ventas\Schemas\VentaForm;
 use App\Filament\Resources\Ventas\Tables\VentasTable;
 use App\Models\Venta;
+use App\Services\CajaService;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -20,7 +21,7 @@ class VentaResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'TotalVenta';
+    protected static ?string $recordTitleAttribute = 'total_venta';
 
     public static function form(Schema $schema): Schema
     {
@@ -30,6 +31,12 @@ class VentaResource extends Resource
     public static function table(Table $table): Table
     {
         return VentasTable::configure($table);
+    }
+
+    public static function canCreate(): bool
+    {
+        // Permitir crear ventas siempre, las advertencias se muestran en beforeFill()
+        return true;
     }
 
     public static function getRelations(): array

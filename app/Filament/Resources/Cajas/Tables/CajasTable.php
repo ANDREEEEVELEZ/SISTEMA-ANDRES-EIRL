@@ -15,6 +15,7 @@ class CajasTable
         return $table
             ->columns([
                 TextColumn::make('user.name')
+                    ->label('Usuario')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('fecha_apertura')
@@ -32,6 +33,7 @@ class CajasTable
                 TextColumn::make('estado'),
                 TextColumn::make('observacion')
                     ->searchable(),
+                    /*
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -39,7 +41,7 @@ class CajasTable
                 TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true),*/
             ])
             ->filters([
                 //
@@ -48,9 +50,7 @@ class CajasTable
                 EditAction::make(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+
             ]);
     }
 }

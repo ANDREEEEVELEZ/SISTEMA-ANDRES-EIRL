@@ -15,10 +15,18 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Grid;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
+use App\Services\CajaService;
+use Filament\Notifications\Notification;
 use Closure;
 
 class VentaForm
 {
+    // Helper para verificar si los campos deben estar deshabilitados
+    protected static function shouldDisableFields(): bool
+    {
+        return CajaService::tieneCajaAbiertaDiaAnterior();
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -46,6 +54,7 @@ class VentaForm
                     ->searchable()
                     ->preload()
                     ->required()
+                    ->disabled(self::shouldDisableFields()) // Deshabilitar si hay caja anterior abierta
                     ->live() // Hace reactivo el campo
                     ->default(function () {
                         // Buscar si hay una caja abierta para el usuario actual
@@ -66,21 +75,27 @@ class VentaForm
                         }
                     })
                     ->helperText(function () {
+                        // Verificar si hay caja del día anterior abierta
+                        if (self::shouldDisableFields()) {
+                            $cajaAnterior = CajaService::getCajaAbiertaDiaAnterior();
+                            return "Hay una caja abierta desde el {$cajaAnterior->fecha_apertura->format('d/m/Y H:i')}. Para continuar registrando ventas, debe cerrar la caja anterior y aperturar una nueva para hoy.";
+                        }
+
                         $cajaAbierta = \App\Models\Caja::where('estado', 'abierta')
                             ->where('user_id', Auth::id())
                             ->first();
 
                         if ($cajaAbierta) {
-                            return "Caja seleccionada automáticamente";
+                            return null; 
                         } else {
                             $cajasCerradas = \App\Models\Caja::where('user_id', Auth::id())
                                 ->where('estado', 'cerrada')
                                 ->count();
 
                             if ($cajasCerradas > 0) {
-                                return "No hay cajas abiertas debe aperturar una nueva caja.";
+                                return "No hay cajas abiertas. Use el botón '+' para aperturar caja ";
                             } else {
-                                return "Debe aperturar una caja para comenzar a registrar ventas.";
+                                return "Para comenzar a registrar ventas, debe aperturar una caja usando el botón '+' para aperturar caja";
                             }
                         }
                     })
@@ -155,8 +170,8 @@ class VentaForm
                     ])
                     ->required()
                     ->placeholder('Seleccione una opción')
-                    ->disabled(fn (callable $get) => !$get('caja_id')) // Deshabilitado si no hay caja
-                    ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Seleccione el tipo de comprobante')
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
+                    //->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Seleccione el tipo de comprobante')
                     ->live()
                     ->afterStateUpdated(function ($state, $set) {
                         if (!$state) return;
@@ -178,16 +193,16 @@ class VentaForm
                     ->label('Serie')
                     ->required()
                     ->maxLength(10)
-                    ->disabled(fn (callable $get) => !$get('caja_id') || true) // Deshabilitado si no hay caja o siempre (solo lectura)
-                    ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Se asigna automáticamente')
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id') || true) // Deshabilitado si hay caja anterior, no hay caja o siempre (solo lectura)
+                   // ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Se asigna automáticamente')
                     ->dehydrated(),
 
                 TextInput::make('numero')
                     ->label('Número')
                     ->required()
                     ->maxLength(10)
-                    ->disabled(fn (callable $get) => !$get('caja_id') || true) // Deshabilitado si no hay caja o siempre (solo lectura)
-                    ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Se asigna automáticamente')
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id') || true) // Deshabilitado si hay caja anterior, no hay caja o siempre (solo lectura)
+                   // ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Se asigna automáticamente')
                     ->dehydrated(),
 
 
@@ -198,7 +213,7 @@ class VentaForm
                     ->required()
                     ->native(false)
                     ->displayFormat('d/m/Y')
-                    ->disabled(fn (callable $get) => !$get('caja_id')) // Deshabilitado si no hay caja
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : null),
 
                 TimePicker::make('hora_venta')
@@ -206,7 +221,7 @@ class VentaForm
                     ->default(now()->format('H:i'))
                     ->required()
                     ->seconds(false)
-                    ->disabled(fn (callable $get) => !$get('caja_id')) // Deshabilitado si no hay caja
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : null),
 
                 // -- Información del Cliente --
@@ -217,7 +232,7 @@ class VentaForm
                         "{$record->tipo_doc}: {$record->num_doc} - {$record->nombre_razon}"
                     )
                     ->searchable(['num_doc', 'nombre_razon'])
-                    ->disabled(fn (callable $get) => !$get('caja_id')) // Deshabilitado si no hay caja
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Buscar por documento o nombre')
                     ->preload()
                     ->required()
@@ -255,7 +270,7 @@ class VentaForm
                 Repeater::make('detalleVentas')
                     ->label('Productos de la Venta')
                     ->relationship('detalleVentas')
-                    ->disabled(fn (callable $get) => !$get('caja_id')) // Deshabilitado si no hay caja
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
                     ->schema([
                         Select::make('producto_id')
                             ->label('Producto')
@@ -389,7 +404,7 @@ class VentaForm
                     ->prefix('S/')
                     ->required()
                     ->step(0.01)
-                    ->disabled(fn (callable $get) => !$get('caja_id') || true) // Deshabilitado si no hay caja o siempre (calculado)
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id') || true) // Deshabilitado si hay caja anterior, no hay caja o siempre (calculado)
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Calculado automáticamente')
                     ->dehydrated(),
 
@@ -400,7 +415,7 @@ class VentaForm
                     ->default(0)
                     ->required()
                     ->step(0.01)
-                    ->disabled(fn (callable $get) => !$get('caja_id') || true) // Deshabilitado si no hay caja o siempre (calculado)
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id') || true) // Deshabilitado si hay caja anterior, no hay caja o siempre (calculado)
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Calculado automáticamente')
                     ->dehydrated(),
 
@@ -410,7 +425,7 @@ class VentaForm
                     ->prefix('S/')
                     ->required()
                     ->step(0.01)
-                    ->disabled(fn (callable $get) => !$get('caja_id') || true) // Deshabilitado si no hay caja o siempre (calculado)
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id') || true) // Deshabilitado si hay caja anterior, no hay caja o siempre (calculado)
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'IGV extraído del total')
                     ->dehydrated(),
 
@@ -420,7 +435,7 @@ class VentaForm
                     ->prefix('S/')
                     ->required()
                     ->step(0.01)
-                    ->disabled(fn (callable $get) => !$get('caja_id') || true) // Deshabilitado si no hay caja o siempre (calculado)
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id') || true) // Deshabilitado si hay caja anterior, no hay caja o siempre (calculado)
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Monto total con IGV incluido')
                     ->dehydrated()
                     ->extraAttributes(['class' => 'font-bold text-lg']),
@@ -436,13 +451,13 @@ class VentaForm
                         'transferencia' => 'Transferencia Bancaria',
                     ])
                     ->required()
-                    ->disabled(fn (callable $get) => !$get('caja_id')) // Deshabilitado si no hay caja
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Seleccione cómo pagará el cliente'),
 
                 TextInput::make('cod_operacion')
                     ->label('Código de Operación / Transacción')
                     ->maxLength(100)
-                    ->disabled(fn (callable $get) => !$get('caja_id')) // Deshabilitado si no hay caja
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Solo para pagos digitales o con tarjeta'),
 
                 // === ESTADO DE LA VENTA ===
@@ -455,7 +470,7 @@ class VentaForm
                     ])
                     ->default('emitida')
                     ->required()
-                    ->disabled(fn (callable $get) => !$get('caja_id')) // Deshabilitado si no hay caja
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : null),
             ]);
     }
