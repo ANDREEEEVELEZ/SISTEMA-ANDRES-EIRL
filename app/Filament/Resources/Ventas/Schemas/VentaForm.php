@@ -13,10 +13,13 @@ use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Grid;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Services\CajaService;
-use Filament\Notifications\Notification;
+use App\Services\ApisNetPeService;
 use Closure;
 
 class VentaForm
@@ -86,7 +89,7 @@ class VentaForm
                             ->first();
 
                         if ($cajaAbierta) {
-                            return null; 
+                            return null;
                         } else {
                             $cajasCerradas = \App\Models\Caja::where('user_id', Auth::id())
                                 ->where('estado', 'cerrada')
@@ -249,7 +252,221 @@ class VentaForm
                         TextInput::make('num_doc')
                             ->label('Número de Documento')
                             ->required()
-                            ->maxLength(20),
+                            ->maxLength(20)
+                            ->suffixActions([
+                                Action::make('consultarDocumento')
+                                    ->label('Consultar')
+                                    ->icon('heroicon-o-magnifying-glass')
+                                    ->color('primary')
+                                    ->action(function ($state, $set, $get) {
+                                        if (!$state) {
+                                            Notification::make()
+                                                ->title('Error')
+                                                ->danger()
+                                                ->body('Debe ingresar un número de documento primero')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        $tipoDoc = $get('tipo_doc');
+                                        if (!$tipoDoc) {
+                                            Notification::make()
+                                                ->title('Error')
+                                                ->danger()
+                                                ->body('Debe seleccionar el tipo de documento primero')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        // Validar formato de documento
+                                        if ($tipoDoc === 'DNI' && strlen($state) !== 8) {
+                                            Notification::make()
+                                                ->title('Formato Incorrecto')
+                                                ->warning()
+                                                ->body('El DNI debe tener 8 dígitos')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        if ($tipoDoc === 'RUC' && strlen($state) !== 11) {
+                                            Notification::make()
+                                                ->title('Formato Incorrecto')
+                                                ->warning()
+                                                ->body('El RUC debe tener 11 dígitos')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        // Mostrar notificación de consulta en progreso
+                                        Notification::make()
+                                            ->title('Consultando...')
+                                            ->info()
+                                            ->body('Consultando documento ' . $state . ' en SUNAT/RENIEC...')
+                                            ->send();
+
+                                        try {
+                                            $apisNetService = app(ApisNetPeService::class);
+
+                                            if ($tipoDoc === 'DNI') {
+                                                $response = $apisNetService->consultarDni($state);
+
+                                                // Debug: mostrar respuesta completa
+                                                Log::info('Respuesta DNI API:', $response);
+
+                                                // Verificar si hay mensaje de error
+                                                if (isset($response['message'])) {
+                                                    if ($response['message'] === 'not found') {
+                                                        Notification::make()
+                                                            ->title('DNI No Encontrado')
+                                                            ->warning()
+                                                            ->body('No se encontraron datos para el DNI: ' . $state)
+                                                            ->send();
+                                                        return;
+                                                    } else {
+                                                        Notification::make()
+                                                            ->title('Error de API')
+                                                            ->danger()
+                                                            ->body('Error: ' . $response['message'])
+                                                            ->send();
+                                                        return;
+                                                    }
+                                                }
+
+                                                if (isset($response['error'])) {
+                                                    Notification::make()
+                                                        ->title('Error de Consulta')
+                                                        ->danger()
+                                                        ->body('Error al consultar DNI: ' . $response['error'])
+                                                        ->send();
+                                                    return;
+                                                }
+
+                                                // Verificar diferentes estructuras de respuesta posibles
+                                                if (isset($response['full_name']) || isset($response['first_name']) || isset($response['nombres'])) {
+                                                    $data = $response['data'] ?? $response;
+
+                                                    // Priorizar full_name si existe (Decolecta API)
+                                                    if (isset($data['full_name'])) {
+                                                        $nombreCompleto = trim($data['full_name']);
+                                                    } else {
+                                                        // Construir nombre desde campos individuales
+                                                        $nombreCompleto = trim(
+                                                            ($data['first_name'] ?? $data['nombres'] ?? $data['primer_nombre'] ?? '') . ' ' .
+                                                            ($data['first_last_name'] ?? $data['apellidoPaterno'] ?? $data['apellido_paterno'] ?? '') . ' ' .
+                                                            ($data['second_last_name'] ?? $data['apellidoMaterno'] ?? $data['apellido_materno'] ?? '')
+                                                        );
+                                                    }
+
+                                                    if ($nombreCompleto) {
+                                                        $set('nombre_razon', $nombreCompleto);
+                                                        $set('tipo_cliente', 'natural');
+                                                        
+                                                        // Completar dirección si está disponible, si no, colocar "-"
+                                                        if (isset($data['direccion']) && $data['direccion']) {
+                                                            $set('direccion', $data['direccion']);
+                                                        } else {
+                                                            $set('direccion', '-');
+                                                        }
+
+                                                        Notification::make()
+                                                            ->title('Consulta Exitosa')
+                                                            ->success()
+                                                            ->body('Datos encontrados: ' . $nombreCompleto)
+                                                            ->send();
+                                                    } else {
+                                                        Notification::make()
+                                                            ->title('Datos Incompletos')
+                                                            ->warning()
+                                                            ->body('La API devolvió datos pero están incompletos')
+                                                            ->send();
+                                                    }
+                                                } else {
+                                                    Notification::make()
+                                                        ->title('DNI No Encontrado')
+                                                        ->warning()
+                                                        ->body('No se encontraron datos para el DNI: ' . $state . '. Respuesta: ' . json_encode($response))
+                                                        ->send();
+                                                }
+
+                                            } elseif ($tipoDoc === 'RUC') {
+                                                $response = $apisNetService->consultarRuc($state);
+
+                                                // Debug: mostrar respuesta completa
+                                                Log::info('Respuesta RUC API:', $response);
+
+                                                // Verificar si hay mensaje de error
+                                                if (isset($response['message'])) {
+                                                    if ($response['message'] === 'not found') {
+                                                        Notification::make()
+                                                            ->title('RUC No Encontrado')
+                                                            ->warning()
+                                                            ->body('No se encontraron datos para el RUC: ' . $state)
+                                                            ->send();
+                                                        return;
+                                                    } else {
+                                                        Notification::make()
+                                                            ->title('Error de API')
+                                                            ->danger()
+                                                            ->body('Error: ' . $response['message'])
+                                                            ->send();
+                                                        return;
+                                                    }
+                                                }
+
+                                                if (isset($response['error'])) {
+                                                    Notification::make()
+                                                        ->title('Error de Consulta')
+                                                        ->danger()
+                                                        ->body('Error al consultar RUC: ' . $response['error'])
+                                                        ->send();
+                                                    return;
+                                                }
+
+                                                // Verificar diferentes estructuras de respuesta posibles
+                                                if (isset($response['razon_social']) || isset($response['razonSocial']) || isset($response['data']['razon_social'])) {
+                                                    $data = $response['data'] ?? $response;
+                                                    $razonSocial = $data['razon_social'] ?? $data['razonSocial'] ?? '';
+
+                                                    if ($razonSocial) {
+                                                        $set('nombre_razon', $razonSocial);
+                                                        $set('tipo_cliente', 'juridica');
+                                                        
+                                                        // Completar dirección si está disponible
+                                                        if (isset($data['direccion']) && $data['direccion']) {
+                                                            $set('direccion', $data['direccion']);
+                                                        }
+
+                                                        Notification::make()
+                                                            ->title('Consulta Exitosa')
+                                                            ->success()
+                                                            ->body('Empresa encontrada: ' . $razonSocial)
+                                                            ->send();
+                                                    } else {
+                                                        Notification::make()
+                                                            ->title('Datos Incompletos')
+                                                            ->warning()
+                                                            ->body('La API devolvió datos pero están incompletos')
+                                                            ->send();
+                                                    }
+                                                } else {
+                                                    Notification::make()
+                                                        ->title('RUC No Encontrado')
+                                                        ->warning()
+                                                        ->body('No se encontraron datos para el RUC: ' . $state . '. Respuesta: ' . json_encode($response))
+                                                        ->send();
+                                                }
+                                            }
+
+                                        } catch (\Exception $e) {
+                                            Notification::make()
+                                                ->title('Error del Sistema')
+                                                ->danger()
+                                                ->body('Error interno: ' . $e->getMessage())
+                                                ->send();
+                                        }
+                                    })
+                                    ->tooltip('Consultar documento en base de datos externa')
+                            ]),
 
                         TextInput::make('nombre_razon')
                             ->label('Nombre / Razón Social')
@@ -262,6 +479,11 @@ class VentaForm
                                 'juridica' => 'Persona Jurídica',
                             ])
                             ->required(),
+                        Textarea::make('direccion')
+                            ->label('Dirección')
+                            ->rows(2)
+                            ->maxLength(500),
+
 
                     ])
                     ->createOptionModalHeading('Registrar Nuevo Cliente'),

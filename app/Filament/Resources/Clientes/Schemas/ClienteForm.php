@@ -36,14 +36,14 @@ class ClienteForm
                 ->label('Nombre o Razón Social')
                     ->required(),
                 DatePicker::make('fecha_registro')
-                    ->default(now())
-                    ->required(),
+                    ->default(now()),
+
                 Select::make('estado')
                     ->label('Estado')
                     ->options(['activo' => 'Activo', 'inactivo' => 'Inactivo'])
                     ->default('activo')
                     ->required()
-                    ->disabled() 
+                    ->disabled()
                     ->dehydrated(),
 
                 TextInput::make('telefono')

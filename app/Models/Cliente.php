@@ -27,6 +27,24 @@ class Cliente extends Model
         'fecha_registro' => 'date',
     ];
 
+    protected $attributes = [
+        'estado' => 'activo',
+    ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($cliente) {
+            if (!$cliente->fecha_registro) {
+                $cliente->fecha_registro = now()->toDateString();
+            }
+            if (!$cliente->estado) {
+                $cliente->estado = 'activo';
+            }
+        });
+    }
+
     /**
      * Relación con ventas
      */
