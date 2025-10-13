@@ -35,9 +35,55 @@ class InventarioTable
                     })
                     ->label('Tipo'),
                 
+                TextColumn::make('metodo_ajuste')
+                    ->badge()
+                    ->color('info')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'absoluto' => 'Absoluto',
+                        'relativo' => 'Relativo',
+                        default => '-',
+                    })
+                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->label('Método'),
+                
+                TextColumn::make('motivo_ajuste')
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'conteo_fisico' => 'info',
+                        'vencido' => 'warning',
+                        'danado' => 'danger',
+                        'robo' => 'danger',
+                        'otro' => 'gray',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'conteo_fisico' => 'Conteo Físico',
+                        'vencido' => 'Vencido',
+                        'danado' => 'Dañado',
+                        'robo' => 'Robo/Pérdida',
+                        'otro' => 'Otro',
+                        default => '-',
+                    })
+                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->label('Motivo Ajuste'),
+                
                 TextColumn::make('cantidad_movimiento')
                     ->numeric()
                     ->sortable()
+                    ->formatStateUsing(function ($record) {
+                        // Si es ajuste relativo, mostrar el signo
+                        if ($record && $record->tipo === 'ajuste' && $record->metodo_ajuste === 'relativo') {
+                            $cantidad = $record->cantidad_movimiento;
+                            return $cantidad > 0 ? "+{$cantidad}" : $cantidad;
+                        }
+                        return $record ? $record->cantidad_movimiento : '';
+                    })
+                    ->color(function ($record) {
+                        if ($record && $record->tipo === 'ajuste' && $record->metodo_ajuste === 'relativo') {
+                            return $record->cantidad_movimiento < 0 ? 'danger' : 'success';
+                        }
+                        return 'gray';
+                    })
                     ->label('Cantidad'),
                 
                 TextColumn::make('motivo_movimiento')
@@ -70,6 +116,16 @@ class InventarioTable
                         'ajuste' => 'Ajuste',
                     ])
                     ->label('Tipo de Movimiento'),
+                
+                SelectFilter::make('motivo_ajuste')
+                    ->options([
+                        'conteo_fisico' => 'Conteo Físico',
+                        'vencido' => 'Productos Vencidos',
+                        'danado' => 'Productos Dañados',
+                        'robo' => 'Robo/Pérdida',
+                        'otro' => 'Otro',
+                    ])
+                    ->label('Motivo de Ajuste'),
                 
                 SelectFilter::make('producto_id')
                     ->relationship('producto', 'nombre_producto')

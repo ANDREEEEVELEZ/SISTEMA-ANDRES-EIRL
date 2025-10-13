@@ -23,6 +23,7 @@ class EditInventario extends EditRecord
             'producto_id' => $data['producto_id'],
             'tipo' => $data['tipo'],
             'cantidad_movimiento' => $data['cantidad_movimiento'],
+            'metodo_ajuste' => $data['metodo_ajuste'] ?? null,
         ];
 
         return $data;
@@ -111,8 +112,12 @@ class EditInventario extends EditRecord
                 break;
 
             case 'ajuste':
-                // Los ajustes no se pueden revertir automáticamente de forma precisa
-                // porque reemplazan el stock completo. Se aplica el nuevo valor directamente.
+                // Para ajustes relativos, invertir la operación
+                if (isset($datosMovimiento['metodo_ajuste']) && $datosMovimiento['metodo_ajuste'] === 'relativo') {
+                    $producto->stock_total -= $datosMovimiento['cantidad_movimiento'];
+                }
+                // Para ajustes absolutos, no podemos revertir automáticamente
+                // porque no sabemos cuál era el valor anterior
                 break;
         }
 
@@ -144,7 +149,27 @@ class EditInventario extends EditRecord
                 break;
 
             case 'ajuste':
-                $producto->stock_total = $movimiento->cantidad_movimiento;
+                // Verificar el método de ajuste
+                if ($movimiento->metodo_ajuste === 'relativo') {
+                    // Ajuste relativo: sumar o restar la cantidad del stock actual
+                    $nuevoStock = $producto->stock_total + $movimiento->cantidad_movimiento;
+                    
+                    if ($nuevoStock < 0) {
+                        Notification::make()
+                            ->danger()
+                            ->title('Stock insuficiente')
+                            ->body("El ajuste de {$movimiento->cantidad_movimiento} unidades dejaría el stock en {$nuevoStock}. El stock no puede ser negativo.")
+                            ->persistent()
+                            ->send();
+                        
+                        throw new \Exception('Stock insuficiente');
+                    }
+                    
+                    $producto->stock_total = $nuevoStock;
+                } else {
+                    // Ajuste absoluto: reemplazar el stock con la cantidad
+                    $producto->stock_total = $movimiento->cantidad_movimiento;
+                }
                 break;
         }
 

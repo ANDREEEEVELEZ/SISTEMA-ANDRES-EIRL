@@ -52,8 +52,29 @@ class CreateInventario extends CreateRecord
                     break;
 
                 case 'ajuste':
-                    // Reemplazar el stock con la cantidad del ajuste
-                    $producto->stock_total = $movimiento->cantidad_movimiento;
+                    // Verificar el método de ajuste
+                    if ($movimiento->metodo_ajuste === 'relativo') {
+                        // Ajuste relativo: sumar o restar la cantidad del stock actual
+                        $nuevoStock = $producto->stock_total + $movimiento->cantidad_movimiento;
+                        
+                        // Validar que no quede negativo
+                        if ($nuevoStock < 0) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Stock insuficiente')
+                                ->body("El ajuste de {$movimiento->cantidad_movimiento} unidades dejaría el stock en {$nuevoStock}. El stock no puede ser negativo.")
+                                ->persistent()
+                                ->send();
+                            
+                            $movimiento->delete();
+                            return;
+                        }
+                        
+                        $producto->stock_total = $nuevoStock;
+                    } else {
+                        // Ajuste absoluto: reemplazar el stock con la cantidad del ajuste
+                        $producto->stock_total = $movimiento->cantidad_movimiento;
+                    }
                     break;
             }
 

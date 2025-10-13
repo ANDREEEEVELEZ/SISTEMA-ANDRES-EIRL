@@ -12,10 +12,28 @@ class MovimientoInventario extends Model
 
     protected $table = 'movimientos_inventario';
 
+    // Constantes para tipos de movimiento
+    public const TIPO_ENTRADA = 'entrada';
+    public const TIPO_SALIDA = 'salida';
+    public const TIPO_AJUSTE = 'ajuste';
+
+    // Constantes para métodos de ajuste
+    public const METODO_ABSOLUTO = 'absoluto';
+    public const METODO_RELATIVO = 'relativo';
+
+    // Constantes para motivos de ajuste
+    public const MOTIVO_CONTEO_FISICO = 'conteo_fisico';
+    public const MOTIVO_VENCIDO = 'vencido';
+    public const MOTIVO_DANADO = 'danado';
+    public const MOTIVO_ROBO = 'robo';
+    public const MOTIVO_OTRO = 'otro';
+
     protected $fillable = [
         'producto_id',
         'user_id',
         'tipo',
+        'metodo_ajuste',
+        'motivo_ajuste',
         'cantidad_movimiento',
         'motivo_movimiento',
         'fecha_movimiento',
