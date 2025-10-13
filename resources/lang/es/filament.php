@@ -35,4 +35,8 @@ return [
         'no_data_found' => 'No se encontraron datos',
     ],
 
+    'validation' => [
+        'max_length' => 'El campo :attribute no debe tener más de :max caracteres.',
+    ],
+
 ];
