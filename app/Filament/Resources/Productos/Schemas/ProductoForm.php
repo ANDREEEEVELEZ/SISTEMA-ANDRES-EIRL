@@ -38,11 +38,12 @@ class ProductoForm
                     ->columnSpanFull(),
                 
                 TextInput::make('unidad_medida')
-                    ->label('Unidad de Medida')
+                    ->label('Descripción de la Unidad')
                     ->required()
-                    ->placeholder('Ej: Unidad, Kg, Litro, Caja, etc.')
+                    ->placeholder('Ej: Botella (1L), Bolsa (500g), Caja (12 unid.)')
                     ->maxLength(50)
-                    ->helperText('Especifique cómo se mide este producto'),
+                    ->helperText('Especifique cómo se presenta este producto. El stock siempre se cuenta en unidades de este tipo.')
+                    ->hint('💡 Ejemplo: Si vende botellas de 1 litro, escriba "Botella (1L)"'),
                 
                 Select::make('estado')
                     ->label('Estado')
@@ -55,13 +56,13 @@ class ProductoForm
                 
                 // === CONTROL DE INVENTARIO ===
                 TextInput::make('stock_total')
-                    ->label('Stock Total')
+                    ->label('Stock Total (Cantidad de Unidades)')
                     ->required()
                     ->numeric()
                     ->default(0)
                     ->minValue(0)
                     ->suffix('unidades')
-                    ->helperText('Cantidad actual en inventario'),
+                    ->helperText('Cantidad actual en inventario. Se descuenta automáticamente con cada venta.'),
                 
                 TextInput::make('stock_minimo')
                     ->label('Stock Mínimo')

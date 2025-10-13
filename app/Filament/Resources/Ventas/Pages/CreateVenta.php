@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Ventas\Pages;
 use App\Filament\Resources\Ventas\VentaResource;
 use App\Filament\Resources\Cajas\CajaResource;
 use App\Services\CajaService;
+use App\Models\Producto;
+use App\Models\MovimientoInventario;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 use Filament\Actions\Action;
@@ -12,6 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class CreateVenta extends CreateRecord
 {
@@ -189,12 +192,120 @@ class CreateVenta extends CreateRecord
 
             $this->halt();
         }
+
+        // Validar stock disponible antes de crear la venta
+        $data = $this->form->getState();
+        
+        // Validar que hay detalles de venta
+        if (empty($data['detalleVentas'])) {
+            Notification::make()
+                ->title('❌ Error en la Venta')
+                ->body('Debe agregar al menos un producto a la venta.')
+                ->danger()
+                ->persistent()
+                ->send();
+            
+            $this->halt();
+        }
+
+        // Validar stock disponible para cada producto
+        foreach ($data['detalleVentas'] as $index => $detalle) {
+            $producto = Producto::find($detalle['producto_id']);
+            
+            if (!$producto) {
+                Notification::make()
+                    ->title('❌ Error de Producto')
+                    ->body('Uno de los productos seleccionados no existe.')
+                    ->danger()
+                    ->persistent()
+                    ->send();
+                
+                $this->halt();
+            }
+
+            // Validar que hay suficiente stock
+            if ($producto->stock_total < $detalle['cantidad_venta']) {
+                Notification::make()
+                    ->title('⚠️ Stock Insuficiente')
+                    ->body("El producto '{$producto->nombre_producto}' solo tiene {$producto->stock_total} unidades disponibles en inventario. Usted intentó vender {$detalle['cantidad_venta']} unidades.")
+                    ->danger()
+                    ->persistent()
+                    ->send();
+                
+                $this->halt();
+            }
+        }
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['user_id'] = Auth::id();
+        $data['fecha_venta'] = $data['fecha_emision'] ?? now();
 
         return $data;
+    }
+
+    /**
+     * Descontar inventario y registrar movimientos después de crear la venta
+     */
+    protected function afterCreate(): void
+    {
+        DB::transaction(function () {
+            $venta = $this->record;
+            $productosActualizados = [];
+            $alertasStockBajo = [];
+            
+            // Procesar cada detalle de venta
+            foreach ($venta->detalleVentas as $detalle) {
+                $producto = Producto::find($detalle->producto_id);
+                
+                if ($producto) {
+                    // Descontar del stock
+                    $stockAnterior = $producto->stock_total;
+                    $nuevoStock = $stockAnterior - $detalle->cantidad_venta;
+                    
+                    $producto->update([
+                        'stock_total' => $nuevoStock
+                    ]);
+
+                    // Registrar movimiento de inventario (SALIDA)
+                    MovimientoInventario::create([
+                        'producto_id' => $producto->id,
+                        'user_id' => Auth::id(),
+                        'tipo' => 'salida',
+                        'cantidad_movimiento' => $detalle->cantidad_venta,
+                        'motivo_movimiento' => "Venta #{$venta->id} - Cliente: {$venta->cliente->nombre_razon}",
+                        'fecha_movimiento' => now(),
+                    ]);
+
+                    $productosActualizados[] = "• {$producto->nombre_producto}: {$stockAnterior} → {$nuevoStock} unidades";
+
+                    // Verificar si el stock está por debajo del mínimo
+                    if ($nuevoStock <= $producto->stock_minimo) {
+                        $alertasStockBajo[] = "• {$producto->nombre_producto}: {$nuevoStock} unidades (Mínimo: {$producto->stock_minimo})";
+                    }
+                }
+            }
+
+            // Notificación de éxito con detalles
+            $mensaje = "La venta #{$venta->id} se registró correctamente.\n\n📦 Inventario actualizado:\n" . implode("\n", $productosActualizados);
+            
+            Notification::make()
+                ->title('✅ Venta Registrada Exitosamente')
+                ->body($mensaje)
+                ->success()
+                ->duration(8000)
+                ->send();
+
+            // Alertas de stock bajo (si aplica)
+            if (!empty($alertasStockBajo)) {
+                Notification::make()
+                    ->title('⚠️ Alerta de Stock Bajo')
+                    ->body("Los siguientes productos tienen stock bajo o insuficiente:\n\n" . implode("\n", $alertasStockBajo))
+                    ->warning()
+                    ->persistent()
+                    ->send();
+            }
+        });
     }
 }
