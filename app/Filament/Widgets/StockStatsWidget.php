@@ -23,21 +23,21 @@ class StockStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-o-exclamation-circle')
                 ->color('danger')
                 ->chart([$productosAgotados])
-                ->url(route('filament.admin.resources.productos.productos.index') . '?tableFilters[estado_stock][tipo]=agotado'),
+                ->url(route('filament.admin.resources.productos.index') . '?tableFilters[estado_stock][tipo]=agotado'),
             
             Stat::make('Stock Bajo', $productosStockBajo)
                 ->description('Por debajo del mínimo')
                 ->descriptionIcon('heroicon-o-exclamation-triangle')
                 ->color('warning')
                 ->chart([$productosStockBajo])
-                ->url(route('filament.admin.resources.productos.productos.index') . '?tableFilters[estado_stock][tipo]=bajo'),
+                ->url(route('filament.admin.resources.productos.index') . '?tableFilters[estado_stock][tipo]=bajo'),
             
             Stat::make('Stock Normal', $productosNormales)
                 ->description('Stock suficiente')
                 ->descriptionIcon('heroicon-o-check-circle')
                 ->color('success')
                 ->chart([$productosNormales])
-                ->url(route('filament.admin.resources.productos.productos.index') . '?tableFilters[estado_stock][tipo]=normal'),
+                ->url(route('filament.admin.resources.productos.index') . '?tableFilters[estado_stock][tipo]=normal'),
         ];
     }
 
