@@ -191,7 +191,7 @@ return [
         'subject' => 'class',
         'prefix' => 'view',
         'exclude' => [
-            \Filament\Pages\Dashboard::class,
+            \App\Filament\Pages\Dashboard::class,
         ],
     ],
 

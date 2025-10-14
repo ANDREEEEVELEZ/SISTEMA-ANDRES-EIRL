@@ -18,7 +18,7 @@ class ProductoResource extends Resource
 {
     protected static ?string $model = Producto::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-cube';
 
     protected static ?string $recordTitleAttribute = 'nombre_producto';
 

@@ -19,7 +19,7 @@ class VentaResource extends Resource
 {
     protected static ?string $model = Venta::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-cart';
 
     protected static ?string $recordTitleAttribute = 'total_venta';
 

@@ -19,7 +19,7 @@ class CajaResource extends Resource
 {
     protected static ?string $model = Caja::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-currency-dollar';
 
     protected static ?string $recordTitleAttribute = 'fecha_apertura';
 
