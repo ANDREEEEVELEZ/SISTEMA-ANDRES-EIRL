@@ -18,11 +18,11 @@
             x-show="!cameraOpen"
             class="inline-flex items-center px-4 py-2.5 bg-primary-600 hover:bg-primary-700 border border-transparent rounded-lg font-semibold text-sm text-white shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-            </svg>
-            <span x-text="isEditing ? '🔄 Actualizar Registro Facial' : '📷 Registrar Rostro'"></span>
+            <x-filament::icon 
+                icon="heroicon-o-camera" 
+                class="w-4 h-4 mr-2"
+            />
+            <span x-text="isEditing ? 'Actualizar Registro Facial' : 'Registrar Rostro'"></span>
         </button>
         
         @if($hasPhoto && $isEditing)
@@ -31,9 +31,10 @@
                 @click="deletePhoto()"
                 class="inline-flex items-center px-4 py-2.5 bg-danger-600 hover:bg-danger-700 border border-transparent rounded-lg font-semibold text-sm text-white shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-2"
             >
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
+                <x-filament::icon 
+                    icon="heroicon-o-trash" 
+                    class="w-4 h-4 mr-2"
+                />
                 Eliminar Rostro
             </button>
         @endif
@@ -60,9 +61,10 @@
                 <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4">
                     <div class="flex items-center justify-between">
                         <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
-                            </svg>
+                            <x-filament::icon 
+                                icon="heroicon-o-camera" 
+                                class="w-5 h-5"
+                            />
                             Captura de Rostro Facial
                         </h3>
                         <button
@@ -70,9 +72,10 @@
                             @click="closeCamera()"
                             class="text-white hover:text-gray-200 transition-colors"
                         >
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
+                            <x-filament::icon 
+                                icon="heroicon-o-x-mark" 
+                                class="w-6 h-6"
+                            />
                         </button>
                     </div>
                 </div>
@@ -93,9 +96,10 @@
                             <div class="relative">
                                 <div class="w-64 h-64 border-4 border-dashed border-primary-400 rounded-full animate-pulse"></div>
                                 <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                                    <svg class="w-32 h-32 text-primary-400 opacity-30" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                                    </svg>
+                                    <x-filament::icon 
+                                        icon="heroicon-o-user-circle" 
+                                        class="w-32 h-32 text-primary-400 opacity-30"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -106,10 +110,10 @@
                             :class="status.color"
                         >
                             <span class="flex items-center gap-2">
-                                <svg x-show="status.loading" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
+                                <x-filament::loading-indicator 
+                                    x-show="status.loading" 
+                                    class="h-4 w-4"
+                                />
                                 <span x-text="status.text"></span>
                             </span>
                         </div>
@@ -126,9 +130,10 @@
                     <div x-show="capturedImage" class="space-y-3">
                         <div class="bg-gradient-to-br from-success-50 to-success-100 dark:from-success-900/20 dark:to-success-800/20 rounded-xl p-6 border-2 border-success-300">
                             <h4 class="text-sm font-semibold text-success-800 dark:text-success-300 mb-4 flex items-center gap-2">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
+                                <x-filament::icon 
+                                    icon="heroicon-o-check-circle" 
+                                    class="w-5 h-5"
+                                />
                                 Vista Previa - Rostro Capturado
                             </h4>
                             <div class="flex justify-center">
@@ -165,9 +170,10 @@
                             :disabled="!modelsLoaded"
                             class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
-                            </svg>
+                            <x-filament::icon 
+                                icon="heroicon-o-camera" 
+                                class="w-4 h-4"
+                            />
                             Capturar Rostro
                         </button>
                         
@@ -177,9 +183,10 @@
                             x-show="capturedImage"
                             class="px-5 py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all flex items-center gap-2"
                         >
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
-                            </svg>
+                            <x-filament::icon 
+                                icon="heroicon-o-arrow-path" 
+                                class="w-4 h-4"
+                            />
                             Volver a Tomar
                         </button>
                         
@@ -189,9 +196,10 @@
                             x-show="capturedImage"
                             class="px-5 py-2.5 bg-success-600 hover:bg-success-700 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all flex items-center gap-2"
                         >
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
+                            <x-filament::icon 
+                                icon="heroicon-o-check" 
+                                class="w-4 h-4"
+                            />
                             Confirmar y Guardar
                         </button>
                     </div>
