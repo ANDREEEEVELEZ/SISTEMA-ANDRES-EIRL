@@ -24,10 +24,8 @@ class InventarioForm
                     ->required()
                     ->label('Producto'),
                 
-                Select::make('user_id')
-                    ->options(User::pluck('name', 'id'))
-                    ->required()
-                    ->label('Usuario'),
+                // El user_id se asigna automáticamente en CreateInventario
+                // No se muestra en el formulario por seguridad
                 
                 Select::make('tipo')
                     ->options([

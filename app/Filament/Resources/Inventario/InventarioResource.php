@@ -13,6 +13,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class InventarioResource extends Resource
 {
@@ -38,6 +40,26 @@ class InventarioResource extends Resource
     public static function table(Table $table): Table
     {
         return InventarioTable::configure($table);
+    }
+
+    /**
+     * Filtrar registros según el rol del usuario
+     * - Empleados: Solo ven sus propios movimientos
+     * - Super Admin: Ve todos los movimientos
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        $user = Auth::user();
+        
+        // Si el usuario es super_admin, ve todos los registros
+        if ($user && $user->hasRole('super_admin')) {
+            return $query;
+        }
+        
+        // Si no es super_admin, solo ve sus propios movimientos
+        return $query->where('user_id', Auth::id());
     }
 
     public static function getRelations(): array

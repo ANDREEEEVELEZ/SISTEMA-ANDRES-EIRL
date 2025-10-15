@@ -7,6 +7,7 @@ use App\Models\Producto;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class CreateInventario extends CreateRecord
 {
@@ -15,6 +16,17 @@ class CreateInventario extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    /**
+     * Asignar automáticamente el usuario autenticado antes de crear el registro
+     */
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        // Asignar el ID del usuario autenticado automáticamente
+        $data['user_id'] = Auth::id();
+        
+        return $data;
     }
 
     /**

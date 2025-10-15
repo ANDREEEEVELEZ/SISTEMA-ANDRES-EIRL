@@ -8,6 +8,7 @@ use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class InventarioTable
 {
@@ -23,7 +24,8 @@ class InventarioTable
                 TextColumn::make('user.name')
                     ->searchable()
                     ->sortable()
-                    ->label('Usuario'),
+                    ->label('Usuario')
+                    ->visible(fn () => Auth::user()?->hasRole('super_admin')),
                 
                 TextColumn::make('tipo')
                     ->badge()
