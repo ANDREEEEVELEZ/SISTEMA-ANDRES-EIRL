@@ -19,6 +19,8 @@ class Asistencia extends Model
         'hora_salida',
         'estado',
         'observacion',
+        'metodo_registro',
+        'razon_manual',
     ];
 
     protected $casts = [
@@ -26,6 +28,26 @@ class Asistencia extends Model
         'hora_entrada' => 'datetime:H:i',
         'hora_salida' => 'datetime:H:i',
     ];
+
+    /**
+     * Obtener el método de registro en formato legible
+     */
+    public function getMetodoRegistroFormateadoAttribute(): string
+    {
+        return match($this->metodo_registro) {
+            'facial' => '📷 Reconocimiento Facial',
+            'manual_dni' => '📝 Manual (DNI)',
+            default => 'Desconocido'
+        };
+    }
+
+    /**
+     * Verificar si es registro manual
+     */
+    public function esRegistroManual(): bool
+    {
+        return $this->metodo_registro === 'manual_dni';
+    }
 
     /**
      * Relación con empleado

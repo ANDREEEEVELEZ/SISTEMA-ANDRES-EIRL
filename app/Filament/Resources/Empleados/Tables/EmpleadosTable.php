@@ -6,6 +6,8 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\Action;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
@@ -20,6 +22,23 @@ class EmpleadosTable
     {
         return $table
             ->columns([
+                ImageColumn::make('foto_facial_path')
+                    ->label('Foto')
+                    ->circular()
+                    ->defaultImageUrl(url('/images/default-avatar.png'))
+                    ->disk('public')
+                    ->size(50)
+                    ->tooltip(fn ($record) => $record->face_descriptors ? 'Rostro registrado' : 'Sin rostro'),
+                
+                IconColumn::make('face_descriptors')
+                    ->label('Facial')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->tooltip(fn ($record) => $record->face_descriptors ? '✅ Puede usar reconocimiento facial' : '❌ No registrado'),
+                
                 TextColumn::make('user.name')
                     ->label('Usuario')
                     ->sortable()

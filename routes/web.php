@@ -17,12 +17,13 @@ Route::get('/asistencia/foto/{ruta}', [AsistenciaFotoController::class, 'obtener
 Route::prefix('face-recognition')->group(function () {
     // Páginas
     Route::get('/attendance', [FaceRecognitionController::class, 'attendancePage'])->name('face.attendance');
-    Route::get('/register', [FaceRecognitionController::class, 'registrationPage'])->name('face.register');
+    Route::get('/register', [FaceRecognitionController::class, 'registrationPage'])->name('face.register'); // Deprecada, mantener por compatibilidad
 
     // API endpoints
-    Route::post('/register-face', [FaceRecognitionController::class, 'registerFace'])->name('face.register.store');
+    Route::post('/register-face', [FaceRecognitionController::class, 'registerFace'])->name('face.register.store'); // Deprecada
     Route::post('/mark-attendance', [FaceRecognitionController::class, 'markAttendanceByFace'])->name('face.attendance.mark');
-    Route::get('/employees', [FaceRecognitionController::class, 'getEmployeesForRegistration'])->name('face.employees');
+    Route::post('/mark-attendance-manual', [FaceRecognitionController::class, 'markAttendanceManual'])->name('face.attendance.manual'); // NUEVO
+    Route::get('/employees', [FaceRecognitionController::class, 'getEmployeesForRegistration'])->name('face.employees'); // Deprecada
 
 
     Route::get('/consultar-documento', [ClientesController::class, 'buscarPorDocumento']);

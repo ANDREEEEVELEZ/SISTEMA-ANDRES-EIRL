@@ -18,27 +18,61 @@ class FaceRecognitionService
      * 
      * @param int $empleadoId
      * @param array $faceDescriptors Descriptores faciales obtenidos de Face-API.js
-     * @param string $fotoPath Ruta de la foto de referencia
+     * @param string $dni DNI del empleado para nombrar el archivo
+     * @param string $photoBase64 Imagen en base64
      * @return bool
      */
-    public function registerFaceDescriptors(int $empleadoId, array $faceDescriptors, string $fotoPath): bool
+    public function registerFaceDescriptors(int $empleadoId, array $faceDescriptors, string $dni, string $photoBase64): bool
     {
         try {
             $empleado = Empleado::findOrFail($empleadoId);
             
+            // Eliminar foto anterior si existe
+            if ($empleado->foto_facial_path && Storage::disk('public')->exists($empleado->foto_facial_path)) {
+                Storage::disk('public')->delete($empleado->foto_facial_path);
+                Log::info("Foto anterior eliminada: {$empleado->foto_facial_path}");
+            }
+            
+            // Guardar nueva foto con formato: Empleado_{DNI}.jpg
+            $photoPath = $this->saveFaceImage($dni, $photoBase64);
+            
             // Guardar descriptores como JSON
             $empleado->update([
                 'face_descriptors' => json_encode($faceDescriptors),
-                'foto_facial_path' => $fotoPath
+                'foto_facial_path' => $photoPath
             ]);
 
-            Log::info("Descriptores faciales registrados para empleado: {$empleado->nombres}");
+            Log::info("Descriptores faciales registrados para empleado: {$empleado->nombres} (DNI: {$dni})");
             
             return true;
         } catch (\Exception $e) {
             Log::error("Error registrando descriptores faciales: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Guarda la imagen facial usando el DNI como nombre
+     * 
+     * @param string $dni
+     * @param string $photoBase64
+     * @return string Ruta relativa del archivo guardado
+     */
+    private function saveFaceImage(string $dni, string $photoBase64): string
+    {
+        // Decodificar base64
+        $photoData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $photoBase64));
+        
+        // Generar nombre de archivo: Empleado_12345678.jpg
+        $filename = "Empleado_{$dni}.jpg";
+        $path = "empleados_rostros/{$filename}";
+        
+        // Guardar en storage/app/public/empleados_rostros/
+        Storage::disk('public')->put($path, $photoData);
+        
+        Log::info("Imagen facial guardada: {$path}");
+        
+        return $path;
     }
 
     /**
@@ -145,8 +179,9 @@ class FaceRecognitionService
             $empleado = Empleado::findOrFail($empleadoId);
             
             // Eliminar foto de referencia si existe
-            if ($empleado->foto_facial_path && Storage::exists($empleado->foto_facial_path)) {
-                Storage::delete($empleado->foto_facial_path);
+            if ($empleado->foto_facial_path && Storage::disk('public')->exists($empleado->foto_facial_path)) {
+                Storage::disk('public')->delete($empleado->foto_facial_path);
+                Log::info("Foto facial eliminada: {$empleado->foto_facial_path}");
             }
 
             // Limpiar datos faciales
@@ -155,10 +190,28 @@ class FaceRecognitionService
                 'foto_facial_path' => null
             ]);
 
+            Log::info("Datos faciales eliminados para empleado: {$empleado->nombres}");
+            
             return true;
         } catch (\Exception $e) {
             Log::error("Error eliminando datos faciales: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Valida si un DNI existe en la base de datos
+     * 
+     * @param string $dni
+     * @return Empleado|null
+     */
+    public function validateDNIForManualAttendance(string $dni): ?Empleado
+    {
+        try {
+            return Empleado::where('dni', $dni)->first();
+        } catch (\Exception $e) {
+            Log::error("Error validando DNI: " . $e->getMessage());
+            return null;
         }
     }
 }

@@ -22,6 +22,8 @@ class FaceRecognitionController extends Controller
 
     /**
      * Registra la foto facial de referencia de un empleado
+     * NOTA: Este método se mantiene por compatibilidad pero ya no se usa
+     * El registro ahora se hace desde el módulo de Filament
      */
     public function registerFace(Request $request)
     {
@@ -44,18 +46,16 @@ class FaceRecognitionController extends Controller
             $empleadoId = $request->empleado_id;
             $faceDescriptors = $request->face_descriptors;
             $photoBase64 = $request->photo;
-
-            // Decodificar y guardar la foto de referencia
-            $photoData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $photoBase64));
-            $photoPath = "facial_references/{$empleadoId}_" . time() . ".jpg";
             
-            Storage::put($photoPath, $photoData);
+            // Obtener el empleado para conseguir su DNI
+            $empleado = Empleado::findOrFail($empleadoId);
 
-            // Registrar descriptores faciales
+            // Registrar descriptores faciales con el nuevo método
             $success = $this->faceRecognitionService->registerFaceDescriptors(
                 $empleadoId, 
                 $faceDescriptors, 
-                $photoPath
+                $empleado->dni,
+                $photoBase64
             );
 
             if ($success) {
@@ -106,7 +106,8 @@ class FaceRecognitionController extends Controller
             if (!$empleado) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se pudo identificar al empleado. Asegúrate de que tu rostro esté registrado.'
+                    'message' => 'No se pudo identificar al empleado. Asegúrate de que tu rostro esté registrado.',
+                    'no_match' => true // Flag para que el frontend cuente el intento fallido
                 ], 404);
             }
 
@@ -126,7 +127,7 @@ class FaceRecognitionController extends Controller
                     return response()->json([
                         'success' => true,
                         'message' => "Salida registrada correctamente para {$empleado->nombres}",
-                        'empleado' => $empleado->nombres,
+                        'empleado' => $empleado->nombres . ' ' . $empleado->apellidos,
                         'tipo' => 'salida',
                         'hora' => Carbon::now()->format('H:i:s')
                     ]);
@@ -142,13 +143,14 @@ class FaceRecognitionController extends Controller
                     'empleado_id' => $empleado->id,
                     'fecha' => $hoy,
                     'hora_entrada' => Carbon::now()->format('H:i:s'),
-                    'estado' => 'presente'
+                    'estado' => 'presente',
+                    'metodo_registro' => 'facial'
                 ]);
 
                 return response()->json([
                     'success' => true,
                     'message' => "Entrada registrada correctamente para {$empleado->nombres}",
-                    'empleado' => $empleado->nombres,
+                    'empleado' => $empleado->nombres . ' ' . $empleado->apellidos,
                     'tipo' => 'entrada',
                     'hora' => Carbon::now()->format('H:i:s')
                 ]);
@@ -156,6 +158,106 @@ class FaceRecognitionController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Error marcando asistencia facial: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
+
+    /**
+     * Marca asistencia manualmente usando DNI (sistema de respaldo)
+     */
+    public function markAttendanceManual(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'dni' => 'required|string|max:15',
+            'razon_manual' => 'required|string|min:10|max:500',
+            'intentos_fallidos' => 'required|integer|min:3'
+        ], [
+            'dni.required' => 'El DNI es obligatorio',
+            'razon_manual.required' => 'Debe explicar el motivo del registro manual',
+            'razon_manual.min' => 'La explicación debe tener al menos 10 caracteres',
+            'intentos_fallidos.min' => 'Este método solo está disponible después de 3 intentos fallidos'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos inválidos',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $dni = $request->dni;
+            $razonManual = $request->razon_manual;
+            $intentosFallidos = $request->intentos_fallidos;
+
+            // Validar que el DNI exista en el sistema
+            $empleado = $this->faceRecognitionService->validateDNIForManualAttendance($dni);
+
+            if (!$empleado) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'DNI no encontrado en el sistema. Verifica que esté correcto.'
+                ], 404);
+            }
+
+            // Verificar si ya marcó asistencia hoy
+            $hoy = Carbon::today();
+            $asistenciaExistente = Asistencia::where('empleado_id', $empleado->id)
+                ->whereDate('fecha', $hoy)
+                ->first();
+
+            if ($asistenciaExistente) {
+                // Si ya marcó entrada, marcar salida
+                if (!$asistenciaExistente->hora_salida) {
+                    $asistenciaExistente->update([
+                        'hora_salida' => Carbon::now()->format('H:i:s')
+                    ]);
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => "Salida registrada manualmente para {$empleado->nombres}",
+                        'empleado' => $empleado->nombres . ' ' . $empleado->apellidos,
+                        'tipo' => 'salida',
+                        'hora' => Carbon::now()->format('H:i:s'),
+                        'metodo' => 'manual'
+                    ]);
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Ya has registrado entrada y salida hoy, {$empleado->nombres}"
+                    ]);
+                }
+            } else {
+                // Marcar entrada manual
+                Asistencia::create([
+                    'empleado_id' => $empleado->id,
+                    'fecha' => $hoy,
+                    'hora_entrada' => Carbon::now()->format('H:i:s'),
+                    'estado' => 'presente',
+                    'metodo_registro' => 'manual_dni',
+                    'razon_manual' => $razonManual,
+                    'intentos_fallidos' => $intentosFallidos
+                ]);
+
+                Log::warning("Asistencia registrada manualmente para {$empleado->nombres} (DNI: {$dni}). Motivo: {$razonManual}");
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Entrada registrada manualmente para {$empleado->nombres}",
+                    'empleado' => $empleado->nombres . ' ' . $empleado->apellidos,
+                    'tipo' => 'entrada',
+                    'hora' => Carbon::now()->format('H:i:s'),
+                    'metodo' => 'manual',
+                    'advertencia' => 'Se recomienda actualizar tu registro facial en el sistema.'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error en registro manual de asistencia: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error interno del servidor'
