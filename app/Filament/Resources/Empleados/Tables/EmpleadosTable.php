@@ -15,6 +15,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 
 class EmpleadosTable
 {
@@ -26,7 +27,12 @@ class EmpleadosTable
                     ->label('Foto')
                     ->circular()
                     ->defaultImageUrl(url('/images/default-avatar.png'))
-                    ->disk('public')
+                    ->getStateUsing(function ($record) {
+                        if ($record->foto_facial_path && Storage::disk('public')->exists($record->foto_facial_path)) {
+                            return asset('storage/' . $record->foto_facial_path);
+                        }
+                        return url('/images/default-avatar.png');
+                    })
                     ->size(50)
                     ->tooltip(fn ($record) => $record->face_descriptors ? 'Rostro registrado' : 'Sin rostro'),
                 
