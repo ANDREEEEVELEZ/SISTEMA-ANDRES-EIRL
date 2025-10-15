@@ -43,8 +43,8 @@ class EditCaja extends EditRecord
                     try {
                         DB::transaction(function () {
                             // Calcular saldo final
-                            $ingresos = $this->record->ventas()->sum('total');
-                            $gastos = $this->record->movimientos_caja()->where('tipo', 'salida')->sum('monto');
+                            $ingresos = $this->record->ventas()->sum('total_venta');
+                            $gastos = $this->record->movimientosCaja()->where('tipo', 'salida')->sum('monto');
                             $saldo_final = $this->record->saldo_inicial + $ingresos - $gastos;
 
                             // Cerrar la caja con observación especial
@@ -89,8 +89,8 @@ class EditCaja extends EditRecord
                     try {
                         DB::transaction(function () {
                             // Calcular saldo final
-                            $ingresos = $this->record->ventas()->sum('total');
-                            $gastos = $this->record->movimientos_caja()->where('tipo', 'salida')->sum('monto');
+                            $ingresos = $this->record->ventas()->sum('total_venta');
+                            $gastos = $this->record->movimientosCaja()->where('tipo', 'salida')->sum('monto');
                             $saldo_final = $this->record->saldo_inicial + $ingresos - $gastos;
 
                             // Actualizar la caja

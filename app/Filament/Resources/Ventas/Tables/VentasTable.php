@@ -4,17 +4,31 @@ namespace App\Filament\Resources\Ventas\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Notifications\Notification;
 
 class VentasTable
 {
+    protected static function anularTicket($record, $observacion = null): void
+    {
+        $record->update([
+            'estado_venta' => 'anulada',
+            'observacion' => $observacion ?? 'Ticket anulado'
+        ]);
+
+        Notification::make()
+            ->title('Ticket anulado')
+            ->body("El ticket de la venta #{$record->id} ha sido anulado exitosamente.")
+            ->success()
+            ->send();
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -22,14 +36,72 @@ class VentasTable
                                 TextColumn::make('comprobantes')
                     ->label('Comprobante')
                     ->formatStateUsing(function ($record) {
-                        $comprobante = $record->comprobantes->first();
+                        // Obtener solo el comprobante principal (NO las notas)
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
+
                         if (!$comprobante) {
                             return 'Sin comprobante';
                         }
-                        return "{$comprobante->tipo} {$comprobante->serie}-{$comprobante->correlativo}";
+
+                        $texto = strtoupper($comprobante->tipo) . " {$comprobante->serie}-{$comprobante->correlativo}";
+
+                        // Si el comprobante está anulado, mostrar con qué nota se anuló
+                        if ($comprobante->estado === 'anulado') {
+                            $nota = $record->comprobantes()
+                                ->whereIn('tipo', ['nota de credito', 'nota de debito'])
+                                ->first();
+
+                            if ($nota) {
+                                $tipoNotaAbrev = $nota->tipo === 'nota de credito' ? 'NC' : 'ND';
+                                $texto .= "\n→ {$tipoNotaAbrev} {$nota->serie}-{$nota->correlativo}";
+                            }
+                        }
+
+                        return $texto;
                     })
                     ->badge()
-                    ->color(fn ($record) => $record->comprobantes->first() ? 'success' : 'danger'),
+                    ->color(function ($record) {
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
+
+                        if (!$comprobante) {
+                            return 'danger';
+                        }
+
+                        // Color según el estado del comprobante
+                        if ($comprobante->estado === 'emitido') {
+                            return 'success';
+                        } elseif ($comprobante->estado === 'anulado') {
+                            return 'warning';
+                        } elseif ($comprobante->estado === 'rechazado') {
+                            return 'danger';
+                        }
+
+                        return 'gray';
+                    })
+                    ->description(function ($record) {
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
+
+                        if (!$comprobante || $comprobante->estado !== 'anulado') {
+                            return null;
+                        }
+
+                        $nota = $record->comprobantes()
+                            ->whereIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
+
+                        if ($nota) {
+                            $tipoNota = $nota->tipo === 'nota de credito' ? 'Nota de Crédito' : 'Nota de Débito';
+                            return "Anulado con {$tipoNota}: {$nota->serie}-{$nota->correlativo}";
+                        }
+
+                        return 'Anulado';
+                    }),
 
 
                 TextColumn::make('fecha_venta')
@@ -62,63 +134,6 @@ class VentasTable
                     ->searchable(),
                     //->toggleable(),
 
-                /*TextColumn::make('user.name')
-                    ->label('Vendedor')
-                    ->sortable()
-                    ->searchable()
-                    ->toggleable(),*/
-
-               /* TextColumn::make('caja.id')
-                    ->label('Caja')
-                    ->sortable()
-                    ->formatStateUsing(fn ($state) => "Caja #{$state}")
-                    ->toggleable(),*/
-
-              /*  TextColumn::make('detalleVentas')
-                    ->label('Productos')
-                    ->formatStateUsing(function ($record) {
-                        $cantidad = $record->detalleVentas->count();
-                        if ($cantidad === 0) {
-                            return 'Sin productos';
-                        }
-                        if ($cantidad === 1) {
-                            return '1 producto';
-                        }
-                        return "{$cantidad} productos";
-                    })
-                    ->badge()
-                    ->color('info')
-                    ->tooltip(function ($record) {
-                        $productos = $record->detalleVentas;
-                        if ($productos->isEmpty()) {
-                            return 'No hay productos registrados';
-                        }
-                        return $productos->map(function ($detalle) {
-                            return "• {$detalle->producto->nombre_producto} x{$detalle->cantidad_venta} = S/ " .
-                            number_format($detalle->subtotal, 2);
-                        })->join("\n");
-                    }),
-
-                TextColumn::make('subtotal_venta')
-                    ->label('Subtotal')
-                    ->money('PEN')
-                    ->sortable()
-                    ->alignEnd()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('descuento_total')
-                    ->label('Descuento')
-                    ->money('PEN')
-                    ->sortable()
-                    ->alignEnd()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('igv')
-                    ->label('IGV')
-                    ->money('PEN')
-                    ->sortable()
-                    ->alignEnd()
-                    ->toggleable(),*/
 
                 TextColumn::make('total_venta')
                     ->label('Total')
@@ -162,23 +177,6 @@ class VentasTable
                     })
                     ->sortable(),
 
-
-
-               /* TextColumn::make('cod_operacion')
-                    ->label('Cód. Operación')
-                    ->searchable()
-                    ->limit(20)
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('created_at')
-                    ->label('Registrado')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
-
-                TextColumn::make('updated_at')
-                    ->label('Actualizado')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),*/
             ])
             ->filters([
                 SelectFilter::make('estado_venta')
@@ -243,8 +241,91 @@ class VentasTable
                     }),
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                Action::make('Ver')
+                    ->label('ver')
+                    ->icon('heroicon-o-eye')
+                    ->color('primary')
+                    ->url(fn ($record) => route('filament.admin.resources.ventas.edit', $record))
+                    ->openUrlInNewTab(false),
+
+                Action::make('imprimir')
+                    ->label('Imprimir')
+                    ->icon('heroicon-o-printer')
+                    ->color('success')
+                    ->action(function ($record) {
+                        Notification::make()
+                            ->title('Imprimiendo venta')
+                            ->body("Imprimiendo comprobante de venta #{$record->id}")
+                            ->success()
+                            ->send();
+
+                        // Aquí puedes agregar la lógica de impresión real
+                        // Por ejemplo: return redirect()->to(route('imprimir.venta', $record));
+                    }),
+
+                Action::make('anular')
+                    ->label('Anular')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn ($record) => $record->estado_venta === 'emitida')
+                    ->action(function ($record) {
+                        $comprobante = $record->comprobantes()->first();
+                        $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
+
+                        // Para boletas y facturas: mostrar mensaje informativo
+                        if (in_array($tipoComprobante, ['boleta', 'factura'])) {
+                            // Mostrar notificación informativa
+                            Notification::make()
+                                ->title('Anulación de ' . ucfirst($tipoComprobante))
+                                ->body('Para anular una ' . $tipoComprobante . ', debe crear una Nota de Crédito desde el módulo correspondiente.')
+                                ->warning()
+                                ->send();
+                        } else {
+                            // Para tickets: anulación directa
+                            static::anularTicket($record, 'Ticket anulado desde la tabla');
+                        }
+                    })
+                    ->requiresConfirmation(function ($record) {
+                        $comprobante = $record->comprobantes()->first();
+                        $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
+
+                        // Solo confirmar para tickets (anulación directa)
+                        return !in_array($tipoComprobante, ['boleta', 'factura']);
+                    })
+                    ->modalHeading(function ($record) {
+                        $comprobante = $record->comprobantes()->first();
+                        $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
+
+                        if (!in_array($tipoComprobante, ['boleta', 'factura'])) {
+                            return 'Anular Ticket';
+                        }
+                        return null;
+                    })
+                    ->modalDescription(function ($record) {
+                        $comprobante = $record->comprobantes()->first();
+                        $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
+
+                        if (!in_array($tipoComprobante, ['boleta', 'factura'])) {
+                            return '¿Está seguro de que desea anular este ticket? Esta acción no se puede deshacer.';
+                        }
+                        return null;
+                    })
+                    ->form(function ($record) {
+                        $comprobante = $record->comprobantes()->first();
+                        $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
+
+                        // Solo mostrar formulario para tickets
+                        if (!in_array($tipoComprobante, ['boleta', 'factura'])) {
+                            return [
+                                \Filament\Forms\Components\Textarea::make('observacion')
+                                    ->label('Motivo de anulación')
+                                    ->required()
+                                    ->maxLength(500)
+                                    ->placeholder('Ingrese el motivo de la anulación del ticket'),
+                            ];
+                        }
+                        return [];
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

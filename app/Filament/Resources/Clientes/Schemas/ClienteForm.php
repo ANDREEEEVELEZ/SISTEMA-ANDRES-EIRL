@@ -23,13 +23,16 @@ class ClienteForm
                     ->required(),
                 TextInput::make('num_doc')
                     ->label('Número de Documento')
-                    ->numeric() // Solo permite números
                     ->required()
                     ->live() // Hace que el campo sea reactivo
                     ->maxLength(fn (callable $get) => $get('tipo_doc') ? ($get('tipo_doc') === 'DNI' ? 8 : 11) : 11)
                     ->minLength(fn (callable $get) => $get('tipo_doc') ? ($get('tipo_doc') === 'DNI' ? 8 : 11) : 8)
                     ->length(fn (callable $get) => $get('tipo_doc') ? ($get('tipo_doc') === 'DNI' ? 8 : 11) : null)
-                    ->placeholder(fn (callable $get) => $get('tipo_doc') ? ($get('tipo_doc') === 'DNI' ? 'Ingrese 8 dígitos' : 'Ingrese 11 dígitos') : 'Seleccione tipo de documento primero'),
+                    ->placeholder(fn (callable $get) => $get('tipo_doc') ? ($get('tipo_doc') === 'DNI' ? 'Ingrese 8 dígitos' : 'Ingrese 11 dígitos') : 'Seleccione tipo de documento primero')
+                    ->regex('/^[0-9]+$/')
+                    ->validationMessages([
+                        'regex' => 'El documento debe contener solo números.',
+                    ]),
                     //->helperText(fn (callable $get) => $get('tipo_doc') ? ($get('tipo_doc') === 'DNI' ? 'DNI debe tener exactamente 8 dígitos' : 'RUC debe tener exactamente 11 dígitos') : 'Primero seleccione el tipo de documento'),
 
                 TextInput::make('nombre_razon')

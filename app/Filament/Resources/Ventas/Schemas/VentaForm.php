@@ -168,10 +168,9 @@ class VentaForm
                         'boleta' => 'Boleta',
                         'factura' => 'Factura',
                         'ticket' => 'Ticket',
-                        'nota de credito' => 'Nota de Crédito',
-                        'nota de debito' => 'Nota de Débito',
                     ])
                     ->required()
+                    ->default('ticket')
                     ->placeholder('Seleccione una opción')
                     ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
                     //->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Seleccione el tipo de comprobante')
@@ -198,6 +197,11 @@ class VentaForm
                     ->maxLength(10)
                     ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id') || true) // Deshabilitado si hay caja anterior, no hay caja o siempre (solo lectura)
                    // ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Se asigna automáticamente')
+                    ->default(function () {
+                        // Asignar serie por defecto para ticket
+                        $serieComprobante = SerieComprobante::where('tipo', 'ticket')->first();
+                        return $serieComprobante?->serie;
+                    })
                     ->dehydrated(),
 
                 TextInput::make('numero')
@@ -206,6 +210,15 @@ class VentaForm
                     ->maxLength(10)
                     ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id') || true) // Deshabilitado si hay caja anterior, no hay caja o siempre (solo lectura)
                    // ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Se asigna automáticamente')
+                    ->default(function () {
+                        // Asignar número por defecto para ticket
+                        $serieComprobante = SerieComprobante::where('tipo', 'ticket')->first();
+                        if ($serieComprobante) {
+                            $siguienteNumero = $serieComprobante->ultimo_numero + 1;
+                            return str_pad($siguienteNumero, 6, '0', STR_PAD_LEFT);
+                        }
+                        return null;
+                    })
                     ->dehydrated(),
 
 
@@ -360,7 +373,7 @@ class VentaForm
                                                     if ($nombreCompleto) {
                                                         $set('nombre_razon', $nombreCompleto);
                                                         $set('tipo_cliente', 'natural');
-                                                        
+
                                                         // Completar dirección si está disponible, si no, colocar "-"
                                                         if (isset($data['direccion']) && $data['direccion']) {
                                                             $set('direccion', $data['direccion']);
@@ -430,7 +443,7 @@ class VentaForm
                                                     if ($razonSocial) {
                                                         $set('nombre_razon', $razonSocial);
                                                         $set('tipo_cliente', 'juridica');
-                                                        
+
                                                         // Completar dirección si está disponible
                                                         if (isset($data['direccion']) && $data['direccion']) {
                                                             $set('direccion', $data['direccion']);
@@ -692,8 +705,9 @@ class VentaForm
                     ])
                     ->default('emitida')
                     ->required()
-                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
-                    ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : null),
+                    ->disabled(true) // Siempre bloqueado por defecto como "emitida"
+                    ->dehydrated() // Asegurar que el valor se envíe aunque esté deshabilitado
+                    //->helperText('Las ventas se registran automáticamente como "Emitida"'),
             ]);
     }
 

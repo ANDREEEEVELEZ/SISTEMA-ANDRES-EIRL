@@ -4,18 +4,302 @@ namespace App\Filament\Resources\Ventas\Pages;
 
 use App\Filament\Resources\Ventas\VentaResource;
 use App\Filament\Resources\Ventas\Widgets\EstadisticasVentasWidget;
+use App\Models\Venta;
+use App\Models\SerieComprobante;
 use Filament\Actions\CreateAction;
+use Filament\Actions\Action;
+use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Log;
 
 class ListVentas extends ListRecords
 {
     protected static string $resource = VentaResource::class;
 
+    public ?Venta $ventaEncontrada = null;
+
     protected function getHeaderActions(): array
     {
         return [
             CreateAction::make(),
+            Action::make('anular_comprobante')
+                ->label('Anular Comprobante')
+                ->color('danger')
+                ->icon('heroicon-o-x-circle')
+                ->modal()
+                ->modalHeading('Anular Comprobante')
+                ->modalWidth('3xl')
+                ->form([
+                    // Paso 1: Seleccionar tipo de comprobante
+                    Forms\Components\Select::make('tipo_comprobante')
+                        ->label('Tipo de Comprobante')
+                        ->options([
+                            'ticket' => 'Ticket',
+                            'boleta' => 'Boleta',
+                            'factura' => 'Factura',
+                        ])
+                        ->required()
+                        ->live(),
+
+                    // Paso 2: Seleccionar tipo de nota (solo para boleta/factura)
+                    Forms\Components\Select::make('tipo_nota')
+                        ->label('Tipo de Nota')
+                        ->options([
+                            'credito' => 'Nota de Crédito',
+                            'debito' => 'Nota de Débito',
+                        ])
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function ($state, $set, $get) {
+                            $this->cargarSeriesAutomaticas($state, $set, $get);
+                        })
+                        ->visible(fn (callable $get) => in_array($get('tipo_comprobante'), ['boleta', 'factura'])),
+
+                    // Campos de serie y número de la nota (auto-cargados)
+                    Forms\Components\TextInput::make('serie_nota')
+                        ->label(fn (callable $get) => 'Serie de la Nota (' . strtoupper($get('tipo_comprobante') ?? '') . ')')
+                        ->required()
+                        ->disabled()
+                        ->dehydrated()
+                        ->visible(fn (callable $get) => $get('tipo_nota')),
+
+                    Forms\Components\TextInput::make('numero_nota')
+                        ->label('Número de la Nota')
+                        ->required()
+                        ->numeric()
+                        ->disabled()
+                        ->dehydrated()
+                        ->visible(fn (callable $get) => $get('tipo_nota')),
+
+                    // Serie y número del comprobante a anular (auto-cargados con posibilidad de editar)
+                    Forms\Components\TextInput::make('serie')
+                        ->label(fn (callable $get) => 'Serie de la ' . ucfirst($get('tipo_comprobante') ?? 'Comprobante') . ' a Anular')
+                        ->required()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(function ($state, callable $get) {
+                            $this->buscarVentaModal($get);
+                        })
+                        ->visible(fn (callable $get) => $get('tipo_nota')),
+
+                    Forms\Components\TextInput::make('numero')
+                        ->label(fn (callable $get) => 'Número de la ' . ucfirst($get('tipo_comprobante') ?? 'Comprobante') . ' a Anular')
+                        ->required()
+                        ->numeric()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(function ($state, callable $get) {
+                            $this->buscarVentaModal($get);
+                        })
+                        ->visible(fn (callable $get) => $get('tipo_nota')),
+
+                    // Paso 5: Mostrar detalle del documento referenciado
+                    Forms\Components\Placeholder::make('venta_info')
+                        ->label('📋 Información del Comprobante')
+                        ->content(function () {
+                            if (!$this->ventaEncontrada) return '';
+
+                            $comprobante = $this->ventaEncontrada->comprobantes->first();
+                            $html = '<div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                            $html .= '<h4 style="margin: 0 0 10px 0; color: #1f2937;">📋 ' . strtoupper($comprobante?->tipo ?? 'N/A') . ' ' . $comprobante?->serie . '-' . $comprobante?->correlativo . '</h4>';
+                            $html .= '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">';
+                            $html .= '<div><strong>📅 Fecha:</strong> ' . \Carbon\Carbon::parse($this->ventaEncontrada->fecha_venta)->format('d/m/Y') . '</div>';
+                            $html .= '<div><strong>🏷️ Estado:</strong> ' . strtoupper($this->ventaEncontrada->estado_venta) . '</div>';
+                            $html .= '<div><strong>👤 Cliente:</strong> ' . $this->ventaEncontrada->cliente->nombre_razon . '</div>';
+                            $html .= '<div><strong>🆔 Documento:</strong> ' . $this->ventaEncontrada->cliente->num_doc . '</div>';
+                            $html .= '</div>';
+                            $html .= '<div style="text-align: center; font-size: 18px; font-weight: bold; color: #059669;">💰 Total: S/. ' . number_format((float)$this->ventaEncontrada->total_venta, 2) . '</div>';
+                            $html .= '</div>';
+
+                            return new \Illuminate\Support\HtmlString($html);
+                        })
+                        ->visible(fn () => $this->ventaEncontrada !== null),
+
+                    // Paso 6: Motivo de anulación
+                    Forms\Components\Textarea::make('motivo_nota')
+                        ->label('Motivo de la Nota')
+                        ->required()
+                        ->rows(3)
+                        ->placeholder('Describe el motivo de la nota de crédito/débito...')
+                        ->visible(fn (callable $get) => $get('tipo_nota') && $this->ventaEncontrada !== null),
+
+                    Forms\Components\Textarea::make('motivo_anulacion')
+                        ->label('Motivo de Anulación')
+                        ->required()
+                        ->rows(3)
+                        ->placeholder('Describe el motivo de la anulación del ticket...')
+                        ->visible(fn (callable $get) => $get('tipo_comprobante') === 'ticket'),
+                ])
+                ->action(function (array $data) {
+                    if ($data['tipo_comprobante'] === 'ticket') {
+                        $this->anularTicketModal($data);
+                    } else {
+                        $this->crearNotaModal($data);
+                    }
+                })
+                ->modalSubmitActionLabel('Procesar Anulación'),
         ];
+    }
+
+    protected function buscarVentaModal(callable $get): void
+    {
+        $tipo = $get('tipo_comprobante');
+        $serie = $get('serie');
+        $numero = $get('numero');
+
+        if (!$tipo || !$serie || !$numero) {
+            $this->ventaEncontrada = null;
+            return;
+        }
+
+        $this->ventaEncontrada = Venta::whereHas('comprobantes', function ($query) use ($tipo, $serie, $numero) {
+            $query->where('tipo', $tipo)
+                  ->where('serie', $serie)
+                  ->where('correlativo', $numero);
+        })->with(['comprobantes', 'cliente', 'detalleVentas.producto'])->first();
+
+        // Forzar actualización del formulario
+        $this->dispatch('refresh-form');
+    }
+
+    public function anularTicketModal(array $data): void
+    {
+        if (!$this->ventaEncontrada) {
+            Notification::make()
+                ->title('Error')
+                ->body('No se encontró el ticket a anular.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        try {
+            if ($this->ventaEncontrada->estado_venta === 'anulada') {
+                Notification::make()
+                    ->title('Error')
+                    ->body('Este ticket ya está anulado.')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
+            $this->ventaEncontrada->update(['estado_venta' => 'anulada']);
+
+            $comprobante = $this->ventaEncontrada->comprobantes->first();
+            if ($comprobante) {
+                $comprobante->update([
+                    'estado' => 'anulado',
+                    'motivo_anulacion' => $data['motivo_anulacion'],
+                ]);
+            }
+
+            Notification::make()
+                ->title('Ticket Anulado')
+                ->body("El ticket {$comprobante->serie}-{$comprobante->correlativo} ha sido anulado correctamente.")
+                ->success()
+                ->send();
+
+            $this->ventaEncontrada = null;
+
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error')
+                ->body('Error al anular el ticket: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function crearNotaModal(array $data): void
+    {
+        if (!$this->ventaEncontrada) {
+            Notification::make()
+                ->title('Error')
+                ->body('No se encontró el comprobante a anular.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        try {
+            if ($this->ventaEncontrada->estado_venta === 'anulada') {
+                Notification::make()
+                    ->title('Error')
+                    ->body('Este comprobante ya está anulado.')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
+            $tipoNota = $data['tipo_nota'] === 'credito' ? 'nota de credito' : 'nota de debito';
+            $tipoComprobante = $data['tipo_comprobante']; // boleta o factura
+
+            // Buscar el serie_comprobante_id correcto según el tipo de nota y el comprobante
+            $serieComprobante = SerieComprobante::where('tipo', $tipoNota)
+                ->where('aplica_a', $tipoComprobante)
+                ->where('serie', $data['serie_nota'])
+                ->first();
+
+            if (!$serieComprobante) {
+                Notification::make()
+                    ->title('Error')
+                    ->body('No se encontró la serie de comprobante configurada para esta nota.')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
+            $nota = \App\Models\Comprobante::create([
+                'venta_id' => $this->ventaEncontrada->id,
+                'serie_comprobante_id' => $serieComprobante->id,
+                'tipo' => $tipoNota,
+                'serie' => $data['serie_nota'],
+                'correlativo' => $data['numero_nota'],
+                'fecha_emision' => now(),
+                'sub_total' => $this->ventaEncontrada->subtotal_venta,
+                'igv' => $this->ventaEncontrada->igv,
+                'total' => $this->ventaEncontrada->total_venta,
+                'estado' => 'emitido',
+                'motivo_anulacion' => $data['motivo_nota'],
+            ]);
+
+            // Actualizar el ultimo_numero de la serie
+            $serieComprobante->increment('ultimo_numero');
+
+            $this->ventaEncontrada->update(['estado_venta' => 'anulada']);
+
+            $comprobante = $this->ventaEncontrada->comprobantes()
+                ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                ->first();
+
+            if ($comprobante) {
+                $comprobante->update([
+                    'estado' => 'anulado',
+                    'motivo_anulacion' => "Anulado con " . ucwords(str_replace('_', ' ', $data['tipo_nota'])) . " {$data['serie_nota']}-{$data['numero_nota']}",
+                ]);
+                
+                // Crear la relación entre el comprobante original y la nota
+                \App\Models\ComprobanteRelacion::create([
+                    'comprobante_origen_id' => $comprobante->id,
+                    'comprobante_relacionado_id' => $nota->id,
+                    'tipo_relacion' => $tipoNota,
+                ]);
+            }
+
+            Notification::make()
+                ->title('Nota Creada')
+                ->body("Se creó la " . ucwords(str_replace('_', ' ', $data['tipo_nota'])) . " {$data['serie_nota']}-{$data['numero_nota']} para anular el {$comprobante->tipo}.")
+                ->success()
+                ->send();
+
+            $this->ventaEncontrada = null;
+
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error')
+                ->body('Error al crear la nota: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 
     protected function getHeaderWidgets(): array
@@ -23,5 +307,60 @@ class ListVentas extends ListRecords
         return [
             EstadisticasVentasWidget::class,
         ];
+    }
+
+    protected function cargarSeriesAutomaticas(string $tipoNota, $set, $get): void
+    {
+        // Obtener el tipo de comprobante (boleta o factura)
+        $tipoComprobante = $get('tipo_comprobante');
+
+        // Mapear el tipo de nota al formato de la base de datos
+        $tipoNotaDB = $tipoNota === 'credito' ? 'nota de credito' : 'nota de debito';
+
+        // 1. CARGAR LA SERIE DE LA NOTA
+        $serieNota = SerieComprobante::where('tipo', $tipoNotaDB)
+            ->where('aplica_a', $tipoComprobante)
+            ->latest('id')
+            ->first();
+
+        if ($serieNota) {
+            $set('serie_nota', $serieNota->serie);
+            $set('numero_nota', $serieNota->ultimo_numero + 1);
+        } else {
+            // Valor por defecto según el tipo
+            $serieDefault = $tipoComprobante === 'boleta'
+                ? ($tipoNota === 'credito' ? 'BC01' : 'BD01')
+                : ($tipoNota === 'credito' ? 'FC01' : 'FD01');
+
+            $set('serie_nota', $serieDefault);
+            $set('numero_nota', 1);
+        }
+
+        // 2. CARGAR LA SERIE DEL COMPROBANTE A ANULAR (boleta o factura)
+        $serieComprobante = SerieComprobante::where('tipo', $tipoComprobante)
+            ->where('aplica_a', 'ninguno')
+            ->latest('id')
+            ->first();
+
+        if ($serieComprobante) {
+            $set('serie', $serieComprobante->serie);
+        } else {
+            // Valor por defecto
+            $set('serie', $tipoComprobante === 'boleta' ? 'B001' : 'F001');
+        }
+
+        Log::info('Series cargadas automáticamente', [
+            'tipoComprobante' => $tipoComprobante,
+            'tipoNota' => $tipoNotaDB,
+            'serie_nota' => $get('serie_nota'),
+            'numero_nota' => $get('numero_nota'),
+            'serie_comprobante' => $get('serie'),
+        ]);
+    }
+
+    // Mantener el método anterior por compatibilidad
+    protected function cargarSerieYNumeroNota(string $tipoNota, $set, $get): void
+    {
+        $this->cargarSeriesAutomaticas($tipoNota, $set, $get);
     }
 }

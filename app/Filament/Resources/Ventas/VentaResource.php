@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Ventas;
 use App\Filament\Resources\Ventas\Pages\CreateVenta;
 use App\Filament\Resources\Ventas\Pages\EditVenta;
 use App\Filament\Resources\Ventas\Pages\ListVentas;
+use App\Filament\Resources\Ventas\Pages\CrearNota;
 use App\Filament\Resources\Ventas\Schemas\VentaForm;
 use App\Filament\Resources\Ventas\Tables\VentasTable;
 use App\Models\Venta;
@@ -52,6 +53,7 @@ class VentaResource extends Resource
             'index' => ListVentas::route('/'),
             'create' => CreateVenta::route('/create'),
             'edit' => EditVenta::route('/{record}/edit'),
+            'crear-nota' => CrearNota::route('/{record}/crear-nota'),
         ];
     }
 }

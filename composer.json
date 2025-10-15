@@ -9,6 +9,7 @@
         "php": "^8.2",
         "bezhansalleh/filament-shield": "^4.0",
         "filament/filament": "4.0",
+        "greenter/lite": "^5.1",
         "guzzlehttp/guzzle": "^7.10",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
