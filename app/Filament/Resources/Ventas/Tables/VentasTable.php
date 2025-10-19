@@ -252,16 +252,8 @@ class VentasTable
                     ->label('Imprimir')
                     ->icon('heroicon-o-printer')
                     ->color('success')
-                    ->action(function ($record) {
-                        Notification::make()
-                            ->title('Imprimiendo venta')
-                            ->body("Imprimiendo comprobante de venta #{$record->id}")
-                            ->success()
-                            ->send();
-
-                        // Aquí puedes agregar la lógica de impresión real
-                        // Por ejemplo: return redirect()->to(route('imprimir.venta', $record));
-                    }),
+                    ->url(fn ($record) => route('comprobante.imprimir', $record->id))
+                    ->openUrlInNewTab(true),
 
                 Action::make('anular')
                     ->label('Anular')

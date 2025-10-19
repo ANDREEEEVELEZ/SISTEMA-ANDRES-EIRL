@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AsistenciaFotoController;
 use App\Http\Controllers\FaceRecognitionController;
 use App\Http\Controllers\ClientesController;
+use App\Http\Controllers\ComprobanteController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -29,3 +30,9 @@ Route::prefix('face-recognition')->group(function () {
     Route::get('/consultar-documento', [ClientesController::class, 'buscarPorDocumento']);
 
 });
+
+// Rutas para impresión de comprobantes
+Route::get('/comprobantes/{id}/imprimir', [ComprobanteController::class, 'imprimirComprobante'])
+    ->name('comprobante.imprimir');
+Route::get('/comprobantes/{id}/ticket', [ComprobanteController::class, 'imprimirTicket'])
+    ->name('comprobante.ticket');

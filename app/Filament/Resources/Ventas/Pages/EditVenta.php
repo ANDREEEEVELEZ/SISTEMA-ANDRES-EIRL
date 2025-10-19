@@ -41,13 +41,8 @@ class EditVenta extends EditRecord
                 ->label('Imprimir')
                 ->icon('heroicon-o-printer')
                 ->color('primary')
-                ->action(function () {
-                    Notification::make()
-                        ->title('Función de impresión')
-                        ->body('Aquí se implementará la impresión del comprobante')
-                        ->info()
-                        ->send();
-                }),
+                ->url(fn () => route('comprobante.imprimir', $this->record->id))
+                ->openUrlInNewTab(true),
         ];
 
         // Agregar botón anular solo si la venta está emitida
