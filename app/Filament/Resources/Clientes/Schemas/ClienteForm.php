@@ -17,10 +17,35 @@ class ClienteForm
                     ->label('Tipo de Documento')
                     ->options(['DNI' => 'DNI', 'RUC' => 'RUC'])
                     ->live() // Hace que el campo sea reactivo
+                    ->afterStateUpdated(function ($state, callable $set) {
+                        // Si selecciona DNI, tipo_cliente es automáticamente 'natural'
+                        if ($state === 'DNI') {
+                            $set('tipo_cliente', 'natural');
+                        } else {
+                            // Si cambia a RUC, limpiar el tipo_cliente para que seleccione
+                            $set('tipo_cliente', null);
+                        }
+                    })
                     ->required(),
+
                 Select::make('tipo_cliente')
-                    ->options(['natural' => 'Natural', 'juridica' => 'Juridica'])
-                    ->required(),
+                    ->label('Tipo de Cliente')
+                    ->options([
+                        'natural' => '👤 Persona Natural',
+                        'natural_con_negocio' => '🏪 Persona Natural con Negocio (RUC 10)',
+                        'juridica' => '🏢 Persona Jurídica/Empresa (RUC 20)',
+                    ])
+                    ->visible(fn (callable $get) => $get('tipo_doc') === 'RUC') // Solo visible con RUC
+                    ->disabled(fn (callable $get) => $get('tipo_doc') === 'DNI') // Deshabilitado con DNI
+                    ->default(fn (callable $get) => $get('tipo_doc') === 'DNI' ? 'natural' : null)
+                    ->required()
+                    ->helperText(fn (callable $get) => 
+                        $get('tipo_doc') === 'DNI' 
+                            ? 'Con DNI siempre es Persona Natural' 
+                            : 'Seleccione el tipo de cliente con RUC'
+                    )
+                    ->live(),
+
                 TextInput::make('num_doc')
                     ->label('Número de Documento')
                     ->required()

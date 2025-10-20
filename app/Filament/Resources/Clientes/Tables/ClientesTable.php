@@ -26,7 +26,19 @@ class ClientesTable
                         ->formatStateUsing(fn(string $state): string => ucfirst($state)),
                     TextColumn::make('tipo_cliente')
                         ->label('Tipo Cliente')
-                        ->formatStateUsing(fn(string $state): string => ucfirst($state)),
+                        ->formatStateUsing(fn(string $state): string => match($state) {
+                            'natural' => '👤 Persona Natural',
+                            'natural_con_negocio' => '🏪 Natural con Negocio',
+                            'juridica' => '🏢 Persona Jurídica',
+                            default => ucfirst($state)
+                        })
+                        ->badge()
+                        ->color(fn (string $state): string => match ($state) {
+                            'natural' => 'info',
+                            'natural_con_negocio' => 'warning',
+                            'juridica' => 'success',
+                            default => 'gray',
+                        }),
                     TextColumn::make('num_doc')
                         ->label('N° Documento')
                         ->searchable(),
@@ -72,8 +84,9 @@ class ClientesTable
                 SelectFilter::make('tipo_cliente')
                     ->label('Tipo de Cliente')
                     ->options([
-                        'natural' => 'Persona Natural',
-                        'juridica' => 'Persona Jurídica',
+                        'natural' => '👤 Persona Natural',
+                        'natural_con_negocio' => '🏪 Natural con Negocio',
+                        'juridica' => '🏢 Persona Jurídica',
                     ])
                     ->placeholder('Todos los tipos'),
 

@@ -29,6 +29,7 @@ class Cliente extends Model
 
     protected $attributes = [
         'estado' => 'activo',
+        'tipo_cliente' => 'natural',
     ];
 
     protected static function boot()
