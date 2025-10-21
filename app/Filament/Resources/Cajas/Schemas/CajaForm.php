@@ -26,9 +26,9 @@ class CajaForm
                     ->numeric()
                     ->disabled(fn (string $operation): bool => $operation === 'edit')
                     ->dehydrated()
-                    ->helperText(fn (string $operation): string => 
-                        $operation === 'edit' 
-                            ? 'El saldo inicial no puede ser modificado una vez creada la caja' 
+                    ->helperText(fn (string $operation): string =>
+                        $operation === 'edit'
+                            ? 'El saldo inicial no puede ser modificado una vez creada la caja'
                             : ''
                     ),
                 TextInput::make('saldo_final')
