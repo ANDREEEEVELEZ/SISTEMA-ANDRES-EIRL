@@ -11,13 +11,13 @@ return [
     |
     */
 
-    'nombre' => env('EMPRESA_NOMBRE', 'ANDRÉS E.I.R.L.'),
-    'ruc' => env('EMPRESA_RUC', '20123456789'),
-    'direccion' => env('EMPRESA_DIRECCION', 'Av. Principal 123, Lima - Perú'),
-    'telefono' => env('EMPRESA_TELEFONO', '(01) 234-5678'),
-    'email' => env('EMPRESA_EMAIL', 'ventas@andreseirl.com'),
-    'web' => env('EMPRESA_WEB', 'www.andreseirl.com'),
-    
+    'nombre' => env('EMPRESA_NOMBRE', 'CHIFLES ANDRES E.I.R.L.'),
+    'ruc' => env('EMPRESA_RUC', '20609709406'),
+    'direccion' => env('EMPRESA_DIRECCION', 'AV. RAMON CASTILLA NRO 123 CERCADO '),
+    'telefono' => env('EMPRESA_TELEFONO', '- -'),
+   // 'email' => env('EMPRESA_EMAIL', 'ventas@andreseirl.com'),
+   // 'web' => env('EMPRESA_WEB', 'www.andreseirl.com'),
+
     /*
     |--------------------------------------------------------------------------
     | Logo de la Empresa
@@ -27,7 +27,7 @@ return [
     |
     */
     'logo' => env('EMPRESA_LOGO', 'images/logo.png'),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Configuración de Impresión

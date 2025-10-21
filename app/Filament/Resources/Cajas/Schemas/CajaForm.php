@@ -6,6 +6,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Filament\Forms\Get;
 
 class CajaForm
 {
@@ -22,7 +23,14 @@ class CajaForm
                 DateTimePicker::make('fecha_cierre'),
                 TextInput::make('saldo_inicial')
                     ->required()
-                    ->numeric(),
+                    ->numeric()
+                    ->disabled(fn (string $operation): bool => $operation === 'edit')
+                    ->dehydrated()
+                    ->helperText(fn (string $operation): string => 
+                        $operation === 'edit' 
+                            ? 'El saldo inicial no puede ser modificado una vez creada la caja' 
+                            : ''
+                    ),
                 TextInput::make('saldo_final')
                     ->numeric(),
                 Select::make('estado')

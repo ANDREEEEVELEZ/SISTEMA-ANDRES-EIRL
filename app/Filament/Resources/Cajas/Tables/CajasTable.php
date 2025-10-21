@@ -13,6 +13,7 @@ class CajasTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort('fecha_apertura', 'desc') // Mostrar registros más recientes primero
             ->columns([
                 TextColumn::make('user.name')
                     ->label('Usuario')

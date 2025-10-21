@@ -35,7 +35,15 @@ class ComprobanteController extends Controller
         // Datos de la empresa desde configuración
         $empresa = config('empresa');
 
-        return view('comprobantes.ticket-termico', compact('venta', 'comprobante', 'empresa'));
+        // Si tiene comprobante electrónico (Factura o Boleta), usar formato completo
+        // Si es solo ticket interno, usar formato compacto
+        if ($comprobante && in_array($comprobante->tipo, ['factura', 'boleta', 'nota_credito'])) {
+            // Formato completo para documentos electrónicos (Facturas y Boletas)
+            return view('comprobantes.ticket-termico', compact('venta', 'comprobante', 'empresa'));
+        } else {
+            // Formato compacto para tickets internos
+            return view('comprobantes.ticket-compacto', compact('venta', 'comprobante', 'empresa'));
+        }
     }
 
     /**

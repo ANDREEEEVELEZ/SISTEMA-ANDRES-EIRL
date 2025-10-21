@@ -5,6 +5,7 @@ use App\Http\Controllers\AsistenciaFotoController;
 use App\Http\Controllers\FaceRecognitionController;
 use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\ComprobanteController;
+use App\Http\Controllers\ClienteExportController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -36,3 +37,9 @@ Route::get('/comprobantes/{id}/imprimir', [ComprobanteController::class, 'imprim
     ->name('comprobante.imprimir');
 Route::get('/comprobantes/{id}/ticket', [ComprobanteController::class, 'imprimirTicket'])
     ->name('comprobante.ticket');
+
+// Exportar clientes a PDF
+Route::get('/clientes/exportar/pdf', [ClienteExportController::class, 'exportarPdf'])
+    ->name('clientes.exportar.pdf');
+Route::get('/clientes/{id}/imprimir/pdf', [ClienteExportController::class, 'imprimirClientePdf'])
+    ->name('clientes.imprimir.pdf');

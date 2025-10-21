@@ -332,8 +332,8 @@
                         <td class="descripcion">
                             {{ $detalle->producto ? $detalle->producto->nombre_producto : 'Producto N/A' }}
                         </td>
-                        <td class="precio">{{ number_format($detalle->precio_venta, 2) }}</td>
-                        <td class="total">{{ number_format($detalle->subtotal_venta, 2) }}</td>
+                        <td class="precio">{{ number_format($detalle->precio_unitario, 2) }}</td>
+                        <td class="total">{{ number_format($detalle->subtotal, 2) }}</td>
                     </tr>
                     @endforeach
                 </tbody>
