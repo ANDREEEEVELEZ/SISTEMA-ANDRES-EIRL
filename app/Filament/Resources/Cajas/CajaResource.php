@@ -53,6 +53,7 @@ class CajaResource extends Resource
             'index' => ListCajas::route('/'),
             'create' => CreateCaja::route('/create'),
             'edit' => EditCaja::route('/{record}/edit'),
+            'registrar-movimiento' => Pages\RegistrarMovimiento::route('/registrar-movimiento'),
         ];
     }
 }

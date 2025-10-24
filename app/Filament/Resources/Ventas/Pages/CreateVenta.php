@@ -200,43 +200,43 @@ class CreateVenta extends CreateRecord
 
         // Validar stock disponible antes de crear la venta
         $data = $this->form->getState();
-        
+
         // Validar que hay detalles de venta
         if (empty($data['detalleVentas'])) {
             Notification::make()
-                ->title('❌ Error en la Venta')
+                ->title('Error en la Venta')
                 ->body('Debe agregar al menos un producto a la venta.')
                 ->danger()
                 ->persistent()
                 ->send();
-            
+
             $this->halt();
         }
 
         // Validar stock disponible para cada producto
         foreach ($data['detalleVentas'] as $index => $detalle) {
             $producto = Producto::find($detalle['producto_id']);
-            
+
             if (!$producto) {
                 Notification::make()
-                    ->title('❌ Error de Producto')
+                    ->title(' Error de Producto')
                     ->body('Uno de los productos seleccionados no existe.')
                     ->danger()
                     ->persistent()
                     ->send();
-                
+
                 $this->halt();
             }
 
             // Validar que hay suficiente stock
             if ($producto->stock_total < $detalle['cantidad_venta']) {
                 Notification::make()
-                    ->title('⚠️ Stock Insuficiente')
+                    ->title('Stock Insuficiente')
                     ->body("El producto '{$producto->nombre_producto}' solo tiene {$producto->stock_total} unidades disponibles en inventario. Usted intentó vender {$detalle['cantidad_venta']} unidades.")
                     ->danger()
                     ->persistent()
                     ->send();
-                
+
                 $this->halt();
             }
         }
@@ -273,12 +273,12 @@ class CreateVenta extends CreateRecord
             $venta = $this->record;
             $productosActualizados = [];
             $alertasStockBajo = [];
-            
+
             // 1. CREAR EL COMPROBANTE ASOCIADO A LA VENTA
             if (!empty($this->datosComprobante['tipo'])) {
                 // Buscar la serie del comprobante
                 $serieComprobante = SerieComprobante::where('tipo', $this->datosComprobante['tipo'])->first();
-                
+
                 if ($serieComprobante) {
                     // Crear el comprobante
                     $comprobante = Comprobante::create([
@@ -304,12 +304,12 @@ class CreateVenta extends CreateRecord
             // 2. PROCESAR INVENTARIO - Descontar stock de cada producto
             foreach ($venta->detalleVentas as $detalle) {
                 $producto = Producto::find($detalle->producto_id);
-                
+
                 if ($producto) {
                     // Descontar del stock
                     $stockAnterior = $producto->stock_total;
                     $nuevoStock = $stockAnterior - $detalle->cantidad_venta;
-                    
+
                     $producto->update([
                         'stock_total' => $nuevoStock
                     ]);
@@ -338,10 +338,10 @@ class CreateVenta extends CreateRecord
             if (isset($comprobante)) {
                 $mensaje .= " con {$comprobante->tipo} {$comprobante->serie}-{$comprobante->correlativo}";
             }
-            $mensaje .= ".\n\n📦 Inventario actualizado:\n" . implode("\n", $productosActualizados);
-            
+            $mensaje .= ".\n\n Inventario actualizado:\n" . implode("\n", $productosActualizados);
+
             Notification::make()
-                ->title('✅ Venta Registrada Exitosamente')
+                ->title(' Venta Registrada Exitosamente')
                 ->body($mensaje)
                 ->success()
                 ->duration(8000)
@@ -350,7 +350,7 @@ class CreateVenta extends CreateRecord
             // Alertas de stock bajo (si aplica)
             if (!empty($alertasStockBajo)) {
                 Notification::make()
-                    ->title('⚠️ Alerta de Stock Bajo')
+                    ->title(' Alerta de Stock Bajo')
                     ->body("Los siguientes productos tienen stock bajo o insuficiente:\n\n" . implode("\n", $alertasStockBajo))
                     ->warning()
                     ->persistent()
