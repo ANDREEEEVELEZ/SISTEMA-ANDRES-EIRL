@@ -46,10 +46,10 @@
                                         Saldo Inicial
                                     </span>
                                 </label>
-                                <div style="margin-top: 1rem; display: flex; justify-content: center;">
-                                    <div class="fi-input-wrp flex items-center rounded-lg shadow-sm ring-1 transition duration-75 bg-white dark:bg-white/5 ring-gray-950/10 dark:ring-white/20" style="max-width: 200px; width: 100%;">
-                                        <div class="flex items-center ps-3 pe-2">
-                                            <span class="text-xl font-bold text-gray-1000 dark:text-gray-800">S/</span>
+                                <div style="margin-top: 1rem; display: flex; justify-content: center; align-items: center;">
+                                    <div class="fi-input-wrp rounded-lg shadow-sm ring-1 transition duration-75 bg-white dark:bg-white/5 ring-gray-950/10 dark:ring-white/20" style="max-width: 200px; width: 100%; display: flex; align-items: center;">
+                                        <div style="padding-left: 0.75rem; padding-right: 0.5rem; display: flex; align-items: center; min-width: 45px;">
+                                            <span class="text-base font-semibold text-gray-600 dark:text-gray-400">S/</span>
                                         </div>
                                         <input
                                             type="text"
@@ -59,7 +59,8 @@
                                             value="{{ $this->tieneCajaAbierta() ? number_format($this->getCajaAbierta()?->saldo_inicial ?? 0, 2) : '' }}"
                                             {{ $this->tieneCajaAbierta() ? 'disabled readonly' : '' }}
                                             {{ !$this->tieneCajaAbierta() ? 'wire:model=saldoApertura required' : '' }}
-                                            class="fi-input block w-full border-none py-1.5 text-base text-gray-950 transition duration-75 placeholder:text-gray-400 focus:ring-0 disabled:text-gray-500 disabled:[-webkit-text-fill-color:theme(colors.gray.500)] dark:text-white dark:placeholder:text-gray-500 dark:disabled:text-gray-400 dark:disabled:[-webkit-text-fill-color:theme(colors.gray.400)] sm:text-sm sm:leading-6 bg-white/0 ps-0"
+                                            class="fi-input block w-full border-none py-1.5 text-base text-gray-950 transition duration-75 placeholder:text-gray-400 focus:ring-0 disabled:text-gray-500 disabled:[-webkit-text-fill-color:theme(colors.gray.500)] dark:text-white dark:placeholder:text-gray-500 dark:disabled:text-gray-400 dark:disabled:[-webkit-text-fill-color:theme(colors.gray.400)] sm:text-sm sm:leading-6 bg-white/0"
+                                            style="padding-left: 0;"
                                         />
                                     </div>
                                 </div>
@@ -94,10 +95,10 @@
                                         Saldo Final
                                     </span>
                                 </label>
-                                <div style="margin-top: 1rem; display: flex; justify-content: center;">
-                                    <div class="fi-input-wrp flex items-center rounded-lg shadow-sm ring-1 transition duration-75 bg-white dark:bg-white/5 ring-gray-950/10 dark:ring-white/20" style="max-width: 200px; width: 100%;">
-                                        <div class="flex items-center ps-3 pe-2">
-                                            <span class="text-xl font-bold text-gray-1000 dark:text-gray-800">S/</span>
+                                <div style="margin-top: 1rem; display: flex; justify-content: center; align-items: center;">
+                                    <div class="fi-input-wrp rounded-lg shadow-sm ring-1 transition duration-75 bg-white dark:bg-white/5 ring-gray-950/10 dark:ring-white/20" style="max-width: 200px; width: 100%; display: flex; align-items: center;">
+                                        <div style="padding-left: 0.75rem; padding-right: 0.5rem; display: flex; align-items: center; min-width: 45px;">
+                                            <span class="text-base font-semibold text-gray-600 dark:text-gray-400">S/</span>
                                         </div>
                                         <input
                                             type="number"
@@ -106,7 +107,8 @@
                                             min="0"
                                             placeholder="0.00"
                                             required
-                                            class="fi-input block w-full border-none py-1.5 text-base text-gray-950 transition duration-75 placeholder:text-gray-400 focus:ring-0 disabled:text-gray-500 disabled:[-webkit-text-fill-color:theme(colors.gray.500)] dark:text-white dark:placeholder:text-gray-500 sm:text-sm sm:leading-6 bg-white/0 ps-0"
+                                            class="fi-input block w-full border-none py-1.5 text-base text-gray-950 transition duration-75 placeholder:text-gray-400 focus:ring-0 disabled:text-gray-500 disabled:[-webkit-text-fill-color:theme(colors.gray.500)] dark:text-white dark:placeholder:text-gray-500 sm:text-sm sm:leading-6 bg-white/0"
+                                            style="padding-left: 0;"
                                         />
                                     </div>
                                 </div>
