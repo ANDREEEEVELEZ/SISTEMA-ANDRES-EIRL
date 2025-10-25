@@ -2,33 +2,34 @@
 <div class="mb-6">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10">
         <div class="p-6">
-            {{-- Header: Título y Selector de Empleado --}}
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-                <div class="flex items-center gap-4">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+            {{-- Header: Título con Leyenda y Selector de Empleado --}}
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                {{-- Título y Leyenda en la misma línea --}}
+                <div style="display: flex; align-items: center; gap: 2rem;">
+                    <h2 style="font-size: 1.125rem; font-weight: 700; color: #111827; margin: 0;">
                         Historial de Asistencia - {{ ucfirst($this->calendarioData['nombreMes']) }}
                     </h2>
                     
-                    {{-- Leyenda inline --}}
-                    <div class="flex items-center gap-3 text-xs">
-                        <div class="flex items-center gap-1.5">
+                    {{-- Leyenda horizontal junto al título --}}
+                    <div style="display: flex; align-items: center; gap: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #86efac;"></div>
-                            <span class="text-gray-600 dark:text-gray-400">Trabajado</span>
+                            <span style="font-size: 0.875rem; color: #374151;">Trabajado</span>
                         </div>
-                        <div class="flex items-center gap-1.5">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #fde047;"></div>
-                            <span class="text-gray-600 dark:text-gray-400">Tardanza</span>
+                            <span style="font-size: 0.875rem; color: #374151;">Tardanza</span>
                         </div>
-                        <div class="flex items-center gap-1.5">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #fca5a5;"></div>
-                            <span class="text-gray-600 dark:text-gray-400">Ausencia</span>
+                            <span style="font-size: 0.875rem; color: #374151;">Ausencia</span>
                         </div>
                     </div>
                 </div>
                 
                 {{-- Selector de Empleado (solo para super_admin) --}}
                 @if(auth()->user()->hasRole('super_admin'))
-                    <div class="w-full md:w-64">
+                    <div style="min-width: 250px;">
                         <select 
                             wire:model.live="empleadoSeleccionado"
                             class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary-500 focus:ring-primary-500"
@@ -171,10 +172,10 @@
 
             {{-- Mensaje si no hay empleado seleccionado --}}
             @if(!$this->empleadoSeleccionado)
-                <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p class="text-sm text-blue-700 dark:text-blue-300 text-center">
+                <div style="margin-top: 1.5rem; padding: 1rem; background-color: #dbeafe; border-radius: 0.5rem; border-left: 4px solid #3b82f6;">
+                    <p style="font-size: 0.875rem; color: #1e40af; text-align: center;">
                         @if(auth()->user()->hasRole('super_admin'))
-                            👆 Selecciona un empleado para ver su historial de asistencias
+                            Selecciona un empleado para ver su historial de asistencias
                         @else
                             No se encontró un empleado asociado a tu cuenta
                         @endif
