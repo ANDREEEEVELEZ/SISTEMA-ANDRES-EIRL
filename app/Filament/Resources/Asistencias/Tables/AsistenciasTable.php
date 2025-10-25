@@ -14,26 +14,53 @@ class AsistenciasTable
     {
         return $table
             ->columns([
-                TextColumn::make('empleado.id')
-                    ->numeric()
+                TextColumn::make('empleado.nombre_completo')
+                    ->label('Empleado')
+                    ->searchable(['nombres', 'apellidos'])
                     ->sortable(),
                 TextColumn::make('fecha')
-                    ->date()
+                    ->label('Fecha')
+                    ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('hora_entrada')
-                    ->time()
+                    ->label('Hora Entrada')
+                    ->time('H:i')
                     ->sortable(),
                 TextColumn::make('hora_salida')
-                    ->time()
+                    ->label('Hora Salida')
+                    ->time('H:i')
                     ->sortable(),
+                TextColumn::make('estado')
+                    ->label('Estado')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'presente' => 'success',
+                        'tardanza' => 'warning',
+                        'ausente' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'presente' => 'Trabajado',
+                        'tardanza' => 'Tardanza',
+                        'ausente' => 'Ausencia',
+                        default => ucfirst($state),
+                    }),
+                TextColumn::make('metodo_registro')
+                    ->label('Método')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'facial' => '📷 Facial',
+                        'manual_dni' => '📝 Manual',
+                        default => $state,
+                    })
+                    ->toggleable(),
                 TextColumn::make('observacion')
-                    ->searchable(),
+                    ->label('Observación')
+                    ->searchable()
+                    ->limit(30)
+                    ->toggleable(),
                 TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->label('Creado')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -47,6 +74,7 @@ class AsistenciasTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('fecha', 'desc');
     }
 }
