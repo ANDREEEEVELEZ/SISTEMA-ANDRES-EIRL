@@ -25,9 +25,12 @@ class ListAsistencias extends ListRecords
         $this->mesActual = now()->month;
         $this->anioActual = now()->year;
         
-        // Si no es super_admin, seleccionar el empleado del usuario actual
+        // Si no es super_admin, seleccionar el empleado del usuario actual automáticamente
         if (!Auth::user()->hasRole('super_admin')) {
-            $this->empleadoSeleccionado = Auth::user()->empleado?->id;
+            $empleado = Auth::user()->empleado;
+            if ($empleado) {
+                $this->empleadoSeleccionado = $empleado->id;
+            }
         }
     }
 
@@ -110,6 +113,20 @@ class ListAsistencias extends ListRecords
                 ->get();
         }
         return collect([]);
+    }
+
+    public function getEmpleadoSeleccionadoDataProperty()
+    {
+        if ($this->empleadoSeleccionado) {
+            return Empleado::find($this->empleadoSeleccionado);
+        }
+        
+        // Si no es super_admin, devolver el empleado del usuario actual
+        if (!Auth::user()->hasRole('super_admin')) {
+            return Auth::user()->empleado;
+        }
+        
+        return null;
     }
 
     public function getEstadoDiaProperty($dia)
