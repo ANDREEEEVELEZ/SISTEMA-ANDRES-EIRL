@@ -10,75 +10,75 @@
 <div class="mb-6">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10">
         <div class="p-6">
+            {{-- Header Superior: Título con Leyenda y Selector --}}
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                {{-- Título y Leyenda en la misma línea --}}
+                <div style="display: flex; align-items: center; gap: 2rem;">
+                    <h2 style="font-size: 1.125rem; font-weight: 700; color: #111827; margin: 0;">
+                        Historial de Asistencia - {{ ucfirst($this->calendarioData['nombreMes']) }}
+                    </h2>
+                    
+                    {{-- Leyenda horizontal junto al título --}}
+                    <div style="display: flex; align-items: center; gap: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #86efac;"></div>
+                            <span style="font-size: 0.875rem; color: #374151;">Trabajado</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #fde047;"></div>
+                            <span style="font-size: 0.875rem; color: #374151;">Tardanza</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #fca5a5;"></div>
+                            <span style="font-size: 0.875rem; color: #374151;">Ausencia</span>
+                        </div>
+                    </div>
+                </div>
+                
+                {{-- Selector de Empleado (solo para super_admin) --}}
+                @if(auth()->user()->hasRole('super_admin'))
+                    <div style="min-width: 250px;">
+                        <select 
+                            wire:model.live="empleadoSeleccionado"
+                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary-500 focus:ring-primary-500"
+                        >
+                            <option value="">Seleccionar empleado...</option>
+                            @foreach($this->empleados as $empleado)
+                                <option value="{{ $empleado->id }}">
+                                    {{ $empleado->nombre_completo }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+            </div>
+
             {{-- Contenedor principal con Grid responsivo --}}
             <div class="asistencia-container" style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
                 {{-- Columna izquierda: Calendario --}}
                 <div>
-                {{-- Header: Título con Leyenda y Selector de Empleado --}}
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                    {{-- Título y Leyenda en la misma línea --}}
-                    <div style="display: flex; align-items: center; gap: 2rem;">
-                        <h2 style="font-size: 1.125rem; font-weight: 700; color: #111827; margin: 0;">
-                            Historial de Asistencia - {{ ucfirst($this->calendarioData['nombreMes']) }}
-                        </h2>
-                        
-                        {{-- Leyenda horizontal junto al título --}}
-                        <div style="display: flex; align-items: center; gap: 1.5rem;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #86efac;"></div>
-                                <span style="font-size: 0.875rem; color: #374151;">Trabajado</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #fde047;"></div>
-                                <span style="font-size: 0.875rem; color: #374151;">Tardanza</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #fca5a5;"></div>
-                                <span style="font-size: 0.875rem; color: #374151;">Ausencia</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {{-- Selector de Empleado (solo para super_admin) --}}
-                    @if(auth()->user()->hasRole('super_admin'))
-                        <div style="min-width: 250px;">
-                            <select 
-                                wire:model.live="empleadoSeleccionado"
-                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary-500 focus:ring-primary-500"
-                            >
-                                <option value="">Seleccionar empleado...</option>
-                                @foreach($this->empleados as $empleado)
-                                    <option value="{{ $empleado->id }}">
-                                        {{ $empleado->nombre_completo }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif
-                </div>
-
-            {{-- Navegación del Mes --}}
-            <div class="flex items-center justify-center gap-8 mb-6">
+            {{-- Navegación del Mes - Alineada con bordes del calendario --}}
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
                 <button 
                     wire:click="mesAnterior"
-                    style="padding: 0.5rem; border-radius: 0.5rem; background-color: transparent; transition: background-color 0.2s;"
+                    style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; background-color: transparent; transition: background-color 0.2s; border: none; cursor: pointer;"
                     onmouseover="this.style.backgroundColor='#f3f4f6'"
                     onmouseout="this.style.backgroundColor='transparent'"
                 >
-                    <span style="font-size: 1.25rem; font-weight: bold; color: #6b7280;">◀</span>
+                    <span style="font-size: 1.5rem; font-weight: bold; color: #6b7280;">◀</span>
                 </button>
                 
-                <h3 style="font-size: 1.125rem; font-weight: 600; color: #111827; text-transform: capitalize;">
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #111827; text-transform: capitalize; margin: 0;">
                     {{ $this->calendarioData['nombreMes'] }}
                 </h3>
                 
                 <button 
                     wire:click="mesSiguiente"
-                    style="padding: 0.5rem; border-radius: 0.5rem; background-color: transparent; transition: background-color 0.2s;"
+                    style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; background-color: transparent; transition: background-color 0.2s; border: none; cursor: pointer;"
                     onmouseover="this.style.backgroundColor='#f3f4f6'"
                     onmouseout="this.style.backgroundColor='transparent'"
                 >
-                    <span style="font-size: 1.25rem; font-weight: bold; color: #6b7280;">▶</span>
+                    <span style="font-size: 1.5rem; font-weight: bold; color: #6b7280;">▶</span>
                 </button>
             </div>
 
