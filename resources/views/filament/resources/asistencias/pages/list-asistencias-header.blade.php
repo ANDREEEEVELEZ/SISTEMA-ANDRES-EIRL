@@ -225,6 +225,7 @@
 
                         {{-- Información adicional del empleado --}}
                         <div style="background: rgba(255,255,255,0.15); border-radius: 1rem; padding: 1.25rem; backdrop-filter: blur(10px);">
+                            {{-- DNI --}}
                             <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="white" style="width: 20px; height: 20px; flex-shrink: 0;">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
@@ -235,13 +236,28 @@
                                 </div>
                             </div>
                             
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            {{-- Estado --}}
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="white" style="width: 20px; height: 20px; flex-shrink: 0;">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <div>
-                                    <p style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin: 0;">Mes Actual</p>
-                                    <p style="font-size: 0.95rem; font-weight: 600; color: white; margin: 0; text-transform: capitalize;">{{ $this->calendarioData['nombreMes'] }}</p>
+                                    <p style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin: 0;">Estado</p>
+                                    <p style="font-size: 0.95rem; font-weight: 600; color: {{ $this->estadoEmpleado['color'] }}; margin: 0; display: flex; align-items: center; gap: 0.25rem;">
+                                        <span>{{ $this->estadoEmpleado['icono'] }}</span>
+                                        <span style="color: white;">{{ $this->estadoEmpleado['estado'] }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            {{-- Último Registro --}}
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="white" style="width: 20px; height: 20px; flex-shrink: 0;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div>
+                                    <p style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin: 0;">Último registro</p>
+                                    <p style="font-size: 0.95rem; font-weight: 600; color: white; margin: 0;">{{ $this->ultimoRegistro }}</p>
                                 </div>
                             </div>
                         </div>

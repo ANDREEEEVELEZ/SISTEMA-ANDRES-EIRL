@@ -129,6 +129,75 @@ class ListAsistencias extends ListRecords
         return null;
     }
 
+    public function getEstadoEmpleadoProperty()
+    {
+        if (!$this->empleadoSeleccionado) {
+            return [
+                'estado' => 'Sin datos',
+                'color' => '#9ca3af',
+                'icono' => '⚫'
+            ];
+        }
+
+        // Buscar asistencia de HOY
+        $asistenciaHoy = Asistencia::where('empleado_id', $this->empleadoSeleccionado)
+            ->whereDate('fecha', Carbon::today())
+            ->first();
+
+        // Determinar estado
+        if (!$asistenciaHoy) {
+            // No ha registrado entrada hoy
+            return [
+                'estado' => 'Fuera',
+                'color' => '#ef4444',
+                'icono' => '🔴'
+            ];
+        } elseif ($asistenciaHoy->hora_entrada && !$asistenciaHoy->hora_salida) {
+            // Tiene entrada pero no salida (está trabajando)
+            return [
+                'estado' => 'Trabajando',
+                'color' => '#22c55e',
+                'icono' => '🟢'
+            ];
+        } else {
+            // Tiene entrada y salida (terminó su jornada)
+            return [
+                'estado' => 'Fuera',
+                'color' => '#ef4444',
+                'icono' => '🔴'
+            ];
+        }
+    }
+
+    public function getUltimoRegistroProperty()
+    {
+        if (!$this->empleadoSeleccionado) {
+            return 'Sin datos';
+        }
+
+        // Buscar la última asistencia registrada
+        $ultimaAsistencia = Asistencia::where('empleado_id', $this->empleadoSeleccionado)
+            ->orderBy('fecha', 'desc')
+            ->orderBy('updated_at', 'desc')
+            ->first();
+
+        if (!$ultimaAsistencia) {
+            return 'Sin registros';
+        }
+
+        // Determinar cuál fue el último registro (salida o entrada)
+        $ultimaHora = $ultimaAsistencia->hora_salida ?? $ultimaAsistencia->hora_entrada;
+        $fecha = Carbon::parse($ultimaAsistencia->fecha);
+
+        if ($fecha->isToday()) {
+            return 'Hoy, ' . Carbon::parse($ultimaHora)->format('H:i');
+        } elseif ($fecha->isYesterday()) {
+            return 'Ayer, ' . Carbon::parse($ultimaHora)->format('H:i');
+        } else {
+            return $fecha->format('d/m/Y') . ', ' . Carbon::parse($ultimaHora)->format('H:i');
+        }
+    }
+
     public function getEstadoDiaProperty($dia)
     {
         $calendarioData = $this->calendarioData;
