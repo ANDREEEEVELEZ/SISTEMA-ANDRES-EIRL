@@ -14,6 +14,15 @@ class Categoria extends Model
 
     protected $fillable = [
         'NombreCategoria',
+        'estado',
+    ];
+
+    protected $casts = [
+        'estado' => 'boolean',
+    ];
+
+    protected $attributes = [
+        'estado' => true,
     ];
 
     /**
@@ -22,5 +31,29 @@ class Categoria extends Model
     public function productos(): HasMany
     {
         return $this->hasMany(Producto::class, 'categoria_id');
+    }
+
+    /**
+     * Scope para categorías activas
+     */
+    public function scopeActivas($query)
+    {
+        return $query->where('estado', true);
+    }
+
+    /**
+     * Scope para categorías inactivas
+     */
+    public function scopeInactivas($query)
+    {
+        return $query->where('estado', false);
+    }
+
+    /**
+     * Obtiene el conteo de productos asociados
+     */
+    public function getProductosCountAttribute(): int
+    {
+        return $this->productos()->count();
     }
 }

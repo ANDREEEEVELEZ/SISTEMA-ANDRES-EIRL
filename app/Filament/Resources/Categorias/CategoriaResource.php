@@ -43,7 +43,7 @@ class CategoriaResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\ProductosRelationManager::class,
         ];
     }
 
@@ -53,6 +53,7 @@ class CategoriaResource extends Resource
             'index' => ListCategorias::route('/'),
             'create' => CreateCategoria::route('/create'),
             'edit' => EditCategoria::route('/{record}/edit'),
+            'view' => Pages\ViewCategoria::route('/{record}'),
         ];
     }
 }

@@ -17,7 +17,7 @@ class ProductoForm
                 // === INFORMACIÓN BÁSICA DEL PRODUCTO ===
                 Select::make('categoria_id')
                     ->label('Categoría')
-                    ->relationship('categoria', 'NombreCategoria')
+                    ->relationship('categoria', 'NombreCategoria', fn ($query) => $query->where('estado', true))
                     ->required()
                     ->searchable()
                     ->preload()
@@ -25,7 +25,16 @@ class ProductoForm
                         TextInput::make('NombreCategoria')
                             ->label('Nombre de la Categoría')
                             ->required()
-                    ]),
+                            ->unique('categorias', 'NombreCategoria')
+                            ->maxLength(100),
+                    ])
+                    ->createOptionUsing(function (array $data): int {
+                        return \App\Models\Categoria::create([
+                            'NombreCategoria' => $data['NombreCategoria'],
+                            'estado' => true, // Siempre activo al crear
+                        ])->id;
+                    })
+                    ->helperText('Solo se muestran categorías activas. Puede crear una nueva si no existe.'),
                 
                 TextInput::make('nombre_producto')
                     ->label('Nombre del Producto')
