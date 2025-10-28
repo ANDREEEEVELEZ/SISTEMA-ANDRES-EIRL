@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Cajas;
 use App\Filament\Resources\Cajas\Pages\CreateCaja;
 use App\Filament\Resources\Cajas\Pages\EditCaja;
 use App\Filament\Resources\Cajas\Pages\ListCajas;
+use App\Filament\Resources\Cajas\Pages\ArqueoCaja;
 use App\Filament\Resources\Cajas\Schemas\CajaForm;
 use App\Filament\Resources\Cajas\Tables\CajasTable;
 use App\Models\Caja;
@@ -33,6 +34,8 @@ class CajaResource extends Resource
         return CajasTable::configure($table);
     }
 
+
+
     public static function getRelations(): array
     {
         return [
@@ -54,6 +57,8 @@ class CajaResource extends Resource
             'create' => CreateCaja::route('/create'),
             'edit' => EditCaja::route('/{record}/edit'),
             'registrar-movimiento' => Pages\RegistrarMovimiento::route('/registrar-movimiento'),
+            'arqueo-caja' => ArqueoCaja::route('/arqueo'),
+            'arqueos' => Pages\ArqueosIndex::route('/arqueos'),
         ];
     }
 }

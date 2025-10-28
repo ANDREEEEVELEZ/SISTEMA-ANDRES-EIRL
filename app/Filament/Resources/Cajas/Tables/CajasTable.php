@@ -16,10 +16,6 @@ class CajasTable
             ->heading('Registros de Cajas')
             ->defaultSort('fecha_apertura', 'desc') // Mostrar registros más recientes primero
             ->columns([
-                TextColumn::make('user.name')
-                    ->label('Usuario')
-                    ->numeric()
-                    ->sortable(),
                 TextColumn::make('fecha_apertura')
                     ->dateTime()
                     ->sortable(),

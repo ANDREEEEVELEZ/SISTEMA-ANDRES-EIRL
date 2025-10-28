@@ -32,7 +32,7 @@ class RegistrarMovimiento extends Page implements HasForms
         if (!$this->tieneCajaAbierta()) {
             Notification::make()
                 ->title('Sin caja abierta')
-                ->body('No hay una caja abierta. Por favor, abra una caja primero.')
+                ->body('No hay una caja abierta para hoy. Por favor, cierre la caja del día anterior y proceda abrir una nueva.')
                 ->warning()
                 ->send();
 

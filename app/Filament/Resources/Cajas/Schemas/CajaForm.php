@@ -8,6 +8,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 use Filament\Forms\Get;
 
+use Illuminate\Support\Facades\Auth;
+
 class CajaForm
 {
     public static function configure(Schema $schema): Schema
@@ -17,14 +19,19 @@ class CajaForm
                 Select::make('user_id')
                     ->relationship('user', 'name')
                     ->label('Usuario')
-                    ->required(),
+                    ->required()
+                    ->default(fn () => Auth::id())
+                    ->disabled(),
                 DateTimePicker::make('fecha_apertura')
-                    ->required(),
-                DateTimePicker::make('fecha_cierre'),
+                    ->required()
+                    ->disabled(fn ($record) => $record && $record->estado === 'cerrada'),
+                DateTimePicker::make('fecha_cierre')
+                    ->default(fn ($record) => ($record && $record->estado === 'abierta' && request()->routeIs('filament.resources.cajas.edit')) ? now() : $record?->fecha_cierre)
+                    ->disabled(fn ($record) => $record && $record->estado === 'cerrada'),
                 TextInput::make('saldo_inicial')
                     ->required()
                     ->numeric()
-                    ->disabled(fn (string $operation): bool => $operation === 'edit')
+                    ->disabled(fn ($record, $state, $operation) => $operation === 'edit' || ($record && $record->estado === 'cerrada'))
                     ->dehydrated()
                     ->helperText(fn (string $operation): string =>
                         $operation === 'edit'
@@ -32,16 +39,18 @@ class CajaForm
                             : ''
                     ),
                 TextInput::make('saldo_final')
-                    ->numeric(),
+                    ->numeric()
+                    ->disabled(fn ($record) => $record && $record->estado === 'cerrada'),
                 Select::make('estado')
                     ->label('Estado')
                     ->options(['abierta' => 'Abierta', 'cerrada' => 'Cerrada'])
                     ->default('abierta')
                     ->required()
-                    ->disabled()
+                    ->disabled(fn ($record, $state, $operation) => $operation === 'edit' || ($record && $record->estado === 'cerrada'))
                     ->dehydrated(),
 
-                TextInput::make('observacion'),
+                TextInput::make('observacion')
+                    ->disabled(fn ($record) => $record && $record->estado === 'cerrada'),
             ]);
     }
 }

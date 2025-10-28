@@ -7,6 +7,7 @@ use App\Services\CajaService;
 use Filament\Notifications\Notification;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Arqueo;
 
 class AperturaCierreWidget extends Widget
 {
@@ -45,7 +46,7 @@ class AperturaCierreWidget extends Widget
         Caja::create([
             'user_id' => Auth::id(),
             'fecha_apertura' => now(),
-            'saldo_inicial' => $this->saldoApertura,
+            'saldo_inicial' => (float) $this->saldoApertura,
             'estado' => 'abierta',
         ]);
 
@@ -100,15 +101,15 @@ class AperturaCierreWidget extends Widget
 
     public function tieneCajaAbierta(): bool
     {
-        return Caja::where('estado', 'abierta')
-            ->whereDate('fecha_apertura', today())
-            ->exists();
+        // Verifica si existe alguna caja abierta, sin importar la fecha
+        return Caja::where('estado', 'abierta')->exists();
     }
 
     public function getCajaAbierta(): ?Caja
     {
+        // Obtiene la última caja abierta (la más reciente)
         return Caja::where('estado', 'abierta')
-            ->whereDate('fecha_apertura', today())
+            ->orderByDesc('fecha_apertura')
             ->first();
     }
 
@@ -141,5 +142,21 @@ class AperturaCierreWidget extends Widget
 
         // Saldo esperado = lo que debería haber en efectivo físico
         return $saldoInicial + $ingresosVentasEfectivo + $otrosIngresos - $gastos;
+    }
+
+    /**
+     * Indica si existe un arqueo confirmado para la caja abierta.
+     */
+    public function arqueoConfirmado(): bool
+    {
+        $caja = $this->getCajaAbierta();
+
+        if (!$caja) {
+            return false;
+        }
+
+        return Arqueo::where('caja_id', $caja->id)
+            ->where('estado', 'confirmado')
+            ->exists();
     }
 }

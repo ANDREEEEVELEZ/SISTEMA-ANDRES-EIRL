@@ -4,19 +4,7 @@
     <!-- COLUMNA 1: Botón + TARJETA APERTURA -->
     <div class="flex flex-col space-y-4">
 
-      @if($this->tieneCajaAbierta())
-        <!-- BOTÓN con separación real -->
-        <div class="flex justify-start pl-6" style="margin-bottom: 2rem;">
-          <a href="{{ \App\Filament\Resources\Cajas\CajaResource::getUrl('registrar-movimiento') }}"
-             class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-custom fi-btn-color-primary fi-size-md gap-1.5 px-4 py-2 text-sm inline-grid shadow-sm bg-custom-600 text-white hover:bg-custom-500 focus-visible:ring-custom-500/50 dark:bg-custom-500 dark:hover:bg-custom-400"
-             style="--c-400:var(--primary-400);--c-500:var(--primary-500);--c-600:var(--primary-600);">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-            </svg>
-            <span>Registrar Movimiento</span>
-          </a>
-        </div>
-      @endif
+            {{-- El botón de "Registrar Movimiento" se eliminó de aquí para evitar duplicados; se muestra ahora en el header de la página --}}
 
 
     <!-- Sección principal de Apertura y Cierre -->
@@ -33,11 +21,12 @@
     </div>
 
 
-                <div class="p-6 flex flex-col items-center space-y-4">
+                <div class="p-6 flex flex-col items-center space-y-4" style="padding-bottom: 5rem;">
                     @if(\App\Services\CajaService::tieneCajaAbiertaDiaAnterior())
-                        <div class="rounded-lg bg-danger-50 p-3 text-sm text-danger-600 dark:bg-danger-400/10 dark:text-danger-400 text-center w-full">
-                            ⚠️ Debe cerrar la caja del día anterior primero
-                        </div>
+<div class="rounded-lg bg-danger-50 text-sm text-danger-600 dark:bg-danger-400/10 dark:text-danger-400 text-center w-full"
+     style="padding: 0.75rem;">
+    Debe cerrar la caja del día anterior primero
+</div>
                     @else
                         <form wire:submit="abrirCaja" class="space-y-4 w-full max-w-xs" style="opacity: {{ $this->tieneCajaAbierta() ? '0.6' : '1' }}; pointer-events: {{ $this->tieneCajaAbierta() ? 'none' : 'auto' }};">
                             <div style="margin-bottom: 1.5rem;">
@@ -51,17 +40,30 @@
                                         <div style="padding-left: 0.75rem; padding-right: 0.5rem; display: flex; align-items: center; min-width: 45px;">
                                             <span class="text-base font-semibold text-gray-600 dark:text-gray-400">S/</span>
                                         </div>
-                                        <input
-                                            type="text"
-                                            step="0.01"
-                                            min="0"
-                                            placeholder="0.00"
-                                            value="{{ $this->tieneCajaAbierta() ? number_format($this->getCajaAbierta()?->saldo_inicial ?? 0, 2) : '' }}"
-                                            {{ $this->tieneCajaAbierta() ? 'disabled readonly' : '' }}
-                                            {{ !$this->tieneCajaAbierta() ? 'wire:model=saldoApertura required' : '' }}
-                                            class="fi-input block w-full border-none py-1.5 text-base text-gray-950 transition duration-75 placeholder:text-gray-400 focus:ring-0 disabled:text-gray-500 disabled:[-webkit-text-fill-color:theme(colors.gray.500)] dark:text-white dark:placeholder:text-gray-500 dark:disabled:text-gray-400 dark:disabled:[-webkit-text-fill-color:theme(colors.gray.400)] sm:text-sm sm:leading-6 bg-white/0"
-                                            style="padding-left: 0;"
-                                        />
+                                        @if($this->tieneCajaAbierta())
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                placeholder="0.00"
+                                                value="{{ number_format($this->getCajaAbierta()?->saldo_inicial ?? 0, 2) }}"
+                                                disabled readonly
+                                                class="fi-input block w-full border-none py-1.5 text-base text-gray-950 transition duration-75 placeholder:text-gray-400 focus:ring-0 disabled:text-gray-500 disabled:[-webkit-text-fill-color:theme(colors.gray.500)] dark:text-white dark:placeholder:text-gray-500 dark:disabled:text-gray-400 dark:disabled:[-webkit-text-fill-color:theme(colors.gray.400)] sm:text-sm sm:leading-6 bg-white/0"
+                                                style="padding-left: 0;"
+                                            />
+                                        @else
+                                            <input
+                                                type="number"
+                                                wire:model="saldoApertura"
+                                                step="0.01"
+                                                min="0"
+                                                placeholder="0.00"
+                                                required
+                                                class="fi-input block w-full border-none py-1.5 text-base text-gray-950 transition duration-75 placeholder:text-gray-400 focus:ring-0 disabled:text-gray-500 disabled:[-webkit-text-fill-color:theme(colors.gray.500)] dark:text-white dark:placeholder:text-gray-500 sm:text-sm sm:leading-6 bg-white/0"
+                                                style="padding-left: 0;"
+                                            />
+                                        @endif
+                                        
                                     </div>
                                 </div>
                             </div>
@@ -119,12 +121,19 @@
                                 </div>
                             </div>
                             <div style="margin-top: 1rem; padding: 0 1rem; display: flex; justify-content: center;">
-                                <button type="submit"
+                                @php $habilitado = $this->arqueoConfirmado(); @endphp
+                                <button type="submit" {{ $habilitado ? '' : 'disabled' }}
                                     class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-custom fi-btn-color-danger fi-size-md fi-btn-size-md gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm text-white hover:bg-red-600 focus-visible:ring-red-400/50 dark:hover:bg-red-500 fi-ac-action fi-ac-btn-action w-full"
                                     style="--c-400:var(--danger-400);--c-500:var(--danger-500);--c-600:var(--danger-600); background-color:#ef4444; color:#ffffff;">
                                     Cerrar Caja
                                 </button>
                             </div>
+
+                            @unless($this->arqueoConfirmado())
+                                <div class="mt-3 text-sm text-center text-yellow-700 dark:text-yellow-300 w-full" style="padding: 0 1rem;">
+                                    Generar reporte de arqueo antes de cerrar caja
+                                </div>
+                            @endunless
 
                         </form>
                     @else

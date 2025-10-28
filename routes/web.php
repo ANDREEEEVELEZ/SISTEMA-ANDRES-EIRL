@@ -43,3 +43,7 @@ Route::get('/clientes/exportar/pdf', [ClienteExportController::class, 'exportarP
     ->name('clientes.exportar.pdf');
 Route::get('/clientes/{id}/imprimir/pdf', [ClienteExportController::class, 'imprimirClientePdf'])
     ->name('clientes.imprimir.pdf');
+
+// Reportes - Arqueo de caja (descarga PDF de arqueo registrado)
+Route::get('/reportes/arqueo/{id}/pdf', [\App\Http\Controllers\ReportesController::class, 'arqueoPdf'])
+    ->name('reportes.arqueo');
