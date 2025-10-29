@@ -52,7 +52,28 @@ class ArqueoCaja extends Page implements HasForms
         }
 
         $this->caja = $this->getCajaAbierta();
+        // Si se pasa ?arqueo_id= en la URL intentamos cargar ese arqueo (independiente de la caja abierta)
+        $requestedId = request()->query('arqueo_id');
+        if ($requestedId) {
+            $loaded = Arqueo::with('caja')->find($requestedId);
+            if ($loaded) {
+                $this->arqueo = $loaded;
+                // Usar la caja asociada al arqueo para mostrar su información
+                $this->caja = $this->arqueo->caja;
+                // Rellenar totales desde el arqueo (no recalcular sobre la caja abierta)
+                $this->totalVentas = (float) $this->arqueo->total_ventas;
+                $this->totalIngresos = (float) $this->arqueo->total_ingresos;
+                $this->totalEgresos = (float) $this->arqueo->total_egresos;
+                $this->saldoTeorico = (float) $this->arqueo->saldo_teorico;
+                $this->data['efectivo_contado'] = $this->arqueo->efectivo_contado;
+                $this->data['observacion'] = $this->arqueo->observacion;
+                $this->form->fill($this->data);
+                return;
+            }
+            // si no se encuentra el arqueo solicitado, continuamos con el flujo normal
+        }
 
+        // Comportamiento por defecto: usar la caja abierta actual y calcular totales
         $this->calcularTotales();
 
         // Inicializar estado del formulario
@@ -61,18 +82,10 @@ class ArqueoCaja extends Page implements HasForms
             'observacion' => null,
         ];
 
-        // Si se pasa ?arqueo_id= en la URL cargamos ese registro para editar/confirmar
-        $requestedId = request()->query('arqueo_id');
-        if ($requestedId) {
-            $this->arqueo = Arqueo::where('caja_id', $this->caja->id)->find($requestedId);
-        }
-
         // Si no se solicitó uno específico, cargamos el último arqueo de la caja
-        if (!$this->arqueo) {
-            $this->arqueo = Arqueo::where('caja_id', $this->caja->id)
-                ->latest()
-                ->first();
-        }
+        $this->arqueo = Arqueo::where('caja_id', $this->caja->id)
+            ->latest()
+            ->first();
 
         if ($this->arqueo) {
             $this->data['efectivo_contado'] = $this->arqueo->efectivo_contado;

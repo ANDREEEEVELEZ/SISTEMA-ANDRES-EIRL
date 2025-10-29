@@ -47,3 +47,11 @@ Route::get('/clientes/{id}/imprimir/pdf', [ClienteExportController::class, 'impr
 // Reportes - Arqueo de caja (descarga PDF de arqueo registrado)
 Route::get('/reportes/arqueo/{id}/pdf', [\App\Http\Controllers\ReportesController::class, 'arqueoPdf'])
     ->name('reportes.arqueo');
+
+// Reportes - Exportación de cajas por filtros (stream PDF)
+Route::get('/reportes/cajas/export', [\App\Http\Controllers\ReportesController::class, 'cajasExport'])
+    ->name('reportes.cajas_export');
+
+// Ruta intermedia para abrir el PDF en nueva pestaña y regresar al sistema
+Route::get('/reportes/cajas/open', [\App\Http\Controllers\ReportesController::class, 'cajasOpen'])
+    ->name('reportes.cajas_open');

@@ -99,3 +99,17 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Escuchar evento disparado desde Livewire/Filament para abrir el PDF en nueva pestaña
+    window.addEventListener('open-pdf-export', function (e) {
+        try {
+            var url = e.detail?.url || null;
+            if (url) {
+                window.open(url, '_blank');
+            }
+        } catch (err) {
+            console.error('Error opening export URL', err);
+        }
+    });
+</script>
