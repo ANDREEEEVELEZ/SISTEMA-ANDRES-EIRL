@@ -43,7 +43,7 @@ class EmpleadosTable
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('danger')
-                    ->tooltip(fn ($record) => $record->face_descriptors ? '✅ Puede usar reconocimiento facial' : '❌ No registrado'),
+                    ->tooltip(fn ($record) => $record->face_descriptors ? ' Puede usar reconocimiento facial' : ' No registrado'),
                 
                 TextColumn::make('user.name')
                     ->label('Usuario')

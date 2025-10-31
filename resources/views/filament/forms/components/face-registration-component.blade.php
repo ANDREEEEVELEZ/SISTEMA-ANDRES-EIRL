@@ -233,7 +233,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
         
         async loadModels() {
             try {
-                console.log('🤖 Cargando modelos de IA...');
+                console.log('Cargando modelos de IA...');
                 const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model';
                 
                 await Promise.all([
@@ -243,7 +243,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                 ]);
                 
                 this.modelsLoaded = true;
-                console.log('✅ Modelos cargados exitosamente');
+                console.log('Modelos cargados exitosamente');
             } catch (error) {
                 console.error('❌ Error cargando modelos:', error);
                 this.$dispatch('notify', {
@@ -277,7 +277,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                 });
                 
                 this.status = { 
-                    text: '✅ Cámara lista', 
+                    text: 'Cámara lista', 
                     color: 'bg-success-500 text-white',
                     loading: false 
                 };
@@ -293,28 +293,28 @@ function faceRegistrationComponent(empleadoId, isEditing) {
         },
         
         async capturePhoto() {
-            console.log('📸 Iniciando captura de foto...');
+            console.log('Iniciando captura de foto...');
             
             this.status = { 
-                text: '🔍 Detectando rostro...', 
+                text: 'Detectando rostro...', 
                 color: 'bg-blue-500 text-white',
                 loading: true 
             };
             
             try {
                 const video = this.$refs.video;
-                console.log('✅ Video obtenido, iniciando detección...');
+                console.log('Video obtenido, iniciando detección...');
                 
                 const detection = await faceapi
                     .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
                     .withFaceLandmarks()
                     .withFaceDescriptor();
                 
-                console.log('🔍 Detección completada:', detection ? 'Rostro detectado' : 'No se detectó rostro');
+                console.log('Detección completada:', detection ? 'Rostro detectado' : 'No se detectó rostro');
                 
                 if (!detection) {
                     this.$dispatch('notify', {
-                        message: '❌ No se detectó ningún rostro. Asegúrate de estar frente a la cámara.',
+                        message: 'No se detectó ningún rostro. Asegúrate de estar frente a la cámara.',
                         type: 'warning'
                     });
                     this.status = { 
@@ -326,7 +326,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                 }
                 
                 this.faceDescriptors = Array.from(detection.descriptor);
-                console.log('✅ Descriptores extraídos:', this.faceDescriptors.length, 'dimensiones');
+                console.log('Descriptores extraídos:', this.faceDescriptors.length, 'dimensiones');
                 
                 const canvas = document.createElement('canvas');
                 canvas.width = video.videoWidth;
@@ -334,10 +334,10 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                 canvas.getContext('2d').drawImage(video, 0, 0);
                 this.capturedImage = canvas.toDataURL('image/jpeg', 0.95);
                 
-                console.log('✅ Imagen capturada, tamaño:', this.capturedImage.length, 'caracteres');
+                console.log('Imagen capturada, tamaño:', this.capturedImage.length, 'caracteres');
                 
                 this.status = { 
-                    text: '✅ Rostro capturado correctamente', 
+                    text: 'Rostro capturado correctamente', 
                     color: 'bg-success-500 text-white',
                     loading: false 
                 };
@@ -355,7 +355,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
             this.capturedImage = null;
             this.faceDescriptors = null;
             this.status = { 
-                text: '✅ Cámara lista', 
+                text: 'Cámara lista', 
                 color: 'bg-success-500 text-white',
                 loading: false 
             };
@@ -370,8 +370,8 @@ function faceRegistrationComponent(empleadoId, isEditing) {
             
             const dni = dniInput ? dniInput.value.trim() : '';
             
-            console.log('🔍 Confirmando foto - DNI encontrado:', dni || 'NO ENCONTRADO');
-            console.log('🔍 Campo DNI:', dniInput);
+            console.log('Confirmando foto - DNI encontrado:', dni || 'NO ENCONTRADO');
+            console.log('Campo DNI:', dniInput);
             
             if (!dni) {
                 alert('Por favor, ingresa el DNI del empleado primero');
@@ -391,7 +391,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                           || document.querySelector('[data-field-name="captured_face_image"]')
                           || document.querySelector('#captured_face_image');
             
-            console.log('🔍 Buscando campos ocultos:', {
+            console.log('Buscando campos ocultos:', {
                 descriptorsInput: !!descriptorsInput,
                 pathInput: !!pathInput,
                 imageInput: !!imageInput
@@ -404,7 +404,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                 descriptorsInput.name = 'face_descriptors';
                 descriptorsInput.setAttribute('wire:model', 'data.face_descriptors');
                 document.querySelector('form').appendChild(descriptorsInput);
-                console.log('✅ Campo face_descriptors creado');
+                console.log('Campo face_descriptors creado');
             }
             
             if (!pathInput) {
@@ -413,7 +413,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                 pathInput.name = 'foto_facial_path';
                 pathInput.setAttribute('wire:model', 'data.foto_facial_path');
                 document.querySelector('form').appendChild(pathInput);
-                console.log('✅ Campo foto_facial_path creado');
+                console.log('Campo foto_facial_path creado');
             }
             
             if (!imageInput) {
@@ -422,7 +422,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                 imageInput.name = 'captured_face_image';
                 imageInput.setAttribute('wire:model', 'data.captured_face_image');
                 document.querySelector('form').appendChild(imageInput);
-                console.log('✅ Campo captured_face_image creado');
+                console.log('Campo captured_face_image creado');
             }
             
             // Guardar datos en campos ocultos
@@ -445,11 +445,11 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                     component.set('data.face_descriptors', descriptorsJson);
                     component.set('data.foto_facial_path', photoPath);
                     component.set('data.captured_face_image', this.capturedImage);
-                    console.log('✅ Datos sincronizados con Livewire');
+                    console.log('Datos sincronizados con Livewire');
                 }
             }
             
-            console.log('💾 Datos guardados:', {
+            console.log('Datos guardados:', {
                 descriptors_length: descriptorsJson.length,
                 path: photoPath,
                 image_length: this.capturedImage.length
@@ -457,7 +457,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
             
             this.closeCamera();
             
-            alert('✅ Rostro capturado correctamente. Ahora haz clic en "Guardar" para confirmar el registro del empleado.');
+            alert('Rostro capturado correctamente. Ahora haz clic en "Guardar" para confirmar el registro del empleado.');
         },
         
         closeCamera() {
@@ -483,7 +483,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
             if (imageInput) imageInput.value = '';
             
             this.$dispatch('notify', {
-                message: '🗑️ Registro facial marcado para eliminar. Guarda el formulario para confirmar.',
+                message: 'Registro facial marcado para eliminar. Guarda el formulario para confirmar.',
                 type: 'info'
             });
         }

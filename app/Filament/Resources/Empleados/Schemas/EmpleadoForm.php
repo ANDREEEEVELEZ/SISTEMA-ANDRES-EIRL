@@ -71,12 +71,12 @@ class EmpleadoForm
                 
                 // === REGISTRO FACIAL (Solo Super Admin) ===
                 ViewField::make('foto_actual')
-                    ->label('📸 Foto Facial Actual')
+                    ->label('Foto Facial Actual')
                     ->view('filament.forms.components.current-face-photo')
                     ->visible(fn ($record) => $record?->foto_facial_path !== null),
                 
                 ViewField::make('face_registration')
-                    ->label('🎥 Registro de Rostro Facial')
+                    ->label('Registro de Rostro Facial')
                     ->view('filament.forms.components.face-registration-component')
                     ->visible(fn () => auth()->user()->hasRole('super_admin'))
                     ->helperText('Usa esta función para registrar el rostro del empleado y habilitar el reconocimiento facial.'),

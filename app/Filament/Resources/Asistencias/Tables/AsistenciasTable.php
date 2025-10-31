@@ -48,8 +48,8 @@ class AsistenciasTable
                 TextColumn::make('metodo_registro')
                     ->label('Método')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'facial' => '📷 Facial',
-                        'manual_dni' => '📝 Manual',
+                        'facial' => 'Facial',
+                        'manual_dni' => 'Manual',
                         default => $state,
                     })
                     ->toggleable(),

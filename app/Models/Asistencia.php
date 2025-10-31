@@ -35,8 +35,8 @@ class Asistencia extends Model
     public function getMetodoRegistroFormateadoAttribute(): string
     {
         return match($this->metodo_registro) {
-            'facial' => '📷 Reconocimiento Facial',
-            'manual_dni' => '📝 Manual (DNI)',
+            'facial' => 'Reconocimiento Facial',
+            'manual_dni' => 'Manual (DNI)',
             default => 'Desconocido'
         };
     }
