@@ -164,10 +164,10 @@ class ProductosTable
                         \Filament\Forms\Components\Select::make('tipo')
                             ->label('Filtrar por')
                             ->options([
-                                'agotado' => '🔴 Productos Agotados',
-                                'bajo' => '🟡 Stock Bajo',
-                                'alerta' => '⚠️ Con Alerta (Agotados + Stock Bajo)',
-                                'normal' => '🟢 Stock Normal',
+                                'agotado' => 'Productos Agotados',
+                                'bajo' => 'Stock Bajo',
+                                'alerta' => 'Con Alerta (Agotados + Stock Bajo)',
+                                'normal' => 'Stock Normal',
                             ])
                             ->placeholder('Seleccionar estado'),
                     ])
@@ -196,10 +196,10 @@ class ProductosTable
                         }
                         
                         return match($data['tipo']) {
-                            'agotado' => '🔴 Productos Agotados',
-                            'bajo' => '🟡 Stock Bajo',
-                            'alerta' => '⚠️ Con Alerta de Stock',
-                            'normal' => '🟢 Stock Normal',
+                            'agotado' => 'Productos Agotados',
+                            'bajo' => 'Stock Bajo',
+                            'alerta' => 'Con Alerta de Stock',
+                            'normal' => 'Stock Normal',
                             default => null,
                         };
                     }),
