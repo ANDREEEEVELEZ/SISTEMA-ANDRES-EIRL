@@ -240,10 +240,10 @@ class FaceRecognitionController extends Controller
                     'estado' => 'presente',
                     'metodo_registro' => 'manual_dni',
                     'razon_manual' => $razonManual,
-                    'intentos_fallidos' => $intentosFallidos
+                    // 'intentos_fallidos' => $intentosFallidos  // Campo no existe en la tabla
                 ]);
 
-                Log::warning("Asistencia registrada manualmente para {$empleado->nombres} (DNI: {$dni}). Motivo: {$razonManual}");
+                Log::warning("Asistencia registrada manualmente para {$empleado->nombres} (DNI: {$dni}). Motivo: {$razonManual}. Intentos fallidos: {$intentosFallidos}");
 
                 return response()->json([
                     'success' => true,

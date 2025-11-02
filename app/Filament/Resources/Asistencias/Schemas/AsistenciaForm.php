@@ -65,6 +65,12 @@ class AsistenciaForm
                     ->rows(3)
                     ->placeholder('Ingrese cualquier observación relevante sobre la asistencia...')
                     ->helperText('Opcional: Comentarios adicionales sobre la asistencia'),
+                
+                Textarea::make('razon_manual')
+                    ->label('Motivo de Registro Manual')
+                    ->rows(3)
+                    ->placeholder('Motivo por el cual se registró manualmente (solo para registros manuales)...')
+                    ->helperText('Este campo se llena automáticamente cuando el empleado registra manualmente su asistencia'),
             ]);
     }
 }

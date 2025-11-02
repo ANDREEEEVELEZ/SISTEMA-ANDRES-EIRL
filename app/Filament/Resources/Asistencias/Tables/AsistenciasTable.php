@@ -58,6 +58,12 @@ class AsistenciasTable
                     ->searchable()
                     ->limit(30)
                     ->toggleable(),
+                TextColumn::make('razon_manual')
+                    ->label('Motivo Registro Manual')
+                    ->searchable()
+                    ->limit(30)
+                    ->toggleable()
+                    ->placeholder('N/A'),
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime('d/m/Y H:i')
