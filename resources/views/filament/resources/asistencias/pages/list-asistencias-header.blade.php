@@ -24,10 +24,10 @@
                             <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #86efac;"></div>
                             <span style="font-size: 0.875rem; color: #374151;">Trabajado</span>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        {{-- <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #fde047;"></div>
                             <span style="font-size: 0.875rem; color: #374151;">Tardanza</span>
-                        </div>
+                        </div> --}}
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #fca5a5;"></div>
                             <span style="font-size: 0.875rem; color: #374151;">Ausencia</span>
@@ -130,11 +130,13 @@
                                     $bgColor = '#86efac';
                                     $textColor = '#166534';
                                     $fontWeight = '600';
-                                } elseif ($estado === 'tardanza') {
-                                    $bgColor = '#fde047';
-                                    $textColor = '#854d0e';
-                                    $fontWeight = '600';
-                                } elseif ($estado === 'ausente') {
+                                } 
+                                // elseif ($estado === 'tardanza') {
+                                //     $bgColor = '#fde047';
+                                //     $textColor = '#854d0e';
+                                //     $fontWeight = '600';
+                                // } 
+                                elseif ($estado === 'ausente') {
                                     $bgColor = '#fca5a5';
                                     $textColor = '#991b1b';
                                     $fontWeight = '600';
@@ -154,7 +156,7 @@
                                 if ($asistencia) {
                                     $titulo = 'Estado: ' . match($estado) {
                                         'presente' => 'Trabajado',
-                                        'tardanza' => 'Tardanza',
+                                        // 'tardanza' => 'Tardanza',
                                         'ausente' => 'Ausencia',
                                         default => ucfirst($estado)
                                     };
