@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Inventario\Pages;
 
+use App\Filament\Actions\ExportarInventarioStockAction;
+use App\Filament\Actions\ExportarMovimientosInventarioAction;
+use App\Filament\Actions\ExportarReporteCompletoAction;
 use App\Filament\Resources\Inventario\InventarioResource;
 use App\Filament\Resources\Inventario\Widgets\InventarioResumenWidget;
 use App\Filament\Resources\Inventario\Widgets\MovimientosStatsWidget;
@@ -15,6 +18,9 @@ class ListInventario extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            ExportarInventarioStockAction::make(),
+            ExportarMovimientosInventarioAction::make(),
+            ExportarReporteCompletoAction::make(),
             CreateAction::make(),
         ];
     }

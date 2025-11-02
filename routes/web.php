@@ -6,6 +6,7 @@ use App\Http\Controllers\FaceRecognitionController;
 use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\ComprobanteController;
 use App\Http\Controllers\ClienteExportController;
+use App\Http\Controllers\ReporteInventarioController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -55,3 +56,13 @@ Route::get('/reportes/cajas/export', [\App\Http\Controllers\ReportesController::
 // Ruta intermedia para abrir el PDF en nueva pestaña y regresar al sistema
 Route::get('/reportes/cajas/open', [\App\Http\Controllers\ReportesController::class, 'cajasOpen'])
     ->name('reportes.cajas_open');
+
+// Reportes de Inventario
+Route::prefix('reportes/inventario')->middleware(['auth'])->group(function () {
+    Route::get('/stock', [ReporteInventarioController::class, 'reporteStock'])
+        ->name('reportes.inventario.stock');
+    Route::get('/movimientos', [ReporteInventarioController::class, 'reporteMovimientos'])
+        ->name('reportes.inventario.movimientos');
+    Route::get('/completo', [ReporteInventarioController::class, 'reporteCompleto'])
+        ->name('reportes.inventario.completo');
+});
