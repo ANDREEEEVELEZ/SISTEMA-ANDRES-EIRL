@@ -83,30 +83,25 @@
                 <div class="p-6 space-y-4">
                     <!-- Video de Cámara -->
                     <div class="relative bg-gray-900 rounded-xl overflow-hidden shadow-inner" x-show="!capturedImage">
-                        <video 
-                            x-ref="video"
-                            autoplay 
-                            muted
-                            playsinline
-                            class="w-full h-[400px] object-cover"
-                        ></video>
-                        
-                        <!-- Guía de Posicionamiento -->
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div class="relative">
-                                <div class="w-64 h-64 border-4 border-dashed border-primary-400 rounded-full animate-pulse"></div>
-                                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                                    <x-filament::icon 
-                                        icon="heroicon-o-user-circle" 
-                                        class="w-32 h-32 text-primary-400 opacity-30"
-                                    />
-                                </div>
-                            </div>
+                        <div class="relative" style="width: 100%; height: 500px; position: relative;">
+                            <video 
+                                x-ref="video"
+                                autoplay 
+                                muted
+                                playsinline
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"
+                            ></video>
+                            
+                            <!-- Canvas para detectiones en tiempo real -->
+                            <canvas 
+                                x-ref="canvas"
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none;"
+                            ></canvas>
                         </div>
                         
                         <!-- Indicador de Estado -->
                         <div 
-                            class="absolute top-4 right-4 px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition-all"
+                            class="absolute top-4 right-4 px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition-all backdrop-blur-md"
                             :class="status.color"
                         >
                             <span class="flex items-center gap-2">
@@ -118,10 +113,18 @@
                             </span>
                         </div>
                         
+                        <!-- Contador de rostros detectados -->
+                        <div 
+                            x-show="faceDetectedCount > 0"
+                            class="absolute top-4 left-4 px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition-all backdrop-blur-md bg-green-500 text-white"
+                        >
+                            <span x-text="'Rostro detectado'"></span>
+                        </div>
+                        
                         <!-- Instrucciones -->
-                        <div class="absolute bottom-4 left-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-3">
+                        <div class="absolute bottom-4 left-4 right-4 bg-black/80 backdrop-blur-sm rounded-lg px-4 py-3 border border-cyan-400/30">
                             <p class="text-white text-sm text-center font-medium">
-                                📍 Posiciona tu rostro dentro del círculo y mantén la mirada al frente
+                                <span x-text="detectionMessage"></span>
                             </p>
                         </div>
                     </div>
@@ -221,6 +224,9 @@ function faceRegistrationComponent(empleadoId, isEditing) {
         capturedImage: null,
         faceDescriptors: null,
         stream: null,
+        detectionInterval: null,
+        faceDetectedCount: 0,
+        detectionMessage: 'Posiciona tu rostro frente a la cámara',
         status: {
             text: 'Cargando modelos...',
             color: 'bg-yellow-500 text-white',
@@ -276,11 +282,30 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                     this.$refs.video.onloadedmetadata = resolve;
                 });
                 
+                // Configurar canvas con las dimensiones del contenedor
+                const video = this.$refs.video;
+                const canvas = this.$refs.canvas;
+                const container = canvas.parentElement;
+                
+                // Establecer dimensiones del canvas al contenedor
+                canvas.width = container.offsetWidth;
+                canvas.height = container.offsetHeight;
+                
+                console.log('Canvas configurado:', {
+                    canvasWidth: canvas.width,
+                    canvasHeight: canvas.height,
+                    videoWidth: video.videoWidth,
+                    videoHeight: video.videoHeight
+                });
+                
                 this.status = { 
-                    text: 'Cámara lista', 
+                    text: 'Cámara lista - Detectando...', 
                     color: 'bg-success-500 text-white',
                     loading: false 
                 };
+                
+                // Iniciar detección en tiempo real
+                this.startRealTimeDetection();
                 
             } catch (error) {
                 console.error('Error accediendo a cámara:', error);
@@ -290,6 +315,241 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                 });
                 this.closeCamera();
             }
+        },
+        
+        async startRealTimeDetection() {
+            const video = this.$refs.video;
+            const canvas = this.$refs.canvas;
+            const ctx = canvas.getContext('2d');
+            
+            const detectFace = async () => {
+                if (!this.cameraOpen || this.capturedImage) {
+                    return;
+                }
+                
+                try {
+                    // Detectar rostro con landmarks
+                    const detection = await faceapi
+                        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({
+                            inputSize: 320,
+                            scoreThreshold: 0.5
+                        }))
+                        .withFaceLandmarks();
+                    
+                    // Limpiar canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    if (detection) {
+                        this.faceDetectedCount = 1;
+                        this.detectionMessage = '✓ Rostro detectado - Mantén la posición';
+                        
+                        // Calcular el factor de escala entre el video y el canvas
+                        const scaleX = canvas.width / video.videoWidth;
+                        const scaleY = canvas.height / video.videoHeight;
+                        
+                        console.log('Escalas:', { scaleX, scaleY, canvasW: canvas.width, canvasH: canvas.height, videoW: video.videoWidth, videoH: video.videoHeight });
+                        
+                        // Escalar la detección
+                        const scaledBox = {
+                            x: detection.detection.box.x * scaleX,
+                            y: detection.detection.box.y * scaleY,
+                            width: detection.detection.box.width * scaleX,
+                            height: detection.detection.box.height * scaleY
+                        };
+                        
+                        console.log('Box escalado:', scaledBox);
+                        
+                        // Escalar landmarks
+                        const scaledLandmarks = detection.landmarks.positions.map(point => ({
+                            x: point.x * scaleX,
+                            y: point.y * scaleY
+                        }));
+                        
+                        console.log('Dibujando en canvas...');
+                        
+                        // Dibujar caja delimitadora con efecto neón
+                        this.drawFaceBox(ctx, scaledBox);
+                        
+                        // Dibujar puntos de landmarks (malla facial)
+                        this.drawFaceLandmarks(ctx, scaledLandmarks, detection.landmarks);
+                        
+                        console.log('Dibujo completado');
+                        
+                    } else {
+                        this.faceDetectedCount = 0;
+                        this.detectionMessage = 'Posiciona tu rostro frente a la cámara';
+                    }
+                    
+                } catch (error) {
+                    console.error('Error en detección:', error);
+                }
+                
+                // Continuar con la siguiente detección
+                if (this.cameraOpen && !this.capturedImage) {
+                    requestAnimationFrame(detectFace);
+                }
+            };
+            
+            // Iniciar loop de detección
+            detectFace();
+        },
+        
+        drawFaceBox(ctx, box) {
+            const { x, y, width, height } = box;
+            
+            console.log('drawFaceBox llamado con:', box);
+            
+            // Guardar estado del contexto
+            ctx.save();
+            
+            // Configurar estilo de línea con efecto brillante
+            ctx.strokeStyle = '#00f2ff';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#00f2ff';
+            
+            // Dibujar rectángulo simple primero para verificar
+            ctx.strokeRect(x, y, width, height);
+            
+            // Dibujar rectángulo redondeado
+            const radius = 15;
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.stroke();
+            
+            // Dibujar esquinas decorativas
+            const cornerLength = 30;
+            ctx.lineWidth = 6;
+            
+            // Esquina superior izquierda
+            ctx.beginPath();
+            ctx.moveTo(x, y + cornerLength);
+            ctx.lineTo(x, y);
+            ctx.lineTo(x + cornerLength, y);
+            ctx.stroke();
+            
+            // Esquina superior derecha
+            ctx.beginPath();
+            ctx.moveTo(x + width - cornerLength, y);
+            ctx.lineTo(x + width, y);
+            ctx.lineTo(x + width, y + cornerLength);
+            ctx.stroke();
+            
+            // Esquina inferior izquierda
+            ctx.beginPath();
+            ctx.moveTo(x, y + height - cornerLength);
+            ctx.lineTo(x, y + height);
+            ctx.lineTo(x + cornerLength, y + height);
+            ctx.stroke();
+            
+            // Esquina inferior derecha
+            ctx.beginPath();
+            ctx.moveTo(x + width - cornerLength, y + height);
+            ctx.lineTo(x + width, y + height);
+            ctx.lineTo(x + width, y + height - cornerLength);
+            ctx.stroke();
+            
+            // Restaurar estado del contexto
+            ctx.restore();
+            
+            console.log('drawFaceBox completado');
+        },
+        
+        drawFaceLandmarks(ctx, scaledPoints, originalLandmarks) {
+            console.log('drawFaceLandmarks llamado con', scaledPoints.length, 'puntos');
+            
+            // Guardar estado
+            ctx.save();
+            
+            // Configurar estilo para puntos
+            ctx.fillStyle = '#00ff88';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00ff88';
+            
+            // Dibujar cada punto de landmark
+            scaledPoints.forEach((point, index) => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+            
+            console.log('Puntos dibujados');
+            
+            // Dibujar líneas conectando los landmarks principales
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 5;
+            
+            // Necesitamos escalar manualmente los grupos de landmarks
+            const video = this.$refs.video;
+            const canvas = this.$refs.canvas;
+            const scaleX = canvas.width / video.videoWidth;
+            const scaleY = canvas.height / video.videoHeight;
+            
+            const scalePoints = (points) => points.map(p => ({
+                x: p.x * scaleX,
+                y: p.y * scaleY
+            }));
+            
+            try {
+                // Contorno de la cara
+                this.drawLandmarkContour(ctx, scalePoints(originalLandmarks.getJawOutline()));
+                
+                // Cejas
+                this.drawLandmarkContour(ctx, scalePoints(originalLandmarks.getLeftEyeBrow()));
+                this.drawLandmarkContour(ctx, scalePoints(originalLandmarks.getRightEyeBrow()));
+                
+                // Ojos
+                this.drawLandmarkLoop(ctx, scalePoints(originalLandmarks.getLeftEye()));
+                this.drawLandmarkLoop(ctx, scalePoints(originalLandmarks.getRightEye()));
+                
+                // Nariz
+                this.drawLandmarkContour(ctx, scalePoints(originalLandmarks.getNose()));
+                
+                // Boca
+                this.drawLandmarkLoop(ctx, scalePoints(originalLandmarks.getMouth()));
+                
+                console.log('Líneas dibujadas');
+            } catch (e) {
+                console.error('Error dibujando líneas:', e);
+            }
+            
+            // Restaurar estado
+            ctx.restore();
+            
+            console.log('drawFaceLandmarks completado');
+        },
+        
+        drawLandmarkContour(ctx, points) {
+            if (points.length < 2) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.stroke();
+        },
+        
+        drawLandmarkLoop(ctx, points) {
+            if (points.length < 2) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.closePath();
+            ctx.stroke();
         },
         
         async capturePhoto() {
@@ -464,9 +724,14 @@ function faceRegistrationComponent(empleadoId, isEditing) {
             if (this.stream) {
                 this.stream.getTracks().forEach(track => track.stop());
             }
+            if (this.detectionInterval) {
+                clearInterval(this.detectionInterval);
+            }
             this.cameraOpen = false;
             this.capturedImage = null;
             this.faceDescriptors = null;
+            this.faceDetectedCount = 0;
+            this.detectionMessage = 'Posiciona tu rostro frente a la cámara';
         },
         
         async deletePhoto() {
@@ -494,6 +759,40 @@ function faceRegistrationComponent(empleadoId, isEditing) {
 <style>
 [x-cloak] { 
     display: none !important; 
+}
+
+/* Animación de pulso para el indicador de rostro detectado */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(0, 255, 136, 0.8);
+    }
+}
+
+.bg-green-500 {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Efecto de escaneo para el contenedor del video */
+@keyframes scan-line {
+    0% {
+        top: 0;
+        opacity: 0.8;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        top: 100%;
+        opacity: 0.8;
+    }
+}
+
+/* Canvas con efecto de overlay */
+canvas {
+    mix-blend-mode: screen;
 }
 </style>
 @endpush
