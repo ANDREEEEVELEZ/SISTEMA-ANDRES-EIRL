@@ -117,6 +117,10 @@
                                 $asistencia = $this->calendarioData['asistencias'][$dia] ?? null;
                                 $estado = $asistencia?->estado;
                                 
+                                // Crear fecha del día actual del loop
+                                $fechaDia = \Carbon\Carbon::create($this->anioActual, $this->mesActual, $dia);
+                                $diaYaPaso = $fechaDia->isPast() && !$fechaDia->isToday();
+                                
                                 // Determinar color según estado
                                 $bgColor = '#f3f4f6';
                                 $textColor = '#9ca3af';
@@ -131,6 +135,11 @@
                                     $textColor = '#854d0e';
                                     $fontWeight = '600';
                                 } elseif ($estado === 'ausente') {
+                                    $bgColor = '#fca5a5';
+                                    $textColor = '#991b1b';
+                                    $fontWeight = '600';
+                                } elseif ($diaYaPaso && !$asistencia && $this->empleadoSeleccionado) {
+                                    // Si el día ya pasó, no hay asistencia registrada y hay un empleado seleccionado
                                     $bgColor = '#fca5a5';
                                     $textColor = '#991b1b';
                                     $fontWeight = '600';
@@ -151,6 +160,8 @@
                                     };
                                     $titulo .= "\nEntrada: " . ($asistencia->hora_entrada ? \Carbon\Carbon::parse($asistencia->hora_entrada)->format('H:i') : '-');
                                     $titulo .= "\nSalida: " . ($asistencia->hora_salida ? \Carbon\Carbon::parse($asistencia->hora_salida)->format('H:i') : '-');
+                                } elseif ($diaYaPaso && $this->empleadoSeleccionado) {
+                                    $titulo = 'Ausencia - Sin registro de asistencia';
                                 }
                             @endphp
 
