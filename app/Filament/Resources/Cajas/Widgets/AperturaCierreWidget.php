@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Cajas\Widgets;
 
 use App\Models\Caja;
 use App\Services\CajaService;
+use App\Filament\Resources\Cajas\CajaResource;
 use Filament\Notifications\Notification;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
@@ -13,13 +14,35 @@ class AperturaCierreWidget extends Widget
 {
     protected string $view = 'filament.resources.cajas.widgets.apertura-cierre-widget';
 
-      protected int | string | array $columnSpan = 1;
-
-
-   // protected int | string | array $columnSpan = 'full';
+    protected int | string | array $columnSpan = 'full';
 
     public $saldoApertura = 0;
     public $saldoCierre = 0;
+    // Guardamos la id en lugar del modelo para evitar problemas de serialización
+    public $ultimaCajaAbiertaId = null;
+    // Guardamos el saldo inicial en memoria para mostrarlo inmediatamente tras crear la caja
+    public $ultimaCajaAbiertaSaldo = null;
+
+    /**
+     * Hook que se ejecuta al cargar el widget.
+     * Auto-llena el saldo de cierre con el efectivo contado del arqueo confirmado.
+     */
+    public function mount(): void
+    {
+        $this->cargarSaldoCierreDesdeArqueo();
+    }
+
+    /**
+     * Carga el saldo de cierre desde el efectivo contado del arqueo confirmado.
+     */
+    public function cargarSaldoCierreDesdeArqueo(): void
+    {
+        $arqueo = $this->getArqueoConfirmado();
+
+        if ($arqueo && $arqueo->efectivo_contado) {
+            $this->saldoCierre = (float) $arqueo->efectivo_contado;
+        }
+    }
 
     public function abrirCaja()
     {
@@ -42,8 +65,8 @@ class AperturaCierreWidget extends Widget
             return;
         }
 
-        // Crear caja
-        Caja::create([
+        // Crear caja y guardar referencia local para evitar problemas de re-render
+        $nuevaCaja = Caja::create([
             'user_id' => Auth::id(),
             'fecha_apertura' => now(),
             'saldo_inicial' => (float) $this->saldoApertura,
@@ -56,8 +79,12 @@ class AperturaCierreWidget extends Widget
             ->success()
             ->send();
 
+    // No redirigir; Livewire re-renderizará el widget y getCajaAbierta() mostrará el saldo guardado
+        // Mantener la id de la caja recién creada para mostrar su saldo inmediatamente
+        $this->ultimaCajaAbiertaId = $nuevaCaja->id;
+        // Guardar el saldo en memoria para asegurar que la vista muestre el valor correcto
+        $this->ultimaCajaAbiertaSaldo = (float) $nuevaCaja->saldo_inicial;
         $this->saldoApertura = 0;
-        $this->dispatch('$refresh');
     }
 
     public function cerrarCaja()
@@ -95,19 +122,31 @@ class AperturaCierreWidget extends Widget
             ->success()
             ->send();
 
-        $this->saldoCierre = 0;
-        $this->dispatch('$refresh');
+    $this->saldoCierre = 0;
+        // Limpiar referencia local cuando se cierra la caja
+        $this->ultimaCajaAbiertaId = null;
+        $this->ultimaCajaAbiertaSaldo = null;
     }
 
     public function tieneCajaAbierta(): bool
     {
-        // Verifica si existe alguna caja abierta, sin importar la fecha
-        return Caja::where('estado', 'abierta')->exists();
+        // Usa getCajaAbierta() para respetar la referencia local (ultimaCajaAbierta)
+        return (bool) $this->getCajaAbierta();
     }
 
     public function getCajaAbierta(): ?Caja
     {
-        // Obtiene la última caja abierta (la más reciente)
+        // Si tenemos una caja creada recientemente en esta instancia, cárgala desde BD
+        if ($this->ultimaCajaAbiertaId) {
+            $caja = Caja::find($this->ultimaCajaAbiertaId);
+            if ($caja && $caja->estado === 'abierta') {
+                return $caja;
+            }
+            // si no existe o no está abierta, limpiar referencia
+            $this->ultimaCajaAbiertaId = null;
+        }
+
+        // Obtiene la última caja abierta (la más reciente) desde la base de datos
         return Caja::where('estado', 'abierta')
             ->orderByDesc('fecha_apertura')
             ->first();
@@ -158,5 +197,21 @@ class AperturaCierreWidget extends Widget
         return Arqueo::where('caja_id', $caja->id)
             ->where('estado', 'confirmado')
             ->exists();
+    }
+
+    /**
+     * Obtiene el arqueo confirmado para la caja abierta.
+     */
+    public function getArqueoConfirmado(): ?Arqueo
+    {
+        $caja = $this->getCajaAbierta();
+
+        if (!$caja) {
+            return null;
+        }
+
+        return Arqueo::where('caja_id', $caja->id)
+            ->where('estado', 'confirmado')
+            ->first();
     }
 }

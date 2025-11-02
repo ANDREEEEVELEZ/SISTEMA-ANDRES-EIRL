@@ -57,7 +57,8 @@ class VentaForm
                     ->searchable()
                     ->preload()
                     ->required()
-                    ->disabled(self::shouldDisableFields()) // Deshabilitar si hay caja anterior abierta
+                    ->disabled() // Bloqueado - se asigna automáticamente
+                    ->dehydrated() // Asegurar que se guarde aunque esté deshabilitado
                     ->live() // Hace reactivo el campo
                     ->default(function () {
                         // Buscar si hay una caja abierta para el usuario actual
@@ -81,7 +82,7 @@ class VentaForm
                         // Verificar si hay caja del día anterior abierta
                         if (self::shouldDisableFields()) {
                             $cajaAnterior = CajaService::getCajaAbiertaDiaAnterior();
-                            return "Hay una caja abierta desde el {$cajaAnterior->fecha_apertura->format('d/m/Y H:i')}. Para continuar registrando ventas, debe cerrar la caja anterior y aperturar una nueva para hoy.";
+                            return "Hay una caja abierta desde el {$cajaAnterior->fecha_apertura->format('d/m/Y H:i')}. Debe ir al módulo de Caja para cerrarla (con reporte de arqueo) antes de continuar.";
                         }
 
                         $cajaAbierta = \App\Models\Caja::where('estado', 'abierta')
@@ -89,74 +90,10 @@ class VentaForm
                             ->first();
 
                         if ($cajaAbierta) {
-                            return null;
+                            return "Caja activa del {$cajaAbierta->fecha_apertura->format('d/m/Y H:i')}";
                         } else {
-                            $cajasCerradas = \App\Models\Caja::where('user_id', Auth::id())
-                                ->where('estado', 'cerrada')
-                                ->count();
-
-                            if ($cajasCerradas > 0) {
-                                return "No hay cajas abiertas. Use el botón '+' para aperturar caja ";
-                            } else {
-                                return "Para comenzar a registrar ventas, debe aperturar una caja usando el botón '+' para aperturar caja";
-                            }
+                            return " No hay caja abierta. Debe ir al módulo de Caja para abrir una nueva.";
                         }
-                    })
-                    ->createOptionForm([
-                        TextInput::make('saldo_inicial')
-                            ->label('Saldo Inicial')
-                            ->required()
-                            ->numeric()
-                            ->default(0)
-                            ->prefix('S/.')
-                            ->helperText('Ingrese el saldo inicial para aperturar la caja')
-                            ->placeholder('0.00'),
-
-                        Textarea::make('observacion')
-                            ->label('Observación')
-                            ->placeholder('Observaciones de apertura (opcional)')
-                            ->maxLength(255)
-                            ->rows(2),
-                    ])
-                    ->createOptionUsing(function (array $data): int {
-                        // VALIDACIÓN: Verificar que no se intente reabrir una caja cerrada
-                        $cajasCerradas = \App\Models\Caja::where('user_id', Auth::id())
-                            ->where('estado', 'cerrada')
-                            ->exists();
-
-                        // Cerrar cualquier caja abierta del usuario antes de crear una nueva
-                        $cajasAbiertas = \App\Models\Caja::where('user_id', Auth::id())
-                            ->where('estado', 'abierta')
-                            ->get();
-
-                        foreach ($cajasAbiertas as $cajaAbierta) {
-                            $cajaAbierta->update([
-                                'estado' => 'cerrada',
-                                'fecha_cierre' => now(),
-                                'saldo_final' => $cajaAbierta->saldo_inicial, // Mantener el saldo inicial como final por defecto
-                            ]);
-                        }
-
-                        // Crear la nueva caja (siempre se crea una NUEVA caja, nunca se reabre una cerrada)
-                        $caja = \App\Models\Caja::create([
-                            'user_id' => Auth::id(),
-                            'fecha_apertura' => now(),
-                            'fecha_cierre' => null,
-                            'saldo_inicial' => $data['saldo_inicial'],
-                            'saldo_final' => null,
-                            'estado' => 'abierta',
-                            'observacion' => $cajasCerradas
-                                ? 'Nueva caja aperturada (no se pueden reabrir cajas cerradas)'
-                                : ($data['observacion'] ?? 'Aperturada desde el módulo de ventas'),
-                        ]);
-
-                        return $caja->id;
-                    })
-                    ->createOptionModalHeading('🏦 Aperturar Nueva Caja')
-                    ->createOptionAction(function ($action) {
-                        return $action->label('➕ Aperturar Caja')
-                            ->color('success')
-                            ->icon('heroicon-o-plus-circle');
                     }),
 
                 // === DATOS GENERALES ===
@@ -229,16 +166,16 @@ class VentaForm
                     ->required()
                     ->native(false)
                     ->displayFormat('d/m/Y')
-                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
-                    ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : null),
+                    ->disabled() // Bloqueado - se asigna automáticamente
+                    ->dehydrated(),
 
                 TimePicker::make('hora_venta')
                     ->label('Hora de Venta')
                     ->default(now()->format('H:i'))
                     ->required()
                     ->seconds(false)
-                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
-                    ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : null),
+                    ->disabled() // Bloqueado - se asigna automáticamente
+                    ->dehydrated(),
 
                 // -- Información del Cliente --
                 Select::make('cliente_id')
@@ -489,6 +426,7 @@ class VentaForm
                             ->label('Tipo de Cliente')
                             ->options([
                                 'natural' => 'Persona Natural',
+                                'natural_con_negocio' => 'Persona Natural con Negocio (RUC 10)',
                                 'juridica' => 'Persona Jurídica',
                             ])
                             ->required(),
@@ -686,12 +624,16 @@ class VentaForm
                         'transferencia' => 'Transferencia Bancaria',
                     ])
                     ->required()
+                    ->live()
+                    ->default('efectivo')
                     ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Seleccione cómo pagará el cliente'),
 
                 TextInput::make('cod_operacion')
                     ->label('Código de Operación / Transacción')
                     ->maxLength(100)
+                    ->visible(fn (callable $get) => in_array($get('metodo_pago'), ['tarjeta','yape','plin']))
+                    ->required(fn (callable $get) => in_array($get('metodo_pago'), ['tarjeta','yape','plin']))
                     ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
                     ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Solo para pagos digitales o con tarjeta'),
 

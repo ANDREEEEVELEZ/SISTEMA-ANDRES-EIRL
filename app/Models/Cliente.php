@@ -29,7 +29,6 @@ class Cliente extends Model
 
     protected $attributes = [
         'estado' => 'activo',
-        'tipo_cliente' => 'natural',
     ];
 
     protected static function boot()
@@ -42,6 +41,40 @@ class Cliente extends Model
             }
             if (!$cliente->estado) {
                 $cliente->estado = 'activo';
+            }
+
+            // Auto-determinar tipo_cliente si no está establecido
+            if (!$cliente->tipo_cliente) {
+                if ($cliente->tipo_doc === 'DNI') {
+                    $cliente->tipo_cliente = 'natural';
+                } elseif ($cliente->tipo_doc === 'RUC' && $cliente->num_doc) {
+                    $prefijo = substr($cliente->num_doc, 0, 2);
+                    if ($prefijo === '10') {
+                        $cliente->tipo_cliente = 'natural_con_negocio';
+                    } elseif ($prefijo === '20') {
+                        $cliente->tipo_cliente = 'juridica';
+                    } else {
+                        $cliente->tipo_cliente = 'natural'; // Fallback por defecto
+                    }
+                } else {
+                    $cliente->tipo_cliente = 'natural'; // Fallback por defecto
+                }
+            }
+        });
+
+        static::updating(function ($cliente) {
+            // Auto-determinar tipo_cliente si se modifica el documento
+            if ($cliente->isDirty(['tipo_doc', 'num_doc'])) {
+                if ($cliente->tipo_doc === 'DNI') {
+                    $cliente->tipo_cliente = 'natural';
+                } elseif ($cliente->tipo_doc === 'RUC' && $cliente->num_doc) {
+                    $prefijo = substr($cliente->num_doc, 0, 2);
+                    if ($prefijo === '10') {
+                        $cliente->tipo_cliente = 'natural_con_negocio';
+                    } elseif ($prefijo === '20') {
+                        $cliente->tipo_cliente = 'juridica';
+                    }
+                }
             }
         });
     }

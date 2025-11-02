@@ -26,30 +26,23 @@ class ClienteForm
                         if ($state === 'DNI') {
                             $set('tipo_cliente', 'natural');
                         } else {
-                            // Si cambia a RUC, limpiar el tipo_cliente para que seleccione
+                            // Si cambia a RUC, limpiar el tipo_cliente para que se determine automáticamente
                             $set('tipo_cliente', null);
                         }
                     })
                     ->required(),
 
+                // Campo oculto que se asigna automáticamente según el tipo de documento
                 Select::make('tipo_cliente')
                     ->label('Tipo de Cliente')
                     ->options([
                         'natural' => 'Persona Natural',
                         'natural_con_negocio' => 'Persona Natural con Negocio (RUC 10)',
-                        'juridica' => 'Persona Jurídica/Empresa (RUC 20)',
+                        'juridica' => 'Persona Jurídica (RUC 20)',
                     ])
-                    ->prefixIcon('heroicon-o-user-group')
-                    ->visible(fn (callable $get) => $get('tipo_doc') === 'RUC') // Solo visible con RUC
-                    ->disabled(fn (callable $get) => $get('tipo_doc') === 'DNI') // Deshabilitado con DNI
+                    ->hidden() // Oculto completamente para el usuario
                     ->default(fn (callable $get) => $get('tipo_doc') === 'DNI' ? 'natural' : null)
-                    ->required()
-                    ->helperText(fn (callable $get) =>
-                        $get('tipo_doc') === 'DNI'
-                            ? 'Con DNI siempre es Persona Natural'
-                            : 'Seleccione el tipo de cliente con RUC'
-                    )
-                    ->live(),
+                    ->dehydrated(), // Asegurar que se guarde aunque esté oculto
 
                 TextInput::make('num_doc')
                     ->label('Número de Documento')
@@ -64,6 +57,17 @@ class ClienteForm
                     ->validationMessages([
                         'regex' => 'El documento debe contener solo números.',
                     ])
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        // Auto-determinar tipo_cliente basado en el RUC
+                        if ($get('tipo_doc') === 'RUC' && strlen($state) >= 2) {
+                            $prefijo = substr($state, 0, 2);
+                            if ($prefijo === '10') {
+                                $set('tipo_cliente', 'natural_con_negocio');
+                            } elseif ($prefijo === '20') {
+                                $set('tipo_cliente', 'juridica');
+                            }
+                        }
+                    })
                     ->suffixAction(
                         Action::make('buscarDocumento')
                             ->icon('heroicon-o-magnifying-glass')
@@ -168,7 +172,14 @@ class ClienteForm
                                         }
 
                                     } else {
-                                        // Para RUC
+                                        // Para RUC - Auto-determinar tipo_cliente basado en el prefijo
+                                        $prefijo = substr($numDoc, 0, 2);
+                                        if ($prefijo === '10') {
+                                            $set('tipo_cliente', 'natural_con_negocio');
+                                        } elseif ($prefijo === '20') {
+                                            $set('tipo_cliente', 'juridica');
+                                        }
+
                                         $response = $apiService->consultarRuc($numDoc);
 
                                         // Verificar si hay mensaje de error
@@ -251,8 +262,11 @@ class ClienteForm
                     ->prefixIcon('heroicon-o-user-circle')
                     ->required(),
                 DatePicker::make('fecha_registro')
+                    ->label('Fecha de Registro')
                     ->prefixIcon('heroicon-o-calendar')
-                    ->default(now()),
+                    ->default(now())
+                    ->disabled()
+                    ->dehydrated(),
 
                 Select::make('estado')
                     ->label('Estado')
@@ -267,8 +281,22 @@ class ClienteForm
                     ->label('Teléfono')
                     ->prefixIcon('heroicon-o-phone')
                     ->tel()
-                    ->numeric()
-                    ->length(9),
+                    ->maxLength(9)
+                    ->minLength(9)
+                    ->length(9)
+                    ->placeholder('Ingrese 9 dígitos')
+                    ->regex('/^[0-9]{9}$/')
+                    ->validationMessages([
+                        'regex' => 'El teléfono debe contener exactamente 9 dígitos numéricos.',
+                        'min' => 'El teléfono debe tener exactamente 9 dígitos.',
+                        'max' => 'El teléfono debe tener exactamente 9 dígitos.',
+                    ])
+                    ->extraAttributes([
+                        'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").slice(0, 9)',
+                        'inputmode' => 'numeric',
+                        'pattern' => '[0-9]{9}',
+                    ]),
+                    //->helperText('Debe contener exactamente 9 dígitos numéricos'),
                 TextInput::make('direccion')
                     ->label('Dirección')
                     ->prefixIcon('heroicon-o-map-pin'),
