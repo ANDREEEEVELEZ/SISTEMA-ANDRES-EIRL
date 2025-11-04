@@ -92,12 +92,13 @@
                     </div>
                     
                     <!-- Botones de Acción -->
-                    <div class="flex justify-end gap-3 pt-4 px-4">
+                    <div class="flex flex-wrap justify-end items-center gap-6 pt-4 px-4">
                         <!-- Botón Cancelar (Rojo) - Mismo estilo que Registrar Rostro -->
                         <button
                             type="button"
                             @click="closeCamera()"
-                            style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: 2px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white; box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4); cursor: pointer; transition: all 0.3s ease;"
+                            class="inline-flex items-center justify-center gap-2"
+                            style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; border: 2px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white !important; box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4); cursor: pointer; transition: all 0.3s ease; white-space: nowrap;"
                             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(239, 68, 68, 0.5)'"
                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(239, 68, 68, 0.4)'"
                         >
@@ -112,8 +113,10 @@
                             type="button"
                             @click="capturePhoto()"
                             x-show="!capturedImage"
+                            x-transition
                             :disabled="!modelsLoaded"
-                            style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: 2px solid rgba(16, 185, 129, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4); cursor: pointer; transition: all 0.3s ease;"
+                            class="inline-flex items-center justify-center gap-2"
+                            style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; border: 2px solid rgba(16, 185, 129, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white !important; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4); cursor: pointer; transition: all 0.3s ease; white-space: nowrap;"
                             :style="!modelsLoaded ? 'opacity: 0.5; cursor: not-allowed;' : ''"
                             onmouseover="if(this.disabled !== true) { this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(16, 185, 129, 0.5)'; }"
                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(16, 185, 129, 0.4)'"
@@ -130,7 +133,9 @@
                             type="button"
                             @click="retakePhoto()"
                             x-show="capturedImage"
-                            style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border: 2px solid rgba(245, 158, 11, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white; box-shadow: 0 3px 10px rgba(245, 158, 11, 0.4); cursor: pointer; transition: all 0.3s ease;"
+                            x-transition
+                            class="inline-flex items-center justify-center gap-2"
+                            style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; border: 2px solid rgba(245, 158, 11, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white !important; box-shadow: 0 3px 10px rgba(245, 158, 11, 0.4); cursor: pointer; transition: all 0.3s ease; white-space: nowrap;"
                             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(245, 158, 11, 0.5)'"
                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(245, 158, 11, 0.4)'"
                         >
@@ -145,7 +150,9 @@
                             type="button"
                             @click="confirmPhoto()"
                             x-show="capturedImage"
-                            style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: 2px solid rgba(16, 185, 129, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4); cursor: pointer; transition: all 0.3s ease;"
+                            x-transition
+                            class="inline-flex items-center justify-center gap-2"
+                            style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; border: 2px solid rgba(16, 185, 129, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white !important; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4); cursor: pointer; transition: all 0.3s ease; white-space: nowrap;"
                             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(16, 185, 129, 0.5)'"
                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(16, 185, 129, 0.4)'"
                         >
