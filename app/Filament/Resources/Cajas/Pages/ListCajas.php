@@ -113,7 +113,7 @@ class ListCajas extends ListRecords
                                     ->get();
 
                                 $map = $items->mapWithKeys(function ($c) {
-                                    $label = $c->fecha_apertura ? $c->fecha_apertura->format('d/m/Y H:i') : ('Caja #' . $c->id);
+                                    $label = $c->fecha_apertura ? $c->fecha_apertura->format('d/m/Y H:i') : ('Caja #' . $c->numero_secuencial);
                                     return [$c->id => $label];
                                 })->toArray();
                             }
@@ -125,7 +125,7 @@ class ListCajas extends ListRecords
                             if ($selected && ! array_key_exists($selected, $map)) {
                                 $c = Caja::find($selected);
                                 if ($c) {
-                                    $map[$c->id] = $c->fecha_apertura ? $c->fecha_apertura->format('d/m/Y H:i') : ('Caja #' . $c->id);
+                                    $map[$c->id] = $c->fecha_apertura ? $c->fecha_apertura->format('d/m/Y H:i') : ('Caja #' . $c->numero_secuencial);
                                 }
                             }
 

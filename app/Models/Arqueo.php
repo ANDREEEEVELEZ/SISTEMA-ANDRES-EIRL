@@ -51,4 +51,21 @@ class Arqueo extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Obtener el número secuencial del arqueo (no el ID)
+     * Cuenta cuántos arqueos existen con ID menor o igual a este
+     */
+    public function getNumeroSecuencialAttribute(): int
+    {
+        return self::where('id', '<=', $this->id)->count();
+    }
+
+    /**
+     * Obtener el número de arqueo formateado
+     */
+    public function getNumeroFormateadoAttribute(): string
+    {
+        return 'Arqueo #' . $this->numero_secuencial;
+    }
 }

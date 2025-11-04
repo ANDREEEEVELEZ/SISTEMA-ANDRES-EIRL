@@ -17,7 +17,7 @@
 <body>
     <div class="header">
         <h2>Reporte de Arqueo de Caja</h2>
-        <div>Arqueo #: {{ $arqueo->id }} — Caja: {{ $arqueo->caja->id ?? '-' }} — Usuario: {{ $arqueo->user->name ?? '-' }}</div>
+        <div>Arqueo #: {{ $arqueo->numero_secuencial }} — Caja: {{ $arqueo->caja->numero_secuencial ?? '-' }} — Usuario: {{ $arqueo->user->name ?? '-' }}</div>
         <div>Fecha: {{ $arqueo->created_at->format('d/m/Y H:i') }}</div>
     </div>
 

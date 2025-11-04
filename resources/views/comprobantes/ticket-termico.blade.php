@@ -236,7 +236,7 @@
 <body>
     <!-- Botones de acción (no se imprimen) -->
     <button class="print-button no-print" onclick="window.print()">🖨️ Imprimir</button>
-    <button class="close-button no-print" onclick="window.close()">✖️ Cerrar</button>
+    <button class="close-button no-print" onclick="cerrarVentana()">✖️ Cerrar</button>
 
     <div class="ticket">
         <!-- Encabezado de la empresa -->
@@ -418,6 +418,12 @@
     </div>
 
     <script>
+        // Función para cerrar la ventana o volver atrás
+        function cerrarVentana() {
+            // Redirigir directamente a crear una nueva venta
+            window.location.href = '{{ route("filament.admin.resources.ventas.create") }}';
+        }
+
         // Auto-imprimir al cargar (opcional, comentado por defecto)
         // window.onload = function() {
         //     setTimeout(function() {

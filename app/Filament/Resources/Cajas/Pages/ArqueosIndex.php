@@ -36,7 +36,7 @@ class ArqueosIndex extends Page implements HasTable
             ->query(fn (): Builder => $this->getTableQuery())
             ->columns([
               //  TextColumn::make('id')->label('ID')->sortable()->size('sm'),
-                TextColumn::make('caja.id')->label('Caja')->sortable()->size('sm'),
+               // TextColumn::make('caja.id')->label('Caja')->sortable()->size('sm'),
                 TextColumn::make('user.name')->label('Usuario')->sortable()->searchable()->size('sm'),
                 TextColumn::make('fecha_inicio')->label('Inicio')->dateTime('d/m/Y H:i')->sortable()->size('sm'),
                 TextColumn::make('fecha_fin')->label('Fin')->dateTime('d/m/Y H:i')->sortable()->size('sm'),

@@ -143,7 +143,7 @@ class RegistrarMovimiento extends Page implements HasForms
 
         return sprintf(
             ' Caja #%d - Abierta el %s - Saldo Inicial: S/ %s',
-            $caja->id,
+            $caja->numero_secuencial,
             $caja->fecha_apertura->format('d/m/Y H:i'),
             number_format((float) $caja->saldo_inicial, 2)
         );

@@ -37,6 +37,12 @@ class EditVenta extends EditRecord
     protected function getHeaderActions(): array
     {
         $actions = [
+            \Filament\Actions\Action::make('nueva_venta')
+                ->label('Nueva Venta')
+                ->icon('heroicon-o-plus-circle')
+                ->color('success')
+                ->url(fn () => VentaResource::getUrl('create'))
+                ->outlined(),
             \Filament\Actions\Action::make('imprimir')
                 ->label('Imprimir')
                 ->icon('heroicon-o-printer')

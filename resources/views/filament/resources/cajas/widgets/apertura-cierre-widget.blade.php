@@ -46,6 +46,26 @@
                         </div>
                     </div>
 
+                    <!-- Campo Observación Apertura -->
+                    <div class="flex justify-center" style="margin-top: 1rem;">
+                        <div class="w-full" style="max-width: 220px;">
+                            @if($this->tieneCajaAbierta())
+                                <div class="fi-input-wrp rounded-lg shadow-sm ring-1 transition duration-75 bg-white dark:bg-white/5 ring-gray-950/10 dark:ring-white/20" style="padding: 0.5rem;">
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Observación:</div>
+                                    <div class="text-sm text-gray-700 dark:text-gray-300" style="min-height: 2rem; white-space: pre-wrap;">{{ $this->getCajaAbierta()?->observacion ?: 'Sin observación' }}</div>
+                                </div>
+                            @else
+                                <textarea
+                                    wire:model="observacionApertura"
+                                    rows="2"
+                                    placeholder="Observación (opcional)"
+                                    class="fi-input block w-full rounded-lg shadow-sm transition duration-75 focus:border-primary-500 focus:ring-1 focus:ring-inset focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 sm:text-xs ring-1 ring-gray-950/10 dark:ring-white/20"
+                                    style="resize: none; padding: 0.5rem; border: 1px solid rgb(209 213 219);"
+                                ></textarea>
+                            @endif
+                        </div>
+                    </div>
+
                     <div class="flex justify-center" style="margin-top: 1.5rem;">
                         <button type="submit" {{ $this->tieneCajaAbierta() ? 'disabled' : '' }}
                             class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-custom fi-btn-color-success fi-size-md fi-btn-size-md gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm text-white hover:bg-green-600 focus-visible:ring-green-400/50 dark:hover:bg-green-500 fi-ac-action fi-ac-btn-action"
@@ -101,8 +121,21 @@
                         </div>
                     </div>
 
+                    <!-- Campo Observación Cierre -->
+                    <div class="flex justify-center" style="margin-top: 1rem;">
+                        <div class="w-full" style="max-width: 220px;">
+                            <textarea
+                                wire:model="observacionCierre"
+                                rows="2"
+                                placeholder="Observación cierre (opcional)"
+                                class="fi-input block w-full rounded-lg shadow-sm transition duration-75 focus:border-primary-500 focus:ring-1 focus:ring-inset focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 sm:text-xs ring-1 ring-gray-950/10 dark:ring-white/20"
+                                style="resize: none; padding: 0.5rem; border: 1px solid rgb(209 213 219);"
+                            ></textarea>
+                        </div>
+                    </div>
+
                     <!-- Botón Cerrar Caja -->
-                    <div class="flex justify-center" style="margin-bottom: 0.75rem;">
+                    <div class="flex justify-center" style="margin-bottom: 0.75rem; margin-top: 1rem;">
                         @php
                             $habilitado = $this->arqueoConfirmado();
                         @endphp

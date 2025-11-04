@@ -118,7 +118,7 @@ class ArqueoCaja extends Page implements HasForms
                 ->label('Caja')
                 ->content(fn () => new \Illuminate\Support\HtmlString(
                     sprintf('<div class="text-sm">Caja #%d — <strong>Abierta:</strong> %s</div><div class="text-sm">Saldo Inicial: <strong>S/ %s</strong></div>',
-                        $this->caja->id ?? '-',
+                        $this->caja->numero_secuencial,
                         $this->caja->fecha_apertura?->format('d/m/Y H:i') ?? '-',
                         number_format((float) ($this->caja->saldo_inicial ?? 0), 2)
                     )
@@ -215,7 +215,7 @@ class ArqueoCaja extends Page implements HasForms
 
         return sprintf(
             ' Caja #%d - Abierta el %s - Saldo Inicial: S/ %s',
-            $caja->id,
+            $caja->numero_secuencial,
             $caja->fecha_apertura->format('d/m/Y H:i'),
             number_format((float) $caja->saldo_inicial, 2)
         );

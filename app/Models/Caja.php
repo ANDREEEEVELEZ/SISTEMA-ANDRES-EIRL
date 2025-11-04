@@ -53,4 +53,21 @@ class Caja extends Model
     {
         return $this->hasMany(Venta::class, 'caja_id');
     }
+
+    /**
+     * Obtener el número secuencial de la caja (no el ID)
+     * Cuenta cuántas cajas existen con ID menor o igual a esta
+     */
+    public function getNumeroSecuencialAttribute(): int
+    {
+        return self::where('id', '<=', $this->id)->count();
+    }
+
+    /**
+     * Obtener el número de caja formateado
+     */
+    public function getNumeroFormateadoAttribute(): string
+    {
+        return 'Caja #' . $this->numero_secuencial;
+    }
 }

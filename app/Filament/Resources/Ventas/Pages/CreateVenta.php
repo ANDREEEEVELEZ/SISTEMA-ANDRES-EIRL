@@ -97,6 +97,37 @@ class CreateVenta extends CreateRecord
         // Validar stock disponible antes de crear la venta
         $data = $this->form->getState();
 
+        // Validar combinación correcta de tipo de comprobante y tipo de cliente
+        if (isset($data['tipo_comprobante']) && isset($data['cliente_id'])) {
+            $cliente = \App\Models\Cliente::find($data['cliente_id']);
+
+            if ($cliente) {
+                // Regla 1: FACTURAS solo para clientes con RUC
+                if ($data['tipo_comprobante'] === 'factura' && $cliente->tipo_doc !== 'RUC') {
+                    Notification::make()
+                        ->title('Error de Comprobante')
+                        ->body('No se puede emitir una FACTURA a un cliente sin RUC. Las facturas solo se emiten a clientes con RUC.')
+                        ->danger()
+                        ->persistent()
+                        ->send();
+
+                    $this->halt();
+                }
+
+                // Regla 2: BOLETAS NO se pueden emitir a clientes con RUC
+                if ($data['tipo_comprobante'] === 'boleta' && $cliente->tipo_doc === 'RUC') {
+                    Notification::make()
+                        ->title(' Error de Comprobante')
+                        ->body('No se puede emitir una BOLETA a un cliente con RUC. Para clientes con RUC debe emitir una FACTURA.')
+                        ->danger()
+                        ->persistent()
+                        ->send();
+
+                    $this->halt();
+                }
+            }
+        }
+
         // Validar que hay detalles de venta
         if (empty($data['detalleVentas'])) {
             Notification::make()
@@ -253,5 +284,14 @@ class CreateVenta extends CreateRecord
                     ->send();
             }
         });
+    }
+
+    /**
+     * Redirigir automáticamente a la impresión del comprobante después de crear la venta
+     */
+    protected function getRedirectUrl(): string
+    {
+        // Redirigir a la página de impresión del comprobante recién creado
+        return route('comprobante.imprimir', ['id' => $this->record->id]);
     }
 }

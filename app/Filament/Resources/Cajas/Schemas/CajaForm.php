@@ -23,34 +23,33 @@ class CajaForm
                     ->default(fn () => Auth::id())
                     ->disabled(),
                 DateTimePicker::make('fecha_apertura')
+                    ->label('Fecha de Apertura')
                     ->required()
-                    ->disabled(fn ($record) => $record && $record->estado === 'cerrada'),
+                    ->disabled(),
                 DateTimePicker::make('fecha_cierre')
+                    ->label('Fecha de Cierre')
                     ->default(fn ($record) => ($record && $record->estado === 'abierta' && request()->routeIs('filament.resources.cajas.edit')) ? now() : $record?->fecha_cierre)
-                    ->disabled(fn ($record) => $record && $record->estado === 'cerrada'),
+                    ->disabled(),
                 TextInput::make('saldo_inicial')
+                    ->label('Saldo Inicial')
                     ->required()
                     ->numeric()
-                    ->disabled(fn ($record, $state, $operation) => $operation === 'edit' || ($record && $record->estado === 'cerrada'))
-                    ->dehydrated()
-                    ->helperText(fn (string $operation): string =>
-                        $operation === 'edit'
-                            ? 'El saldo inicial no puede ser modificado una vez creada la caja'
-                            : ''
-                    ),
+                    ->disabled()
+                    ->dehydrated(),
                 TextInput::make('saldo_final')
+                    ->label('Saldo Final')
                     ->numeric()
-                    ->disabled(fn ($record) => $record && $record->estado === 'cerrada'),
+                    ->disabled(),
                 Select::make('estado')
                     ->label('Estado')
                     ->options(['abierta' => 'Abierta', 'cerrada' => 'Cerrada'])
                     ->default('abierta')
                     ->required()
-                    ->disabled(fn ($record, $state, $operation) => $operation === 'edit' || ($record && $record->estado === 'cerrada'))
+                    ->disabled()
                     ->dehydrated(),
-
                 TextInput::make('observacion')
-                    ->disabled(fn ($record) => $record && $record->estado === 'cerrada'),
+                    ->label('Observación')
+                    ->disabled(),
             ]);
     }
 }

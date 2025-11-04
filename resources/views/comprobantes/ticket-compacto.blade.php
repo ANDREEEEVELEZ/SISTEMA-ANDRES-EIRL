@@ -247,7 +247,7 @@
 <body>
     <!-- Botones de acción -->
     <button class="print-button no-print" onclick="window.print()">🖨️ Imprimir</button>
-    <button class="close-button no-print" onclick="window.close()">✖️ Cerrar</button>
+    <button class="close-button no-print" onclick="cerrarVentana()">✖️ Cerrar</button>
 
     <div class="ticket">
         <!-- Encabezado empresa (compacto) -->
@@ -260,7 +260,11 @@
         <!-- Título -->
         <div class="ticket-titulo">
             <h3>TICKET DE VENTA</h3>
-            <p class="bold">#{{ str_pad($venta->id, 6, '0', STR_PAD_LEFT) }}</p>
+            @if($comprobante)
+                <p class="bold">{{ $comprobante->serie }}-{{ str_pad($comprobante->correlativo, 8, '0', STR_PAD_LEFT) }}</p>
+            @else
+                <p class="bold">#{{ str_pad($venta->id, 6, '0', STR_PAD_LEFT) }}</p>
+            @endif
         </div>
 
         <!-- Información básica -->
@@ -366,6 +370,12 @@
     </div>
 
     <script>
+        // Función para cerrar la ventana o volver atrás
+        function cerrarVentana() {
+            // Redirigir directamente a crear una nueva venta
+            window.location.href = '{{ route("filament.admin.resources.ventas.create") }}';
+        }
+
         // Auto-imprimir al cargar (opcional)
         // window.onload = function() {
         //     setTimeout(function() {

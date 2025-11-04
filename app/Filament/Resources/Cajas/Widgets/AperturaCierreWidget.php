@@ -18,6 +18,8 @@ class AperturaCierreWidget extends Widget
 
     public $saldoApertura = 0;
     public $saldoCierre = 0;
+    public $observacionApertura = '';
+    public $observacionCierre = '';
     // Guardamos la id en lugar del modelo para evitar problemas de serialización
     public $ultimaCajaAbiertaId = null;
     // Guardamos el saldo inicial en memoria para mostrarlo inmediatamente tras crear la caja
@@ -70,6 +72,7 @@ class AperturaCierreWidget extends Widget
             'user_id' => Auth::id(),
             'fecha_apertura' => now(),
             'saldo_inicial' => (float) $this->saldoApertura,
+            'observacion' => $this->observacionApertura ?: null,
             'estado' => 'abierta',
         ]);
 
@@ -79,12 +82,15 @@ class AperturaCierreWidget extends Widget
             ->success()
             ->send();
 
-    // No redirigir; Livewire re-renderizará el widget y getCajaAbierta() mostrará el saldo guardado
         // Mantener la id de la caja recién creada para mostrar su saldo inmediatamente
         $this->ultimaCajaAbiertaId = $nuevaCaja->id;
         // Guardar el saldo en memoria para asegurar que la vista muestre el valor correcto
         $this->ultimaCajaAbiertaSaldo = (float) $nuevaCaja->saldo_inicial;
         $this->saldoApertura = 0;
+        $this->observacionApertura = '';
+
+        // Redirigir automáticamente a la página de crear ventas
+        return redirect()->to(\App\Filament\Resources\Ventas\VentaResource::getUrl('create'));
     }
 
     public function cerrarCaja()
@@ -103,10 +109,19 @@ class AperturaCierreWidget extends Widget
         $saldoEsperado = $this->calcularSaldoEsperado();
         $diferencia = $this->saldoCierre - $saldoEsperado;
 
+        // Concatenar observaciones: apertura / cierre
+        $observacionFinal = $caja->observacion ?: '';
+        if ($this->observacionCierre) {
+            $observacionFinal = $observacionFinal
+                ? $observacionFinal . ' / ' . $this->observacionCierre
+                : $this->observacionCierre;
+        }
+
         $caja->update([
             'fecha_cierre' => now(),
             'saldo_final' => $this->saldoCierre,
             'diferencia' => $diferencia,
+            'observacion' => $observacionFinal ?: null,
             'estado' => 'cerrada',
         ]);
 
@@ -123,6 +138,7 @@ class AperturaCierreWidget extends Widget
             ->send();
 
     $this->saldoCierre = 0;
+        $this->observacionCierre = '';
         // Limpiar referencia local cuando se cierra la caja
         $this->ultimaCajaAbiertaId = null;
         $this->ultimaCajaAbiertaSaldo = null;

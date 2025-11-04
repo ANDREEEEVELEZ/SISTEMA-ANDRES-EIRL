@@ -28,7 +28,7 @@
 
     @foreach($reportes as $r)
         <div class="caja">
-            <h2>Caja #{{ $r['caja']->id }} - {{ $r['caja']->nombre ?? '' }}</h2>
+            <h2>Caja #{{ $r['caja']->numero_secuencial }} - {{ $r['caja']->nombre ?? '' }}</h2>
 
             @if($incluir_resumen)
                 <div class="section-title">Resumen</div>

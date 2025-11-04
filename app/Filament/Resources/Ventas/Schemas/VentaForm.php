@@ -50,7 +50,7 @@ class VentaForm
                               ->where('user_id', Auth::id()) // Solo cajas del usuario actual
                     )
                     ->getOptionLabelFromRecordUsing(fn ($record) =>
-                        "Caja #{$record->id} - " .
+                        "Caja #{$record->numero_secuencial} - " .
                         $record->fecha_apertura->format('d/m/Y H:i') .
                         " (Activa)"
                     )
@@ -180,15 +180,42 @@ class VentaForm
                 // -- Información del Cliente --
                 Select::make('cliente_id')
                     ->label('Cliente')
-                    ->relationship('cliente', 'nombre_razon', fn ($query) => $query->where('estado', 'activo'))
+                    ->relationship(
+                        'cliente',
+                        'nombre_razon',
+                        fn ($query, callable $get) =>
+                            $query->where('estado', 'activo')
+                                ->when($get('tipo_comprobante') === 'factura', function ($query) {
+                                    // Para facturas: SOLO clientes con RUC
+                                    return $query->where('tipo_doc', 'RUC');
+                                })
+                                ->when($get('tipo_comprobante') === 'boleta', function ($query) {
+                                    // Para boletas: SOLO clientes con DNI o sin documento (NO RUC)
+                                    return $query->where('tipo_doc', '!=', 'RUC');
+                                })
+                    )
                     ->getOptionLabelFromRecordUsing(fn ($record) =>
                         "{$record->tipo_doc}: {$record->num_doc} - {$record->nombre_razon}"
                     )
                     ->searchable(['num_doc', 'nombre_razon'])
                     ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
-                    ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Buscar por documento o nombre')
+                    ->helperText(function (callable $get) {
+                        if (!$get('caja_id')) {
+                            return 'Primero debe seleccionar una caja';
+                        }
+
+                        $tipoComprobante = $get('tipo_comprobante');
+                        if ($tipoComprobante === 'factura') {
+                            return '';
+                        } elseif ($tipoComprobante === 'boleta') {
+                            return '';
+                        }
+
+                        return 'Buscar por documento o nombre';
+                    })
                     ->preload()
                     ->required()
+                    ->live() // Hacer reactivo para que se actualice al cambiar tipo de comprobante
                     ->createOptionForm([
                         Select::make('tipo_doc')
                             ->label('Tipo de Documento')
