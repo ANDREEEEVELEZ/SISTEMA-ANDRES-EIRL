@@ -7,6 +7,7 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ViewField;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Auth;
 
 class EmpleadoForm
 {
@@ -73,13 +74,12 @@ class EmpleadoForm
                 ViewField::make('foto_actual')
                     ->label('Foto Facial Actual')
                     ->view('filament.forms.components.current-face-photo')
-                    ->visible(fn ($record) => $record?->foto_facial_path !== null),
+                    ->visible(fn () => Auth::user()->hasRole('super_admin')),
                 
                 ViewField::make('face_registration')
-                    ->label('Registro de Rostro Facial')
+                    ->label('')
                     ->view('filament.forms.components.face-registration-component')
-                    ->visible(fn () => auth()->user()->hasRole('super_admin'))
-                    ->helperText('Usa esta función para registrar el rostro del empleado y habilitar el reconocimiento facial.'),
+                    ->visible(fn () => Auth::user()->hasRole('super_admin')),
                 
                 Hidden::make('face_descriptors'),
                 Hidden::make('foto_facial_path'),
