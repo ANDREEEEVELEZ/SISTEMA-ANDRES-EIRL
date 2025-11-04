@@ -222,24 +222,43 @@
             </thead>
             <tbody>
                 @foreach($cliente->ventas as $venta)
+                @php
+                    // Obtener comprobante principal (excluir notas si las hubiera)
+                    $comprobante = $venta->comprobantes->whereNotIn('tipo', ['nota de credito', 'nota de debito'])->first();
+                @endphp
                 <tr>
                     <td>{{ \Carbon\Carbon::parse($venta->fecha_venta)->format('d/m/Y') }}</td>
                     <td>
-                        @if($venta->comprobantes->first())
-                            {{ $venta->comprobantes->first()->serie }}-{{ $venta->comprobantes->first()->numero }}
+                        @if($comprobante)
+                            {{ $comprobante->serie }}-{{ $comprobante->correlativo ?? $comprobante->numero ?? 'N/A' }}
                         @else
                             N/A
                         @endif
                     </td>
-                    <td>S/ {{ number_format($venta->total, 2) }}</td>
-                    <td>{{ ucfirst($venta->estado) }}</td>
+                    <td>S/ {{ number_format((float)($venta->total_venta ?? $venta->total ?? 0), 2) }}</td>
+                    <td>
+                        @if($comprobante)
+                            @php $estadoComprobante = $comprobante->estado ?? ''; @endphp
+                            @if($estadoComprobante === 'emitido')
+                                Emitido
+                            @elseif($estadoComprobante === 'anulado')
+                                Anulado
+                            @elseif($estadoComprobante === 'rechazado')
+                                Rechazado
+                            @else
+                                {{ ucfirst($estadoComprobante) }}
+                            @endif
+                        @else
+                            {{ ucfirst($venta->estado_venta ?? $venta->estado ?? '') }}
+                        @endif
+                    </td>
                 </tr>
                 @endforeach
             </tbody>
             <tfoot>
                 <tr>
                     <td colspan="2" style="text-align: right; font-weight: bold;">Total Comprado:</td>
-                    <td colspan="2" style="font-weight: bold;">S/ {{ number_format($cliente->ventas->sum('total'), 2) }}</td>
+                    <td colspan="2" style="font-weight: bold;">S/ {{ number_format($cliente->ventas->sum('total_venta') ?? $cliente->ventas->sum('total'), 2) }}</td>
                 </tr>
             </tfoot>
         </table>

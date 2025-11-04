@@ -18,7 +18,7 @@ class ClientesNuevosMesWidget extends BaseWidget
 
         return [
             Stat::make('Clientes Nuevos Este Mes', $clientesNuevosMes)
-                ->description('Registrados en ' . Carbon::now()->format('F Y'))
+                ->description('Registrados en ' . ucfirst(Carbon::now()->locale('es')->translatedFormat('F Y')))
                 ->descriptionIcon('heroicon-m-user-plus')
                 ->color('primary'),
         ];

@@ -23,6 +23,70 @@ class ListVentas extends ListRecords
     {
         return [
             CreateAction::make(),
+            Action::make('exportar_ventas')
+                ->label('Exportar Ventas')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('warning')
+                ->modal()
+                ->modalHeading('Exportar Ventas')
+                ->modalWidth('2xl')
+                ->form([
+                    Forms\Components\Select::make('tipo_comprobante')
+                        ->label('Tipo de Comprobante')
+                        ->options([
+                            'todos' => 'Todos',
+                            'ticket' => 'Ticket',
+                            'boleta' => 'Boleta',
+                            'factura' => 'Factura',
+                        ])
+                        ->default('todos')
+                        ->required(),
+
+                    Forms\Components\DatePicker::make('fecha_inicio')
+                        ->label('Fecha Inicio')
+                        ->default(now()->startOfMonth())
+                        ->required(),
+
+                    Forms\Components\DatePicker::make('fecha_fin')
+                        ->label('Fecha Fin')
+                        ->default(now())
+                        ->required(),
+
+                    Forms\Components\Select::make('tipo_cliente')
+                        ->label('Tipo de Cliente')
+                        ->options([
+                            'todos' => 'Todos',
+                            'dni' => 'DNI (Personas)',
+                            'ruc' => 'RUC (Empresas)',
+                        ])
+                        ->default('todos')
+                        ->required(),
+
+                    Forms\Components\Select::make('estado_comprobante')
+                        ->label('Estado de Comprobante')
+                        ->options([
+                            'todos' => 'Todos',
+                            'emitido' => 'Emitido',
+                            'anulado' => 'Anulado',
+                            'rechazado' => 'Rechazado',
+                        ])
+                        ->default('todos')
+                        ->required(),
+                ])
+                ->action(function (array $data) {
+                    // Construir URL con parámetros
+                    $params = http_build_query([
+                        'tipo_comprobante' => $data['tipo_comprobante'],
+                        'fecha_inicio' => $data['fecha_inicio'],
+                        'fecha_fin' => $data['fecha_fin'],
+                        'tipo_cliente' => $data['tipo_cliente'],
+                        'estado_comprobante' => $data['estado_comprobante'],
+                    ]);
+
+                    // Abrir en nueva pestaña
+                    $this->js("window.open('" . route('ventas.export') . "?{$params}', '_blank')");
+                })
+                ->modalSubmitActionLabel('Exportar'),
             Action::make('anular_comprobante')
                 ->label('Anular Comprobante')
                 ->color('danger')
@@ -40,7 +104,30 @@ class ListVentas extends ListRecords
                             'factura' => 'Factura',
                         ])
                         ->required()
-                        ->live(),
+                        ->live()
+                        ->afterStateUpdated(function ($state, $set) {
+                            // Al cambiar el tipo de comprobante, cargar la serie por defecto (si existe)
+                            $serieComprobante = SerieComprobante::where('tipo', $state)
+                                ->where('aplica_a', 'ninguno')
+                                ->latest('id')
+                                ->first();
+
+                            if ($serieComprobante) {
+                                $set('serie', $serieComprobante->serie);
+                            } else {
+                                // Fallbacks comunes
+                                if ($state === 'boleta') {
+                                    $set('serie', 'B001');
+                                } elseif ($state === 'factura') {
+                                    $set('serie', 'F001');
+                                } elseif ($state === 'ticket') {
+                                    // Si no hay serie configurada para ticket, dejar T001 por defecto
+                                    $set('serie', 'T001');
+                                } else {
+                                    $set('serie', null);
+                                }
+                            }
+                        }),
 
                     // Paso 2: Seleccionar tipo de nota (solo para boleta/factura)
                     Forms\Components\Select::make('tipo_nota')
@@ -80,7 +167,7 @@ class ListVentas extends ListRecords
                         ->afterStateUpdated(function ($state, callable $get) {
                             $this->buscarVentaModal($get);
                         })
-                        ->visible(fn (callable $get) => $get('tipo_nota')),
+                        ->visible(fn (callable $get) => $get('tipo_nota') || $get('tipo_comprobante') === 'ticket'),
 
                     Forms\Components\TextInput::make('numero')
                         ->label(fn (callable $get) => 'Número de la ' . ucfirst($get('tipo_comprobante') ?? 'Comprobante') . ' a Anular')
@@ -90,7 +177,7 @@ class ListVentas extends ListRecords
                         ->afterStateUpdated(function ($state, callable $get) {
                             $this->buscarVentaModal($get);
                         })
-                        ->visible(fn (callable $get) => $get('tipo_nota')),
+                        ->visible(fn (callable $get) => $get('tipo_nota') || $get('tipo_comprobante') === 'ticket'),
 
                     // Paso 5: Mostrar detalle del documento referenciado
                     Forms\Components\Placeholder::make('venta_info')
@@ -276,7 +363,7 @@ class ListVentas extends ListRecords
                     'estado' => 'anulado',
                     'motivo_anulacion' => "Anulado con " . ucwords(str_replace('_', ' ', $data['tipo_nota'])) . " {$data['serie_nota']}-{$data['numero_nota']}",
                 ]);
-                
+
                 // Crear la relación entre el comprobante original y la nota
                 \App\Models\ComprobanteRelacion::create([
                     'comprobante_origen_id' => $comprobante->id,

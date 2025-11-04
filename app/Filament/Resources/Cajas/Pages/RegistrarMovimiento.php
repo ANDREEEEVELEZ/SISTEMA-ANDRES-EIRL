@@ -54,7 +54,8 @@ class RegistrarMovimiento extends Page implements HasForms
                 ])
                 ->default('egreso')
                 ->required()
-                ->native(false),
+                ->native(false)
+                ->extraAttributes(['style' => 'max-width:220px;']),
 
             TextInput::make('monto')
                 ->label('Monto (S/)')
@@ -63,14 +64,16 @@ class RegistrarMovimiento extends Page implements HasForms
                 ->minValue(0.01)
                 ->step(0.01)
                 ->required()
-                ->placeholder('0.00'),
+                ->placeholder('0.00')
+                ->extraAttributes(['style' => 'max-width:160px;']),
 
             Textarea::make('descripcion')
                 ->label('Descripción')
                 ->required()
                 ->maxLength(100)
                 ->placeholder('Ej: Compra de servilletas, Pago de luz, etc.')
-                ->rows(3),
+                ->rows(3)
+                ->extraAttributes(['style' => 'max-width:520px;']),
 
             ViewField::make('info_caja')
                 ->label('Caja Actual')

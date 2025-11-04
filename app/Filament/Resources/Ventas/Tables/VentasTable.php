@@ -162,30 +162,58 @@ class VentasTable
                     })
                     ->sortable(),
 
-                BadgeColumn::make('estado_venta')
+                BadgeColumn::make('estado_comprobante')
                     ->label('Estado')
+                    ->getStateUsing(function ($record) {
+                        // Obtener el estado del comprobante principal (no notas)
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
+
+                        return $comprobante ? $comprobante->estado : 'sin comprobante';
+                    })
                     ->colors([
-                        'success' => 'emitida',
-                        'danger' => 'anulada',
-                        'warning' => 'rechazada',
+                        'success' => 'emitido',
+                        'danger' => 'anulado',
+                        'warning' => 'rechazado',
+                        'gray' => 'sin comprobante',
                     ])
                     ->formatStateUsing(fn (string $state): string => match($state) {
-                        'emitida' => 'Emitida',
-                        'anulada' => 'Anulada',
-                        'rechazada' => 'Rechazada',
-                        default => $state,
+                        'emitido' => 'Emitido',
+                        'anulado' => 'Anulado',
+                        'rechazado' => 'Rechazado',
+                        'sin comprobante' => 'Sin Comprobante',
+                        default => ucfirst($state),
                     })
-                    ->sortable(),
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query
+                            ->leftJoin('comprobantes', function ($join) {
+                                $join->on('ventas.id', '=', 'comprobantes.venta_id')
+                                     ->whereNotIn('comprobantes.tipo', ['nota de credito', 'nota de debito']);
+                            })
+                            ->orderBy('comprobantes.estado', $direction)
+                            ->select('ventas.*');
+                    }),
 
             ])
             ->filters([
-                SelectFilter::make('estado_venta')
-                    ->label('Estado')
+                SelectFilter::make('estado_comprobante')
+                    ->label('Estado Comprobante')
                     ->options([
-                        'emitida' => 'Emitida',
-                        'anulada' => 'Anulada',
-                        'rechazada' => 'Rechazada',
-                    ]),
+                        'emitido' => 'Emitido',
+                        'anulado' => 'Anulado',
+                        'rechazado' => 'Rechazado',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!isset($data['value']) || $data['value'] === null) {
+                            return $query;
+                        }
+
+                        return $query->whereHas('comprobantes', function (Builder $q) use ($data) {
+                            $q->where('estado', $data['value'])
+                              ->whereNotIn('tipo', ['nota de credito', 'nota de debito']);
+                        });
+                    }),
 
                 SelectFilter::make('metodo_pago')
                     ->label('Método de Pago')
@@ -259,7 +287,14 @@ class VentasTable
                     ->label('Anular')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn ($record) => $record->estado_venta === 'emitida')
+                    ->visible(function ($record) {
+                        // Verificar que el comprobante esté emitido
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
+
+                        return $comprobante && $comprobante->estado === 'emitido';
+                    })
                     ->action(function ($record) {
                         $comprobante = $record->comprobantes()->first();
                         $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';

@@ -71,7 +71,7 @@ class EstadisticasVentasWidget extends BaseWidget
 
         return [
             Stat::make('Total de Ventas', 'S/ ' . number_format($totalVentas, 2))
-                ->description("{$cantidadVentas} ventas en " . Carbon::now()->format('F Y'))
+                ->description("{$cantidadVentas} ventas en " . ucfirst(Carbon::now()->locale('es')->translatedFormat('F Y')))
                 ->descriptionIcon('heroicon-m-currency-dollar')
                 ->color('success')
                 ->chart([7, 2, 10, 3, 15, 4, 17]),

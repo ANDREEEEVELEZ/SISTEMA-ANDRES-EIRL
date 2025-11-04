@@ -18,7 +18,7 @@ class EmpleadosNuevosMesWidget extends BaseWidget
 
         return [
             Stat::make('Empleados Nuevos Este Mes', $empleadosNuevosMes)
-                ->description('Incorporados en ' . Carbon::now()->format('F Y'))
+                ->description('Incorporados en ' . ucfirst(Carbon::now()->locale('es')->translatedFormat('F Y')))
                 ->descriptionIcon('heroicon-m-user-plus')
                 ->color('primary'),
         ];

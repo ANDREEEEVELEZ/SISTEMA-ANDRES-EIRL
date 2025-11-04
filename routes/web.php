@@ -7,6 +7,7 @@ use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\ComprobanteController;
 use App\Http\Controllers\ClienteExportController;
 use App\Http\Controllers\ReporteInventarioController;
+use App\Http\Controllers\VentaExportController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -44,6 +45,10 @@ Route::get('/clientes/exportar/pdf', [ClienteExportController::class, 'exportarP
     ->name('clientes.exportar.pdf');
 Route::get('/clientes/{id}/imprimir/pdf', [ClienteExportController::class, 'imprimirClientePdf'])
     ->name('clientes.imprimir.pdf');
+
+// Exportar ventas a CSV
+Route::get('/ventas/exportar', [VentaExportController::class, 'export'])
+    ->name('ventas.export');
 
 // Reportes - Arqueo de caja (descarga PDF de arqueo registrado)
 Route::get('/reportes/arqueo/{id}/pdf', [\App\Http\Controllers\ReportesController::class, 'arqueoPdf'])

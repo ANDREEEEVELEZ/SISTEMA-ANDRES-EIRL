@@ -9,9 +9,9 @@ use App\Models\Producto;
 
 class ProductosStockCriticoWidget extends BaseWidget
 {
-    protected static ?int $sort = 10; // Después de todos los widgets existentes
+    protected static ?int $sort = 8; // Stock crítico aparece primero
     protected int | string | array $columnSpan = [
-        'md' => 1,
+        'md' => 2,
         'xl' => 1,
     ];
 
@@ -50,9 +50,9 @@ class ProductosStockCriticoWidget extends BaseWidget
                         return 'success';
                     })
                     ->formatStateUsing(function ($state, $record) {
-                        if ($record->stock_total == 0) return '¡AGOTADO!';
-                        if ($record->stock_total == 1) return '¡CRÍTICO! ' . $state . ' und.';
-                        if ($record->stock_total <= 3) return '¡BAJO! ' . $state . ' und.';
+                        if ($record->stock_total == 0) return 'AGOTADO';
+                        if ($record->stock_total == 1) return 'CRÍTICO ' . $state . ' und.';
+                        if ($record->stock_total <= 3) return 'BAJO ' . $state . ' und.';
                         return $state . ' und.';
                     })
                     ->icon(function ($record) {
@@ -64,7 +64,7 @@ class ProductosStockCriticoWidget extends BaseWidget
             ->defaultSort('stock_total', 'asc')
             ->paginated(false)
             ->striped()
-            ->emptyStateHeading('¡Excelente!')
+            ->emptyStateHeading('Excelente')
             ->emptyStateDescription('No hay productos con stock crítico')
             ->emptyStateIcon('heroicon-o-check-circle');
     }

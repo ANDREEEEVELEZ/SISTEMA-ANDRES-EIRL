@@ -95,7 +95,7 @@ class ProductosRelationManager extends RelationManager
                         ])
                         ->action(function (Collection $records, array $data) {
                             $count = $records->count();
-                            
+
                             foreach ($records as $record) {
                                 $record->update([
                                     'categoria_id' => $data['nueva_categoria_id']
@@ -103,7 +103,7 @@ class ProductosRelationManager extends RelationManager
                             }
 
                             \Filament\Notifications\Notification::make()
-                                ->title('¡Productos movidos exitosamente!')
+                                ->title('Productos movidos exitosamente')
                                 ->body($count . ' producto(s) fueron movidos a la nueva categoría')
                                 ->success()
                                 ->send();

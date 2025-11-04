@@ -3,15 +3,16 @@
 
 <!-- TARJETA APERTURA -->
 <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10" style="width: 48%; min-width: 280px;">
-    <div class="fi-section-header flex justify-center py-4 border-b border-gray-200 dark:border-white/10" style="padding-left: 1rem; padding-right: 1rem;">
+    <div class="fi-section-header flex justify-center py-2 border-b border-gray-200 dark:border-white/10" style="padding-left: 1rem; padding-right: 1rem;">
         <h3 class="fi-section-header-heading text-base font-semibold text-gray-950 dark:text-white text-center">
             Apertura de Caja
         </h3>
     </div>
 
-    <div class="flex flex-col items-center text-center" style="padding: 0.75rem 1.5rem 1rem 1.5rem;">
+    <div class="flex flex-col items-center text-center" style="padding: 0.25rem 1.5rem 1rem 1.5rem;">
         @if(\App\Services\CajaService::tieneCajaAbiertaDiaAnterior())
-            <div class="rounded-lg bg-danger-50 text-sm text-danger-600 dark:bg-danger-400/10 dark:text-danger-400 text-center w-full" style="padding: 0.75rem;">
+          <div class="rounded-lg bg-danger-50 text-sm text-danger-600 dark:bg-danger-400/10 dark:text-danger-400 text-center w-full"
+              style="margin-top: 0rem; padding: 0.25rem;">
                 Debe cerrar la caja del día anterior primero
             </div>
         @else
