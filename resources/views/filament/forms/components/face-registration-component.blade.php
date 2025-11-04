@@ -9,34 +9,14 @@
     x-data="faceRegistrationComponent(@js($empleadoId), @js($isEditing))"
     x-init="init()"
     class="space-y-4"
+    @trigger-open-camera.window="openCamera()"
+    @trigger-delete-photo.window="deletePhoto()"
 >
-    <!-- Botones de Acción -->
-    <div class="flex flex-wrap gap-3">
-        <button
-            type="button"
-            @click="openCamera()"
-            x-show="!cameraOpen"
-            class="inline-flex items-center px-4 py-2.5 bg-primary-600 hover:bg-primary-700 border border-transparent rounded-lg font-semibold text-sm text-white shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-        >
-            <x-filament::icon 
-                icon="heroicon-o-camera" 
-                class="w-4 h-4 mr-2"
-            />
-            <span x-text="isEditing ? 'Actualizar Registro Facial' : 'Registrar Rostro'"></span>
-        </button>
-        
+    <!-- Botones de Acción - OCULTOS, ahora están en la tarjeta -->
+    <div class="hidden">
+        <button type="button" @click="openCamera()" x-show="!cameraOpen"></button>
         @if($hasPhoto && $isEditing)
-            <button
-                type="button"
-                @click="deletePhoto()"
-                class="inline-flex items-center px-4 py-2.5 bg-danger-600 hover:bg-danger-700 border border-transparent rounded-lg font-semibold text-sm text-white shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-2"
-            >
-                <x-filament::icon 
-                    icon="heroicon-o-trash" 
-                    class="w-4 h-4 mr-2"
-                />
-                Eliminar Rostro
-            </button>
+            <button type="button" @click="deletePhoto()"></button>
         @endif
     </div>
     
