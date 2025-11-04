@@ -308,13 +308,12 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                 }
                 
                 try {
-                    // Detectar rostro con landmarks
+                    // Detectar solo el rostro sin landmarks
                     const detection = await faceapi
                         .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({
                             inputSize: 320,
                             scoreThreshold: 0.5
-                        }))
-                        .withFaceLandmarks();
+                        }));
                     
                     // Limpiar canvas
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -331,27 +330,18 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                         
                         // Escalar la detección
                         const scaledBox = {
-                            x: detection.detection.box.x * scaleX,
-                            y: detection.detection.box.y * scaleY,
-                            width: detection.detection.box.width * scaleX,
-                            height: detection.detection.box.height * scaleY
+                            x: detection.box.x * scaleX,
+                            y: detection.box.y * scaleY,
+                            width: detection.box.width * scaleX,
+                            height: detection.box.height * scaleY
                         };
                         
                         console.log('Box escalado:', scaledBox);
                         
-                        // Escalar landmarks
-                        const scaledLandmarks = detection.landmarks.positions.map(point => ({
-                            x: point.x * scaleX,
-                            y: point.y * scaleY
-                        }));
+                        console.log('Dibujando recuadro en canvas...');
                         
-                        console.log('Dibujando en canvas...');
-                        
-                        // Dibujar caja delimitadora con efecto neón
+                        // Dibujar solo la caja delimitadora con efecto neón
                         this.drawFaceBox(ctx, scaledBox);
-                        
-                        // Dibujar puntos de landmarks (malla facial)
-                        this.drawFaceLandmarks(ctx, scaledLandmarks, detection.landmarks);
                         
                         console.log('Dibujo completado');
                         
@@ -382,14 +372,10 @@ function faceRegistrationComponent(empleadoId, isEditing) {
             // Guardar estado del contexto
             ctx.save();
             
-            // Configurar estilo de línea con efecto brillante
-            ctx.strokeStyle = '#00f2ff';
+            // Configurar estilo de línea - verde medio
+            ctx.strokeStyle = '#10B981'; // Verde medio (verde esmeralda)
             ctx.lineWidth = 4;
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = '#00f2ff';
-            
-            // Dibujar rectángulo simple primero para verificar
-            ctx.strokeRect(x, y, width, height);
+            ctx.shadowBlur = 0; // Sin efecto de brillo
             
             // Dibujar rectángulo redondeado
             const radius = 15;
@@ -444,93 +430,6 @@ function faceRegistrationComponent(empleadoId, isEditing) {
             console.log('drawFaceBox completado');
         },
         
-        drawFaceLandmarks(ctx, scaledPoints, originalLandmarks) {
-            console.log('drawFaceLandmarks llamado con', scaledPoints.length, 'puntos');
-            
-            // Guardar estado
-            ctx.save();
-            
-            // Configurar estilo para puntos
-            ctx.fillStyle = '#00ff88';
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#00ff88';
-            
-            // Dibujar cada punto de landmark
-            scaledPoints.forEach((point, index) => {
-                ctx.beginPath();
-                ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
-                ctx.fill();
-            });
-            
-            console.log('Puntos dibujados');
-            
-            // Dibujar líneas conectando los landmarks principales
-            ctx.strokeStyle = 'rgba(0, 255, 136, 0.6)';
-            ctx.lineWidth = 2;
-            ctx.shadowBlur = 5;
-            
-            // Necesitamos escalar manualmente los grupos de landmarks
-            const video = this.$refs.video;
-            const canvas = this.$refs.canvas;
-            const scaleX = canvas.width / video.videoWidth;
-            const scaleY = canvas.height / video.videoHeight;
-            
-            const scalePoints = (points) => points.map(p => ({
-                x: p.x * scaleX,
-                y: p.y * scaleY
-            }));
-            
-            try {
-                // Contorno de la cara
-                this.drawLandmarkContour(ctx, scalePoints(originalLandmarks.getJawOutline()));
-                
-                // Cejas
-                this.drawLandmarkContour(ctx, scalePoints(originalLandmarks.getLeftEyeBrow()));
-                this.drawLandmarkContour(ctx, scalePoints(originalLandmarks.getRightEyeBrow()));
-                
-                // Ojos
-                this.drawLandmarkLoop(ctx, scalePoints(originalLandmarks.getLeftEye()));
-                this.drawLandmarkLoop(ctx, scalePoints(originalLandmarks.getRightEye()));
-                
-                // Nariz
-                this.drawLandmarkContour(ctx, scalePoints(originalLandmarks.getNose()));
-                
-                // Boca
-                this.drawLandmarkLoop(ctx, scalePoints(originalLandmarks.getMouth()));
-                
-                console.log('Líneas dibujadas');
-            } catch (e) {
-                console.error('Error dibujando líneas:', e);
-            }
-            
-            // Restaurar estado
-            ctx.restore();
-            
-            console.log('drawFaceLandmarks completado');
-        },
-        
-        drawLandmarkContour(ctx, points) {
-            if (points.length < 2) return;
-            
-            ctx.beginPath();
-            ctx.moveTo(points[0].x, points[0].y);
-            for (let i = 1; i < points.length; i++) {
-                ctx.lineTo(points[i].x, points[i].y);
-            }
-            ctx.stroke();
-        },
-        
-        drawLandmarkLoop(ctx, points) {
-            if (points.length < 2) return;
-            
-            ctx.beginPath();
-            ctx.moveTo(points[0].x, points[0].y);
-            for (let i = 1; i < points.length; i++) {
-                ctx.lineTo(points[i].x, points[i].y);
-            }
-            ctx.closePath();
-            ctx.stroke();
-        },
         
         async capturePhoto() {
             console.log('Iniciando captura de foto...');
