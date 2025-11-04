@@ -36,30 +36,7 @@
             ></div>
             
             <!-- Modal Content -->
-            <div class="relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-2xl transform transition-all max-w-3xl w-full">
-                <!-- Header -->
-                <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                            <x-filament::icon 
-                                icon="heroicon-o-camera" 
-                                class="w-5 h-5"
-                            />
-                            Captura de Rostro Facial
-                        </h3>
-                        <button
-                            type="button"
-                            @click="closeCamera()"
-                            class="text-white hover:text-gray-200 transition-colors"
-                        >
-                            <x-filament::icon 
-                                icon="heroicon-o-x-mark" 
-                                class="w-6 h-6"
-                            />
-                        </button>
-                    </div>
-                </div>
-                
+            <div class="relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-2xl transform transition-all max-w-4xl w-full">
                 <div class="p-6 space-y-4">
                     <!-- Video de Cámara -->
                     <div class="relative bg-gray-900 rounded-xl overflow-hidden shadow-inner" x-show="!capturedImage">
@@ -77,28 +54,6 @@
                                 x-ref="canvas"
                                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none;"
                             ></canvas>
-                        </div>
-                        
-                        <!-- Indicador de Estado -->
-                        <div 
-                            class="absolute top-4 right-4 px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition-all backdrop-blur-md"
-                            :class="status.color"
-                        >
-                            <span class="flex items-center gap-2">
-                                <x-filament::loading-indicator 
-                                    x-show="status.loading" 
-                                    class="h-4 w-4"
-                                />
-                                <span x-text="status.text"></span>
-                            </span>
-                        </div>
-                        
-                        <!-- Contador de rostros detectados -->
-                        <div 
-                            x-show="faceDetectedCount > 0"
-                            class="absolute top-4 left-4 px-4 py-2 rounded-full text-sm font-semibold shadow-lg transition-all backdrop-blur-md bg-green-500 text-white"
-                        >
-                            <span x-text="'Rostro detectado'"></span>
                         </div>
                         
                         <!-- Instrucciones -->
@@ -137,53 +92,67 @@
                     </div>
                     
                     <!-- Botones de Acción -->
-                    <div class="flex justify-end gap-3 pt-2">
+                    <div class="flex justify-end gap-3 pt-4 px-4">
+                        <!-- Botón Cancelar (Rojo) - Mismo estilo que Registrar Rostro -->
                         <button
                             type="button"
                             @click="closeCamera()"
-                            class="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
+                            style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: 2px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white; box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4); cursor: pointer; transition: all 0.3s ease;"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(239, 68, 68, 0.5)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(239, 68, 68, 0.4)'"
                         >
-                            Cancelar
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 18px; height: 18px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Cancelar</span>
                         </button>
                         
+                        <!-- Botón Capturar Rostro (Verde) - Mismo estilo que Registrar Rostro - Solo visible cuando NO hay imagen capturada -->
                         <button
                             type="button"
                             @click="capturePhoto()"
                             x-show="!capturedImage"
                             :disabled="!modelsLoaded"
-                            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: 2px solid rgba(16, 185, 129, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4); cursor: pointer; transition: all 0.3s ease;"
+                            :style="!modelsLoaded ? 'opacity: 0.5; cursor: not-allowed;' : ''"
+                            onmouseover="if(this.disabled !== true) { this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(16, 185, 129, 0.5)'; }"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(16, 185, 129, 0.4)'"
                         >
-                            <x-filament::icon 
-                                icon="heroicon-o-camera" 
-                                class="w-4 h-4"
-                            />
-                            Capturar Rostro
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 18px; height: 18px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                            </svg>
+                            <span>Capturar Rostro</span>
                         </button>
                         
+                        <!-- Botón Volver a Tomar (Amarillo) - Solo visible cuando hay imagen capturada -->
                         <button
                             type="button"
                             @click="retakePhoto()"
                             x-show="capturedImage"
-                            class="px-5 py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all flex items-center gap-2"
+                            style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border: 2px solid rgba(245, 158, 11, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white; box-shadow: 0 3px 10px rgba(245, 158, 11, 0.4); cursor: pointer; transition: all 0.3s ease;"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(245, 158, 11, 0.5)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(245, 158, 11, 0.4)'"
                         >
-                            <x-filament::icon 
-                                icon="heroicon-o-arrow-path" 
-                                class="w-4 h-4"
-                            />
-                            Volver a Tomar
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 18px; height: 18px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
+                            <span>Volver a Tomar</span>
                         </button>
                         
+                        <!-- Botón Confirmar y Guardar (Verde) - Solo visible cuando hay imagen capturada -->
                         <button
                             type="button"
                             @click="confirmPhoto()"
                             x-show="capturedImage"
-                            class="px-5 py-2.5 bg-success-600 hover:bg-success-700 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all flex items-center gap-2"
+                            style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: 2px solid rgba(16, 185, 129, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4); cursor: pointer; transition: all 0.3s ease;"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(16, 185, 129, 0.5)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(16, 185, 129, 0.4)'"
                         >
-                            <x-filament::icon 
-                                icon="heroicon-o-check" 
-                                class="w-4 h-4"
-                            />
-                            Confirmar y Guardar
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 18px; height: 18px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Confirmar y Guardar</span>
                         </button>
                     </div>
                 </div>
