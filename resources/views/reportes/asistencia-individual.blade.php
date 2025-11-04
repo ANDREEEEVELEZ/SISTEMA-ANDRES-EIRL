@@ -172,66 +172,75 @@
                 <div class="stat-label">Promedio Horas/Día</div>
                 <div class="stat-value">{{ $estadisticas['promedio_horas'] }}h {{ $estadisticas['promedio_minutos'] }}m</div>
             </div>
+            <div class="stat-item">
+                <div class="stat-label">Registros Faciales</div>
+                <div class="stat-value" style="color: #1e40af;">{{ $estadisticas['registros_faciales'] }}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Registros Manuales</div>
+                <div class="stat-value" style="color: #b45309;">{{ $estadisticas['registros_manuales'] }}</div>
+            </div>
         </div>
+        
+        @if($estadisticas['dias_sin_salida'] > 0)
+        <div style="margin-top: 10px; padding: 8px; background-color: #fef3c7; border-left: 3px solid #f59e0b;">
+            <span style="font-size: 10px; color: #92400e;">
+                ⚠️ <strong>Atención:</strong> Hay {{ $estadisticas['dias_sin_salida'] }} día(s) sin registro de salida
+            </span>
+        </div>
+        @endif
     </div>
     @endif
 
     @if($incluir_detalle)
     <div class="section">
-        <div class="section-title">📅 DETALLE DIARIO</div>
+        <div class="section-title">📅 DÍAS TRABAJADOS</div>
         
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 15%;">Fecha</th>
-                    <th style="width: 12%;">Entrada</th>
-                    <th style="width: 12%;">Salida</th>
-                    <th style="width: 12%;" class="center">Estado</th>
-                    <th style="width: 12%;" class="right">Horas</th>
-                    @if($incluir_metodo)
-                    <th style="width: 15%;" class="center">Método</th>
-                    @endif
-                    @if($incluir_observaciones)
-                    <th>Observación</th>
-                    @endif
-                </tr>
-            </thead>
-            <tbody>
-                @php
-                    $fechaActual = $fecha_inicio->copy();
-                    $fechaFinalLoop = $fecha_fin->copy();
-                @endphp
-                
-                @while($fechaActual <= $fechaFinalLoop)
-                    @php
-                        $asistencia = $asistencias->firstWhere('fecha', $fechaActual->format('Y-m-d'));
-                        $horasTrabajadas = null;
-                        
-                        if ($asistencia && $asistencia->hora_entrada && $asistencia->hora_salida) {
-                            $entrada = \Carbon\Carbon::parse($asistencia->hora_entrada);
-                            $salida = \Carbon\Carbon::parse($asistencia->hora_salida);
-                            $minutosTrabajados = $entrada->diffInMinutes($salida);
-                            $horas = floor($minutosTrabajados / 60);
-                            $minutos = $minutosTrabajados % 60;
-                            $horasTrabajadas = $horas . 'h ' . $minutos . 'm';
-                        }
-                    @endphp
-                    
+        @if($asistencias->where('estado', 'presente')->isEmpty())
+            <p style="text-align: center; color: #666; padding: 20px;">
+                No hay registros de días trabajados en este período.
+            </p>
+        @else
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ $fechaActual->format('d/m/Y') }}</td>
-                        <td>{{ $asistencia && $asistencia->hora_entrada ? \Carbon\Carbon::parse($asistencia->hora_entrada)->format('H:i') : '-' }}</td>
-                        <td>{{ $asistencia && $asistencia->hora_salida ? \Carbon\Carbon::parse($asistencia->hora_salida)->format('H:i') : '-' }}</td>
-                        <td class="center">
-                            @if($asistencia && $asistencia->estado === 'presente')
-                                <span class="badge badge-presente">Presente</span>
-                            @else
-                                <span class="badge badge-ausente">Ausente</span>
-                            @endif
-                        </td>
-                        <td class="right">{{ $horasTrabajadas ?? '-' }}</td>
+                        <th style="width: 15%;">Fecha</th>
+                        <th style="width: 10%;">Día</th>
+                        <th style="width: 12%;">Entrada</th>
+                        <th style="width: 12%;">Salida</th>
+                        <th style="width: 12%;" class="right">Horas</th>
                         @if($incluir_metodo)
-                        <td class="center">
-                            @if($asistencia)
+                        <th style="width: 15%;" class="center">Método</th>
+                        @endif
+                        @if($incluir_observaciones)
+                        <th>Observación</th>
+                        @endif
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($asistencias->where('estado', 'presente') as $asistencia)
+                        @php
+                            $fecha = \Carbon\Carbon::parse($asistencia->fecha);
+                            $horasTrabajadas = null;
+                            
+                            if ($asistencia->hora_entrada && $asistencia->hora_salida) {
+                                $entrada = \Carbon\Carbon::parse($asistencia->hora_entrada);
+                                $salida = \Carbon\Carbon::parse($asistencia->hora_salida);
+                                $minutosTrabajados = $entrada->diffInMinutes($salida);
+                                $horas = floor($minutosTrabajados / 60);
+                                $minutos = $minutosTrabajados % 60;
+                                $horasTrabajadas = $horas . 'h ' . $minutos . 'm';
+                            }
+                        @endphp
+                        
+                        <tr>
+                            <td>{{ $fecha->format('d/m/Y') }}</td>
+                            <td>{{ $fecha->locale('es')->isoFormat('dddd') }}</td>
+                            <td>{{ $asistencia->hora_entrada ? \Carbon\Carbon::parse($asistencia->hora_entrada)->format('H:i') : '-' }}</td>
+                            <td>{{ $asistencia->hora_salida ? \Carbon\Carbon::parse($asistencia->hora_salida)->format('H:i') : '-' }}</td>
+                            <td class="right">{{ $horasTrabajadas ?? 'Sin salida' }}</td>
+                            @if($incluir_metodo)
+                            <td class="center">
                                 @if($asistencia->metodo_registro === 'facial')
                                     <span class="badge badge-facial">Facial</span>
                                 @elseif($asistencia->metodo_registro === 'manual_dni')
@@ -239,22 +248,80 @@
                                 @else
                                     -
                                 @endif
-                            @else
-                                -
+                            </td>
                             @endif
-                        </td>
-                        @endif
-                        @if($incluir_observaciones)
-                        <td style="font-size: 9px;">{{ $asistencia->observacion ?? '-' }}</td>
-                        @endif
-                    </tr>
-                    
+                            @if($incluir_observaciones)
+                            <td style="font-size: 9px;">{{ $asistencia->observacion ?? '-' }}</td>
+                            @endif
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </div>
+    @endif
+
+    {{-- NUEVA SECCIÓN: Incidencias --}}
+    @php
+        $incidencias = [];
+        
+        // Detectar días sin salida registrada
+        $sinSalida = $asistencias->filter(function($a) {
+            return $a->estado === 'presente' && $a->hora_entrada && !$a->hora_salida;
+        });
+        
+        // Detectar días con pocas horas trabajadas (menos de 4 horas)
+        $pocasHoras = $asistencias->filter(function($a) {
+            if ($a->estado === 'presente' && $a->hora_entrada && $a->hora_salida) {
+                $entrada = \Carbon\Carbon::parse($a->hora_entrada);
+                $salida = \Carbon\Carbon::parse($a->hora_salida);
+                $horas = $entrada->diffInHours($salida);
+                return $horas < 4;
+            }
+            return false;
+        });
+        
+        $hayIncidencias = $sinSalida->count() > 0 || $pocasHoras->count() > 0;
+    @endphp
+
+    @if($hayIncidencias)
+    <div class="section">
+        <div class="section-title">⚠️ INCIDENCIAS DETECTADAS</div>
+        
+        @if($sinSalida->count() > 0)
+        <div style="margin-bottom: 10px;">
+            <strong style="color: #c2410c;">🔴 Días sin registro de salida:</strong>
+            <div style="margin-left: 15px; margin-top: 5px;">
+                @foreach($sinSalida as $dia)
+                    <div style="padding: 3px 0; font-size: 10px;">
+                        • {{ \Carbon\Carbon::parse($dia->fecha)->format('d/m/Y') }} 
+                        - Entrada: {{ \Carbon\Carbon::parse($dia->hora_entrada)->format('H:i') }}
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+        
+        @if($pocasHoras->count() > 0)
+        <div style="margin-bottom: 10px;">
+            <strong style="color: #b45309;">🟡 Días con menos de 4 horas trabajadas:</strong>
+            <div style="margin-left: 15px; margin-top: 5px;">
+                @foreach($pocasHoras as $dia)
                     @php
-                        $fechaActual->addDay();
+                        $entrada = \Carbon\Carbon::parse($dia->hora_entrada);
+                        $salida = \Carbon\Carbon::parse($dia->hora_salida);
+                        $minutos = $entrada->diffInMinutes($salida);
+                        $h = floor($minutos / 60);
+                        $m = $minutos % 60;
                     @endphp
-                @endwhile
-            </tbody>
-        </table>
+                    <div style="padding: 3px 0; font-size: 10px;">
+                        • {{ \Carbon\Carbon::parse($dia->fecha)->format('d/m/Y') }} 
+                        - Solo trabajó {{ $h }}h {{ $m }}m
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
     </div>
     @endif
 

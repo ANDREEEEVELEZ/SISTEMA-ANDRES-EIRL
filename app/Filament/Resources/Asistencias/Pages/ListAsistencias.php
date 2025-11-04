@@ -116,7 +116,8 @@ class ListAsistencias extends ListRecords
                         ->inline(false),
                     
                     Checkbox::make('incluir_detalle')
-                        ->label('Detalle diario completo')
+                        ->label('Listado de días trabajados')
+                        ->helperText('Solo muestra los días con asistencia registrada')
                         ->default(true)
                         ->inline(false),
                     

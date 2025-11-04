@@ -176,19 +176,28 @@ class ReportesController extends Controller
             
             // Calcular total de horas trabajadas
             $totalMinutos = 0;
+            $diasConSalidaRegistrada = 0;
             foreach ($asistencias as $asistencia) {
                 if ($asistencia->hora_entrada && $asistencia->hora_salida) {
                     $entrada = Carbon::parse($asistencia->hora_entrada);
                     $salida = Carbon::parse($asistencia->hora_salida);
                     $totalMinutos += $entrada->diffInMinutes($salida);
+                    $diasConSalidaRegistrada++;
                 }
             }
             
             $totalHoras = floor($totalMinutos / 60);
             $totalMinutosRestantes = $totalMinutos % 60;
-            $promedioHorasDia = $diasTrabajados > 0 ? $totalMinutos / $diasTrabajados : 0;
+            $promedioHorasDia = $diasConSalidaRegistrada > 0 ? $totalMinutos / $diasConSalidaRegistrada : 0;
             $promedioHoras = floor($promedioHorasDia / 60);
             $promedioMinutos = round($promedioHorasDia % 60);
+            
+            // Estadísticas adicionales
+            $registrosFaciales = $asistencias->where('metodo_registro', 'facial')->count();
+            $registrosManuales = $asistencias->where('metodo_registro', 'manual_dni')->count();
+            $diasSinSalida = $asistencias->where('estado', 'presente')
+                ->filter(function($a) { return $a->hora_entrada && !$a->hora_salida; })
+                ->count();
 
             // Obtener registros con observaciones o manuales
             $registrosEspeciales = $asistencias->filter(function ($asistencia) {
@@ -210,6 +219,9 @@ class ReportesController extends Controller
                     'total_minutos' => $totalMinutosRestantes,
                     'promedio_horas' => $promedioHoras,
                     'promedio_minutos' => $promedioMinutos,
+                    'registros_faciales' => $registrosFaciales,
+                    'registros_manuales' => $registrosManuales,
+                    'dias_sin_salida' => $diasSinSalida,
                 ],
                 'registros_especiales' => $registrosEspeciales,
                 'incluir_resumen' => $incluirResumen,
