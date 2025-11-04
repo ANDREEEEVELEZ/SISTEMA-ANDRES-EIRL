@@ -62,6 +62,11 @@ Route::get('/reportes/cajas/export', [\App\Http\Controllers\ReportesController::
 Route::get('/reportes/cajas/open', [\App\Http\Controllers\ReportesController::class, 'cajasOpen'])
     ->name('reportes.cajas_open');
 
+// Reportes - Asistencias (PDF)
+Route::get('/reportes/asistencias/pdf', [\App\Http\Controllers\ReportesController::class, 'asistenciasPdf'])
+    ->name('reportes.asistencias.pdf')
+    ->middleware(['auth']);
+
 // Reportes de Inventario
 Route::prefix('reportes/inventario')->middleware(['auth'])->group(function () {
     Route::get('/stock', [ReporteInventarioController::class, 'reporteStock'])

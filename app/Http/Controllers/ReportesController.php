@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Arqueo;
+use App\Models\Asistencia;
 use App\Models\Caja;
+use App\Models\Empleado;
 use App\Models\MovimientoCaja;
 use App\Models\Venta;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ReportesController extends Controller
@@ -133,5 +136,172 @@ class ReportesController extends Controller
 
         // Página simple que abre el PDF en una nueva pestaña y vuelve atrás
         return response()->view('reportes.open_pdf', ['pdfUrl' => $pdfUrl]);
+    }
+
+    /**
+     * Genera PDF de reporte de asistencias
+     */
+    public function asistenciasPdf(Request $request)
+    {
+        // Validar parámetros
+        $tipoReporte = $request->query('tipo_reporte', 'individual');
+        $empleadoId = $request->query('empleado_id');
+        $fechaInicio = Carbon::parse($request->query('fecha_inicio'))->startOfDay();
+        $fechaFin = Carbon::parse($request->query('fecha_fin'))->endOfDay();
+        
+        $incluirResumen = $request->boolean('incluir_resumen');
+        $incluirDetalle = $request->boolean('incluir_detalle');
+        $incluirObservaciones = $request->boolean('incluir_observaciones');
+        $incluirMetodo = $request->boolean('incluir_metodo');
+
+        if ($tipoReporte === 'individual') {
+            // Reporte individual de un trabajador
+            if (!$empleadoId) {
+                abort(400, 'Se requiere empleado_id para reporte individual');
+            }
+
+            $empleado = Empleado::findOrFail($empleadoId);
+            
+            // Obtener asistencias del período
+            $asistencias = Asistencia::where('empleado_id', $empleadoId)
+                ->whereBetween('fecha', [$fechaInicio, $fechaFin])
+                ->orderBy('fecha', 'asc')
+                ->get();
+
+            // Calcular estadísticas
+            $totalDias = $fechaInicio->diffInDays($fechaFin) + 1;
+            $diasTrabajados = $asistencias->where('estado', 'presente')->count();
+            $ausencias = $totalDias - $diasTrabajados;
+            $porcentajeAsistencia = $totalDias > 0 ? ($diasTrabajados / $totalDias) * 100 : 0;
+            
+            // Calcular total de horas trabajadas
+            $totalMinutos = 0;
+            foreach ($asistencias as $asistencia) {
+                if ($asistencia->hora_entrada && $asistencia->hora_salida) {
+                    $entrada = Carbon::parse($asistencia->hora_entrada);
+                    $salida = Carbon::parse($asistencia->hora_salida);
+                    $totalMinutos += $entrada->diffInMinutes($salida);
+                }
+            }
+            
+            $totalHoras = floor($totalMinutos / 60);
+            $totalMinutosRestantes = $totalMinutos % 60;
+            $promedioHorasDia = $diasTrabajados > 0 ? $totalMinutos / $diasTrabajados : 0;
+            $promedioHoras = floor($promedioHorasDia / 60);
+            $promedioMinutos = round($promedioHorasDia % 60);
+
+            // Obtener registros con observaciones o manuales
+            $registrosEspeciales = $asistencias->filter(function ($asistencia) {
+                return $asistencia->observacion || $asistencia->metodo_registro === 'manual_dni';
+            });
+
+            $data = [
+                'tipo_reporte' => 'individual',
+                'empleado' => $empleado,
+                'fecha_inicio' => $fechaInicio,
+                'fecha_fin' => $fechaFin,
+                'asistencias' => $asistencias,
+                'estadisticas' => [
+                    'total_dias' => $totalDias,
+                    'dias_trabajados' => $diasTrabajados,
+                    'ausencias' => $ausencias,
+                    'porcentaje_asistencia' => $porcentajeAsistencia,
+                    'total_horas' => $totalHoras,
+                    'total_minutos' => $totalMinutosRestantes,
+                    'promedio_horas' => $promedioHoras,
+                    'promedio_minutos' => $promedioMinutos,
+                ],
+                'registros_especiales' => $registrosEspeciales,
+                'incluir_resumen' => $incluirResumen,
+                'incluir_detalle' => $incluirDetalle,
+                'incluir_observaciones' => $incluirObservaciones,
+                'incluir_metodo' => $incluirMetodo,
+            ];
+
+            $pdf = Pdf::loadView('reportes.asistencia-individual', $data);
+            $filename = sprintf(
+                'asistencia_%s_%s_%s.pdf',
+                str_replace(' ', '_', $empleado->nombre_completo),
+                $fechaInicio->format('Ymd'),
+                $fechaFin->format('Ymd')
+            );
+
+            return $pdf->download($filename);
+        } else {
+            // Reporte general de todos los trabajadores
+            $empleados = Empleado::where('estado_empleado', 'activo')
+                ->orderBy('nombres')
+                ->get();
+
+            $reporteGeneral = [];
+            $totalDias = $fechaInicio->diffInDays($fechaFin) + 1;
+
+            foreach ($empleados as $empleado) {
+                $asistencias = Asistencia::where('empleado_id', $empleado->id)
+                    ->whereBetween('fecha', [$fechaInicio, $fechaFin])
+                    ->get();
+
+                $diasTrabajados = $asistencias->where('estado', 'presente')->count();
+                $ausencias = $totalDias - $diasTrabajados;
+                $porcentajeAsistencia = $totalDias > 0 ? ($diasTrabajados / $totalDias) * 100 : 0;
+
+                // Calcular horas trabajadas
+                $totalMinutos = 0;
+                foreach ($asistencias as $asistencia) {
+                    if ($asistencia->hora_entrada && $asistencia->hora_salida) {
+                        $entrada = Carbon::parse($asistencia->hora_entrada);
+                        $salida = Carbon::parse($asistencia->hora_salida);
+                        $totalMinutos += $entrada->diffInMinutes($salida);
+                    }
+                }
+
+                $totalHoras = floor($totalMinutos / 60);
+                $totalMinutosRestantes = $totalMinutos % 60;
+
+                $reporteGeneral[] = [
+                    'empleado' => $empleado,
+                    'total_dias' => $totalDias,
+                    'dias_trabajados' => $diasTrabajados,
+                    'ausencias' => $ausencias,
+                    'porcentaje_asistencia' => $porcentajeAsistencia,
+                    'total_horas' => $totalHoras,
+                    'total_minutos' => $totalMinutosRestantes,
+                ];
+            }
+
+            // Calcular resumen general
+            $totalTrabajadores = count($reporteGeneral);
+            $promedioAsistenciaGeneral = $totalTrabajadores > 0 
+                ? collect($reporteGeneral)->avg('porcentaje_asistencia') 
+                : 0;
+            $totalHorasGenerales = collect($reporteGeneral)->sum(function ($item) {
+                return ($item['total_horas'] * 60) + $item['total_minutos'];
+            });
+            $horasGenerales = floor($totalHorasGenerales / 60);
+            $minutosGenerales = $totalHorasGenerales % 60;
+
+            $data = [
+                'tipo_reporte' => 'general',
+                'fecha_inicio' => $fechaInicio,
+                'fecha_fin' => $fechaFin,
+                'reporte_general' => $reporteGeneral,
+                'resumen_general' => [
+                    'total_trabajadores' => $totalTrabajadores,
+                    'promedio_asistencia' => $promedioAsistenciaGeneral,
+                    'total_horas' => $horasGenerales,
+                    'total_minutos' => $minutosGenerales,
+                ],
+                'incluir_resumen' => $incluirResumen,
+            ];
+
+            $pdf = Pdf::loadView('reportes.asistencia-general', $data);
+            $filename = sprintf(
+                'asistencia_general_%s_%s.pdf',
+                $fechaInicio->format('Ymd'),
+                $fechaFin->format('Ymd')
+            );
+
+            return $pdf->download($filename);
+        }
     }
 }

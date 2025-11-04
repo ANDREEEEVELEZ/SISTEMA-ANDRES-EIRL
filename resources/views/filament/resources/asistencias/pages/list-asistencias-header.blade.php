@@ -35,22 +35,33 @@
                     </div>
                 </div>
                 
-                {{-- Selector de Empleado (solo para super_admin) --}}
-                @if(auth()->user()->hasRole('super_admin'))
-                    <div style="min-width: 250px;">
-                        <select 
-                            wire:model.live="empleadoSeleccionado"
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary-500 focus:ring-primary-500"
-                        >
-                            <option value="">Seleccionar empleado...</option>
-                            @foreach($this->empleados as $empleado)
-                                <option value="{{ $empleado->id }}">
-                                    {{ $empleado->nombre_completo }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
+                {{-- Botones y Selector en la derecha --}}
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    {{-- Botón Generar Reporte (solo para super_admin) --}}
+                    @if(auth()->user()->hasRole('super_admin'))
+                        <x-filament-actions::group 
+                            :actions="$this->getCachedHeaderActions()" 
+                            :label="null"
+                        />
+                    @endif
+                    
+                    {{-- Selector de Empleado (solo para super_admin) --}}
+                    @if(auth()->user()->hasRole('super_admin'))
+                        <div style="min-width: 250px;">
+                            <select 
+                                wire:model.live="empleadoSeleccionado"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary-500 focus:ring-primary-500"
+                            >
+                                <option value="">Seleccionar empleado...</option>
+                                @foreach($this->empleados as $empleado)
+                                    <option value="{{ $empleado->id }}">
+                                        {{ $empleado->nombre_completo }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+                </div>
             </div>
 
             {{-- Contenedor principal con Grid responsivo --}}

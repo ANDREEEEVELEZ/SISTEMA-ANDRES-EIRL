@@ -6,7 +6,12 @@ use App\Filament\Resources\Asistencias\AsistenciaResource;
 use App\Models\Asistencia;
 use App\Models\Empleado;
 use Carbon\Carbon;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Select;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Auth;
 
@@ -48,9 +53,111 @@ class ListAsistencias extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [
+        $actions = [
             CreateAction::make(),
         ];
+        
+        // Solo super_admin puede generar reportes
+        if (Auth::user()->hasRole('super_admin')) {
+            $actions[] = Action::make('generar_reporte')
+                ->label('Generar Reporte')
+                ->icon('heroicon-o-document-chart-bar')
+                ->color('info')
+                ->modalHeading('Generar Reporte de Asistencia')
+                ->modalSubmitActionLabel('Descargar PDF')
+                ->modalWidth('lg')
+                ->form([
+                    Radio::make('tipo_reporte')
+                        ->label('Tipo de Reporte')
+                        ->options([
+                            'individual' => 'Individual (Un trabajador)',
+                            'general' => 'General (Todos los trabajadores)',
+                        ])
+                        ->default('individual')
+                        ->required()
+                        ->live()
+                        ->columnSpanFull(),
+                    
+                    Select::make('empleado_id')
+                        ->label('Seleccionar Trabajador')
+                        ->options(function () {
+                            return Empleado::where('estado_empleado', 'activo')
+                                ->orderBy('nombres')
+                                ->get()
+                                ->mapWithKeys(function ($empleado) {
+                                    return [$empleado->id => $empleado->nombre_completo];
+                                });
+                        })
+                        ->searchable()
+                        ->required(fn ($get) => $get('tipo_reporte') === 'individual')
+                        ->visible(fn ($get) => $get('tipo_reporte') === 'individual')
+                        ->columnSpanFull(),
+                    
+                    DatePicker::make('fecha_inicio')
+                        ->label('Fecha Inicio')
+                        ->default(now()->startOfMonth())
+                        ->required()
+                        ->maxDate(now())
+                        ->native(false)
+                        ->displayFormat('d/m/Y'),
+                    
+                    DatePicker::make('fecha_fin')
+                        ->label('Fecha Fin')
+                        ->default(now())
+                        ->required()
+                        ->maxDate(now())
+                        ->native(false)
+                        ->displayFormat('d/m/Y')
+                        ->afterOrEqual('fecha_inicio'),
+                    
+                    Checkbox::make('incluir_resumen')
+                        ->label('Resumen estadístico')
+                        ->default(true)
+                        ->inline(false),
+                    
+                    Checkbox::make('incluir_detalle')
+                        ->label('Detalle diario completo')
+                        ->default(true)
+                        ->inline(false),
+                    
+                    Checkbox::make('incluir_observaciones')
+                        ->label('Mostrar observaciones')
+                        ->default(true)
+                        ->inline(false),
+                    
+                    Checkbox::make('incluir_metodo')
+                        ->label('Mostrar método de registro')
+                        ->default(true)
+                        ->inline(false),
+                ])
+                ->action(function (array $data) {
+                    // Construir la URL con los parámetros
+                    $params = http_build_query([
+                        'tipo_reporte' => $data['tipo_reporte'],
+                        'empleado_id' => $data['empleado_id'] ?? null,
+                        'fecha_inicio' => $data['fecha_inicio'],
+                        'fecha_fin' => $data['fecha_fin'],
+                        'incluir_resumen' => $data['incluir_resumen'] ?? false,
+                        'incluir_detalle' => $data['incluir_detalle'] ?? false,
+                        'incluir_observaciones' => $data['incluir_observaciones'] ?? false,
+                        'incluir_metodo' => $data['incluir_metodo'] ?? false,
+                    ]);
+                    
+                    $url = route('reportes.asistencias.pdf') . '?' . $params;
+                    
+                    // Descargar PDF sin abrir nueva pestaña usando iframe oculto
+                    $this->js("
+                        const link = document.createElement('a');
+                        link.href = '$url';
+                        link.download = '';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    ");
+                });
+        }
+        
+        return $actions;
     }
 
     public function getHeader(): ?\Illuminate\Contracts\View\View
