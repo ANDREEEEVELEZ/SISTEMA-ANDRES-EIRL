@@ -92,15 +92,15 @@
                     </div>
                     
                     <!-- Botones de Acción -->
-                    <div class="flex flex-wrap justify-end items-center gap-6 pt-4 px-4">
+                    <div class="flex flex-wrap justify-end items-center pt-4 px-4" style="gap: 2rem;">
                         <!-- Botón Cancelar (Rojo) - Mismo estilo que Registrar Rostro -->
                         <button
                             type="button"
                             @click="closeCamera()"
                             class="inline-flex items-center justify-center gap-2"
-                            style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; border: 2px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white !important; box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4); cursor: pointer; transition: all 0.3s ease; white-space: nowrap;"
-                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(239, 68, 68, 0.5)'"
-                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(239, 68, 68, 0.4)'"
+                            style="min-width: 160px; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; border: 2px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white !important; box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4); cursor: pointer; transition: all 0.3s ease; white-space: nowrap;"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(239, 68, 68, 0.5)'; this.style.background='linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(239, 68, 68, 0.4)'; this.style.background='linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 18px; height: 18px;">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -116,10 +116,23 @@
                             x-transition
                             :disabled="!modelsLoaded"
                             class="inline-flex items-center justify-center gap-2"
-                            style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; border: 2px solid rgba(16, 185, 129, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white !important; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4); cursor: pointer; transition: all 0.3s ease; white-space: nowrap;"
-                            :style="!modelsLoaded ? 'opacity: 0.5; cursor: not-allowed;' : ''"
-                            onmouseover="if(this.disabled !== true) { this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(16, 185, 129, 0.5)'; }"
-                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(16, 185, 129, 0.4)'"
+                            style="min-width: 180px;"
+                            :style="{
+                                padding: '0.75rem 1.5rem',
+                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                border: '2px solid rgba(16, 185, 129, 0.3)',
+                                borderRadius: '0.75rem',
+                                fontWeight: '600',
+                                fontSize: '0.875rem',
+                                color: 'white',
+                                boxShadow: '0 3px 10px rgba(16, 185, 129, 0.4)',
+                                cursor: !modelsLoaded ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.3s ease',
+                                whiteSpace: 'nowrap',
+                                opacity: !modelsLoaded ? '0.5' : '1'
+                            }"
+                            @mouseenter="if(modelsLoaded) { $el.style.transform='translateY(-2px)'; $el.style.boxShadow='0 5px 15px rgba(16, 185, 129, 0.5)'; }"
+                            @mouseleave="$el.style.transform='translateY(0)'; $el.style.boxShadow='0 3px 10px rgba(16, 185, 129, 0.4)'"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 18px; height: 18px;">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
@@ -135,9 +148,22 @@
                             x-show="capturedImage"
                             x-transition
                             class="inline-flex items-center justify-center gap-2"
-                            style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; border: 2px solid rgba(245, 158, 11, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white !important; box-shadow: 0 3px 10px rgba(245, 158, 11, 0.4); cursor: pointer; transition: all 0.3s ease; white-space: nowrap;"
-                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(245, 158, 11, 0.5)'"
-                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(245, 158, 11, 0.4)'"
+                            style="min-width: 180px;"
+                            :style="{
+                                padding: '0.75rem 1.5rem',
+                                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                border: '2px solid rgba(245, 158, 11, 0.3)',
+                                borderRadius: '0.75rem',
+                                fontWeight: '600',
+                                fontSize: '0.875rem',
+                                color: 'white',
+                                boxShadow: '0 3px 10px rgba(245, 158, 11, 0.4)',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                whiteSpace: 'nowrap'
+                            }"
+                            @mouseenter="$el.style.transform='translateY(-2px)'; $el.style.boxShadow='0 5px 15px rgba(245, 158, 11, 0.5)'"
+                            @mouseleave="$el.style.transform='translateY(0)'; $el.style.boxShadow='0 3px 10px rgba(245, 158, 11, 0.4)'"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 18px; height: 18px;">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -152,9 +178,22 @@
                             x-show="capturedImage"
                             x-transition
                             class="inline-flex items-center justify-center gap-2"
-                            style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; border: 2px solid rgba(16, 185, 129, 0.3); border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: white !important; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4); cursor: pointer; transition: all 0.3s ease; white-space: nowrap;"
-                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(16, 185, 129, 0.5)'"
-                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(16, 185, 129, 0.4)'"
+                            style="min-width: 200px;"
+                            :style="{
+                                padding: '0.75rem 1.5rem',
+                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                border: '2px solid rgba(16, 185, 129, 0.3)',
+                                borderRadius: '0.75rem',
+                                fontWeight: '600',
+                                fontSize: '0.875rem',
+                                color: 'white',
+                                boxShadow: '0 3px 10px rgba(16, 185, 129, 0.4)',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                whiteSpace: 'nowrap'
+                            }"
+                            @mouseenter="$el.style.transform='translateY(-2px)'; $el.style.boxShadow='0 5px 15px rgba(16, 185, 129, 0.5)'"
+                            @mouseleave="$el.style.transform='translateY(0)'; $el.style.boxShadow='0 3px 10px rgba(16, 185, 129, 0.4)'"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 18px; height: 18px;">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
