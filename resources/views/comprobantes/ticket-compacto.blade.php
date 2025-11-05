@@ -68,6 +68,14 @@
             margin-bottom: 2px;
         }
 
+        .anulado {
+            color: #cc0000;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 4px;
+        }
+
         /* Información básica */
         .info {
             font-size: 10px;
@@ -279,6 +287,9 @@
             <h3>TICKET DE VENTA</h3>
             @if($comprobante)
                 <p class="bold">{{ $comprobante->serie }}-{{ str_pad($comprobante->correlativo, 8, '0', STR_PAD_LEFT) }}</p>
+                @if($comprobante->estado === 'anulado')
+                    <p class="anulado">ANULADO</p>
+                @endif
             @else
                 <p class="bold">#{{ str_pad($venta->id, 6, '0', STR_PAD_LEFT) }}</p>
             @endif

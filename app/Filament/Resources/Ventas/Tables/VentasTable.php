@@ -22,9 +22,43 @@ class VentasTable
             'observacion' => $observacion ?? 'Ticket anulado'
         ]);
 
+        // Marcar el comprobante principal como anulado (tickets no tienen notas relacionadas)
+        $comprobante = $record->comprobantes()
+            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+            ->first();
+
+        if ($comprobante) {
+            $comprobante->update(['estado' => 'anulado']);
+        }
+
+        // REVERTIR INVENTARIO: Crear movimientos de entrada para devolver el stock
+        foreach ($record->detalleVentas as $detalle) {
+            $producto = $detalle->producto;
+
+            if ($producto) {
+                // Incrementar el stock del producto
+                $stockAnterior = $producto->stock_total;
+                $nuevoStock = $stockAnterior + $detalle->cantidad_venta;
+
+                $producto->update([
+                    'stock_total' => $nuevoStock
+                ]);
+
+                // Registrar movimiento de inventario (ENTRADA - reversión)
+                \App\Models\MovimientoInventario::create([
+                    'producto_id' => $producto->id,
+                    'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                    'tipo' => 'entrada',
+                    'cantidad_movimiento' => $detalle->cantidad_venta,
+                    'motivo_movimiento' => "Reversión por anulación de Venta #{$record->id}",
+                    'fecha_movimiento' => now(),
+                ]);
+            }
+        }
+
         Notification::make()
             ->title('Ticket anulado')
-            ->body("El ticket de la venta #{$record->id} ha sido anulado exitosamente.")
+            ->body("El ticket de la venta #{$record->id} ha sido anulado exitosamente y el inventario ha sido restablecido.")
             ->success()
             ->send();
     }
@@ -100,7 +134,10 @@ class VentasTable
                             return "Anulado con {$tipoNota}: {$nota->serie}-{$nota->correlativo}";
                         }
 
-                        return 'Anulado';
+                        // Si está anulado pero NO hay nota relacionada, evitamos repetir "Anulado"
+                        // porque ya se muestra en la columna Estado. Devolvemos null para no mostrar
+                        // descripción redundante.
+                        return null;
                     }),
 
 
@@ -291,13 +328,6 @@ class VentasTable
                     }),
             ])
             ->recordActions([
-                Action::make('Ver')
-                    ->label('ver')
-                    ->icon('heroicon-o-eye')
-                    ->color('primary')
-                    ->url(fn ($record) => route('filament.admin.resources.ventas.edit', $record))
-                    ->openUrlInNewTab(false),
-
                 Action::make('imprimir')
                     ->label('Imprimir')
                     ->icon('heroicon-o-printer')
@@ -305,12 +335,28 @@ class VentasTable
                     ->url(fn ($record) => route('comprobante.imprimir', $record->id))
                     ->openUrlInNewTab(true),
 
+                // Placeholder to keep spacing when 'Anular' is not visible
+                Action::make('anular_placeholder')
+                    ->label('Anular')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->disabled()
+                    ->visible(function ($record) {
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
+
+                        // Mostrar placeholder cuando ANULAR no esté disponible
+                        return !($comprobante && $comprobante->estado === 'emitido');
+                    })
+                    ->extraAttributes(['style' => 'opacity:0; pointer-events:none;']),
+
                 Action::make('anular')
                     ->label('Anular')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(function ($record) {
-                        // Verificar que el comprobante esté emitido
+                        // Verificar que el comprobante principal esté emitido
                         $comprobante = $record->comprobantes()
                             ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
                             ->first();
@@ -318,7 +364,9 @@ class VentasTable
                         return $comprobante && $comprobante->estado === 'emitido';
                     })
                     ->action(function ($record) {
-                        $comprobante = $record->comprobantes()->first();
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
                         $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
 
                         // Para boletas y facturas: mostrar mensaje informativo
@@ -335,14 +383,18 @@ class VentasTable
                         }
                     })
                     ->requiresConfirmation(function ($record) {
-                        $comprobante = $record->comprobantes()->first();
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
                         $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
 
                         // Solo confirmar para tickets (anulación directa)
                         return !in_array($tipoComprobante, ['boleta', 'factura']);
                     })
                     ->modalHeading(function ($record) {
-                        $comprobante = $record->comprobantes()->first();
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
                         $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
 
                         if (!in_array($tipoComprobante, ['boleta', 'factura'])) {
@@ -351,7 +403,9 @@ class VentasTable
                         return null;
                     })
                     ->modalDescription(function ($record) {
-                        $comprobante = $record->comprobantes()->first();
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
                         $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
 
                         if (!in_array($tipoComprobante, ['boleta', 'factura'])) {
@@ -359,28 +413,9 @@ class VentasTable
                         }
                         return null;
                     })
-                    ->form(function ($record) {
-                        $comprobante = $record->comprobantes()->first();
-                        $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
+                    ,
+            ])
 
-                        // Solo mostrar formulario para tickets
-                        if (!in_array($tipoComprobante, ['boleta', 'factura'])) {
-                            return [
-                                \Filament\Forms\Components\Textarea::make('observacion')
-                                    ->label('Motivo de anulación')
-                                    ->required()
-                                    ->maxLength(500)
-                                    ->placeholder('Ingrese el motivo de la anulación del ticket'),
-                            ];
-                        }
-                        return [];
-                    }),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ])
             ->defaultSort('created_at', 'desc')
             ->striped();
     }

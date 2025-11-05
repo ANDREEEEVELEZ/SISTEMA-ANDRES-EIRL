@@ -69,6 +69,14 @@
             border-bottom: 1px dashed #000;
         }
 
+        .anulado {
+            color: #cc0000;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 6px;
+        }
+
         .comprobante-tipo h3 {
             font-size: 14px;
             font-weight: bold;
@@ -284,6 +292,9 @@
                     @endif
                 </h3>
                 <p class="bold">{{ $comprobante->serie }}-{{ str_pad($comprobante->correlativo, 8, '0', STR_PAD_LEFT) }}</p>
+                @if($comprobante->estado === 'anulado')
+                    <p class="anulado">ANULADO</p>
+                @endif
             @else
                 <h3>TICKET DE VENTA</h3>
                 <p class="bold">#{{ str_pad($venta->id, 6, '0', STR_PAD_LEFT) }}</p>

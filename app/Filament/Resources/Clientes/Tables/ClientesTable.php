@@ -44,7 +44,13 @@ class ClientesTable
 
                 TextColumn::make('nombre_razon')
                     ->label('Nombre o Razón Social')
-                    ->searchable(),
+                    ->searchable()
+                    ->limit(40)
+                    ->tooltip(function (TextColumn $column): ?string {
+                        $state = $column->getState();
+                        if (!$state) return null;
+                        return strlen($state) <= 40 ? null : $state;
+                    }),
 
                 TextColumn::make('fecha_registro')
                     ->label('Fecha Registro')

@@ -279,9 +279,34 @@ class ListVentas extends ListRecords
                 ]);
             }
 
+            // REVERTIR INVENTARIO: Crear movimientos de entrada para devolver el stock
+            foreach ($this->ventaEncontrada->detalleVentas as $detalle) {
+                $producto = $detalle->producto;
+
+                if ($producto) {
+                    // Incrementar el stock del producto
+                    $stockAnterior = $producto->stock_total;
+                    $nuevoStock = $stockAnterior + $detalle->cantidad_venta;
+
+                    $producto->update([
+                        'stock_total' => $nuevoStock
+                    ]);
+
+                    // Registrar movimiento de inventario (ENTRADA - reversión)
+                    \App\Models\MovimientoInventario::create([
+                        'producto_id' => $producto->id,
+                        'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                        'tipo' => 'entrada',
+                        'cantidad_movimiento' => $detalle->cantidad_venta,
+                        'motivo_movimiento' => "Reversión por anulación de Venta #{$this->ventaEncontrada->id}",
+                        'fecha_movimiento' => now(),
+                    ]);
+                }
+            }
+
             Notification::make()
                 ->title('Ticket Anulado')
-                ->body("El ticket {$comprobante->serie}-{$comprobante->correlativo} ha sido anulado correctamente.")
+                ->body("El ticket {$comprobante->serie}-{$comprobante->correlativo} ha sido anulado correctamente y el inventario ha sido restablecido.")
                 ->success()
                 ->send();
 
@@ -372,9 +397,34 @@ class ListVentas extends ListRecords
                 ]);
             }
 
+            // REVERTIR INVENTARIO: Crear movimientos de entrada para devolver el stock
+            foreach ($this->ventaEncontrada->detalleVentas as $detalle) {
+                $producto = $detalle->producto;
+
+                if ($producto) {
+                    // Incrementar el stock del producto
+                    $stockAnterior = $producto->stock_total;
+                    $nuevoStock = $stockAnterior + $detalle->cantidad_venta;
+
+                    $producto->update([
+                        'stock_total' => $nuevoStock
+                    ]);
+
+                    // Registrar movimiento de inventario (ENTRADA - reversión)
+                    \App\Models\MovimientoInventario::create([
+                        'producto_id' => $producto->id,
+                        'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                        'tipo' => 'entrada',
+                        'cantidad_movimiento' => $detalle->cantidad_venta,
+                        'motivo_movimiento' => "Reversión por anulación de Venta #{$this->ventaEncontrada->id} con {$tipoNota}",
+                        'fecha_movimiento' => now(),
+                    ]);
+                }
+            }
+
             Notification::make()
                 ->title('Nota Creada')
-                ->body("Se creó la " . ucwords(str_replace('_', ' ', $data['tipo_nota'])) . " {$data['serie_nota']}-{$data['numero_nota']} para anular el {$comprobante->tipo}.")
+                ->body("Se creó la " . ucwords(str_replace('_', ' ', $data['tipo_nota'])) . " {$data['serie_nota']}-{$data['numero_nota']} para anular el {$comprobante->tipo}. El inventario ha sido restablecido.")
                 ->success()
                 ->send();
 
