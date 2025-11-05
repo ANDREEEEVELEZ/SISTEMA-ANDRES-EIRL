@@ -26,6 +26,7 @@ class Venta extends Model
         'estado_venta',
         'metodo_pago',
         'cod_operacion',
+        'nombre_cliente_temporal',
     ];
 
     protected $casts = [

@@ -12,7 +12,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Hidden;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Schema;
@@ -41,7 +41,8 @@ class VentaForm
                     ->default(Auth::id())
                     ->required()
                     ->disabled()
-                    ->dehydrated(),
+                    ->dehydrated()
+                    ->columnSpan(1),
 
                 Select::make('caja_id')
                     ->label('Caja')
@@ -94,7 +95,8 @@ class VentaForm
                         } else {
                             return " No hay caja abierta. Debe ir al módulo de Caja para abrir una nueva.";
                         }
-                    }),
+                    })
+                    ->columnSpan(1),
 
                 // === DATOS GENERALES ===
 
@@ -126,7 +128,8 @@ class VentaForm
                             $siguienteNumero = $serieComprobante->ultimo_numero + 1;
                             $set('numero', str_pad($siguienteNumero, 6, '0', STR_PAD_LEFT));
                         }
-                    }),
+                    })
+                    ->columnSpan(1),
 
                 TextInput::make('serie')
                     ->label('Serie')
@@ -139,7 +142,8 @@ class VentaForm
                         $serieComprobante = SerieComprobante::where('tipo', 'ticket')->first();
                         return $serieComprobante?->serie;
                     })
-                    ->dehydrated(),
+                    ->dehydrated()
+                    ->columnSpan(1),
 
                 TextInput::make('numero')
                     ->label('Número')
@@ -156,7 +160,8 @@ class VentaForm
                         }
                         return null;
                     })
-                    ->dehydrated(),
+                    ->dehydrated()
+                    ->columnSpan(1),
 
 
                 // -- Fecha y Hora --
@@ -167,7 +172,8 @@ class VentaForm
                     ->native(false)
                     ->displayFormat('d/m/Y')
                     ->disabled() // Bloqueado - se asigna automáticamente
-                    ->dehydrated(),
+                    ->dehydrated()
+                    ->columnSpan(1),
 
                 TimePicker::make('hora_venta')
                     ->label('Hora de Venta')
@@ -175,296 +181,749 @@ class VentaForm
                     ->required()
                     ->seconds(false)
                     ->disabled() // Bloqueado - se asigna automáticamente
-                    ->dehydrated(),
+                    ->dehydrated()
+                    ->columnSpan(1),
 
                 // -- Información del Cliente --
+                // Campos de control (no se guardan en BD)
+                Hidden::make('mostrar_formulario_cliente')
+                    ->default(false)
+                    ->dehydrated(false),
+
+                Hidden::make('cliente_encontrado')
+                    ->dehydrated(false),
+
+                Hidden::make('cliente_inactivo_encontrado')
+                    ->dehydrated(),
+
+                // Campo de búsqueda/selección de cliente con filtrado
                 Select::make('cliente_id')
                     ->label('Cliente')
-                    ->relationship(
-                        'cliente',
-                        'nombre_razon',
-                        fn ($query, callable $get) =>
-                            $query->where('estado', 'activo')
-                                ->when($get('tipo_comprobante') === 'factura', function ($query) {
-                                    // Para facturas: SOLO clientes con RUC
-                                    return $query->where('tipo_doc', 'RUC');
-                                })
-                                ->when($get('tipo_comprobante') === 'boleta', function ($query) {
-                                    // Para boletas: SOLO clientes con DNI o sin documento (NO RUC)
-                                    return $query->where('tipo_doc', '!=', 'RUC');
-                                })
-                    )
-                    ->getOptionLabelFromRecordUsing(fn ($record) =>
-                        "{$record->tipo_doc}: {$record->num_doc} - {$record->nombre_razon}"
-                    )
-                    ->searchable(['num_doc', 'nombre_razon'])
-                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
-                    ->helperText(function (callable $get) {
-                        if (!$get('caja_id')) {
-                            return 'Primero debe seleccionar una caja';
+                    ->placeholder(function (callable $get) {
+                        $tipoComprobante = $get('tipo_comprobante');
+                        if ($tipoComprobante === 'factura') {
+                            return 'Buscar por RUC o nombre de empresa...';
+                        }
+                        return 'Buscar por DNI o nombre...';
+                    })
+                    ->searchable()
+                    ->allowHtml()
+                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id'))
+                    ->visible(fn (callable $get) => $get('tipo_comprobante') !== 'ticket')
+                  //  ->helperText('Escribe para filtrar clientes. Si no hay coincidencias, usa el botón para consultar SUNAT.')
+                    ->hintActions([
+                        Action::make('reactivarCliente')
+                            ->label('✓ Reactivar Cliente')
+                            ->color('success')
+                            ->icon('heroicon-o-arrow-path')
+                            ->visible(fn (callable $get) => !empty($get('cliente_inactivo_encontrado')))
+                            ->action(function ($set, $get) {
+                                $clienteInactivo = $get('cliente_inactivo_encontrado');
+
+                                if (!$clienteInactivo || !isset($clienteInactivo['id'])) {
+                                    Notification::make()
+                                        ->title('Error')
+                                        ->danger()
+                                        ->body('No se encontró información del cliente')
+                                        ->send();
+                                    return;
+                                }
+
+                                try {
+                                    $cliente = Cliente::find($clienteInactivo['id']);
+                                    if ($cliente) {
+                                        $cliente->estado = 'activo';
+                                        $cliente->save();
+
+                                        $set('cliente_id', $cliente->id);
+                                        $set('cliente_encontrado', [
+                                            'tipo_doc' => $cliente->tipo_doc,
+                                            'num_doc' => $cliente->num_doc,
+                                            'nombre' => $cliente->nombre_razon,
+                                            'direccion' => $cliente->direccion,
+                                        ]);
+
+                                        $set('cliente_inactivo_encontrado', null);
+
+                                        Notification::make()
+                                            ->title('Cliente Reactivado')
+                                            ->success()
+                                            ->body("El cliente {$cliente->nombre_razon} ha sido reactivado exitosamente")
+                                            ->send();
+                                    }
+                                } catch (\Exception $e) {
+                                    Notification::make()
+                                        ->title('Error al Reactivar')
+                                        ->danger()
+                                        ->body('Error: ' . $e->getMessage())
+                                        ->send();
+                                }
+                            }),
+                    ])
+                    ->getSearchResultsUsing(function (string $search, callable $get, callable $set) {
+                        // Guardar lo que está escribiendo en un campo oculto
+                        $set('ultima_busqueda_cliente', $search);
+
+                        if (empty($search)) {
+                            return [];
                         }
 
                         $tipoComprobante = $get('tipo_comprobante');
+
+                        // 1) Buscar clientes ACTIVOS (prioridad)
+                        $queryActivos = Cliente::where('estado', 'activo');
                         if ($tipoComprobante === 'factura') {
-                            return '';
+                            $queryActivos->where('tipo_doc', 'RUC');
                         } elseif ($tipoComprobante === 'boleta') {
-                            return '';
+                            $queryActivos->where('tipo_doc', '!=', 'RUC');
                         }
 
-                        return 'Buscar por documento o nombre';
+                        $activos = $queryActivos->where(function ($q) use ($search) {
+                            $q->where('num_doc', 'LIKE', "%{$search}%")
+                              ->orWhere('nombre_razon', 'LIKE', "%{$search}%");
+                        })
+                        ->limit(10)
+                        ->get();
+
+                        $resultados = $activos->mapWithKeys(function ($cliente) {
+                            $label = "<div class='flex flex-col'><span class='font-semibold text-gray-900'>{$cliente->nombre_razon}</span><span class='text-xs text-gray-500'>{$cliente->tipo_doc}: {$cliente->num_doc}</span></div>";
+                            return [$cliente->id => $label];
+                        })->toArray();
+
+                        // 2) Buscar clientes INACTIVOS (mostrar al final, limitado)
+                        $queryInactivos = Cliente::where('estado', 'inactivo');
+                        if ($tipoComprobante === 'factura') {
+                            $queryInactivos->where('tipo_doc', 'RUC');
+                        } elseif ($tipoComprobante === 'boleta') {
+                            $queryInactivos->where('tipo_doc', '!=', 'RUC');
+                        }
+
+                        $inactivos = $queryInactivos->where(function ($q) use ($search) {
+                            $q->where('num_doc', 'LIKE', "%{$search}%")
+                              ->orWhere('nombre_razon', 'LIKE', "%{$search}%");
+                        })
+                        ->limit(5)
+                        ->get();
+
+                        foreach ($inactivos as $cliente) {
+                            $label = "<div class='flex flex-col'><span class='font-semibold text-red-700'>{$cliente->nombre_razon} <span class=\'text-red-600 font-normal text-sm\'>(INACTIVO)</span></span><span class='text-xs text-gray-500'>{$cliente->tipo_doc}: {$cliente->num_doc}</span></div>";
+                            $resultados[$cliente->id] = $label;
+                        }
+
+                        return $resultados;
                     })
-                    ->preload()
-                    ->required()
-                    ->live() // Hacer reactivo para que se actualice al cambiar tipo de comprobante
-                    ->createOptionForm([
-                        Select::make('tipo_doc')
-                            ->label('Tipo de Documento')
-                            ->options([
-                                'DNI' => 'DNI',
-                                'RUC' => 'RUC',
-                            ])
-                            ->required(),
+                    ->getOptionLabelUsing(function ($value) {
+                        if (!$value) return '';
 
+                        $cliente = Cliente::find($value);
+                        if ($cliente) {
+                            return "{$cliente->nombre_razon} - {$cliente->tipo_doc}: {$cliente->num_doc}";
+                        }
+                        return $value;
+                    })
+                    ->live()
+                    ->afterStateUpdated(function ($state, $set, $get) {
+                        // Limpiar si se deselecciona
+                        if (empty($state)) {
+                            $set('mostrar_formulario_cliente', false);
+                            $set('cliente_inactivo_encontrado', null);
+                            $set('cliente_inactivo_nombre', null);
+                            return;
+                        }
 
-                        TextInput::make('num_doc')
-                            ->label('Número de Documento')
-                            ->required()
-                            ->maxLength(20)
-                            ->suffixActions([
-                                Action::make('consultarDocumento')
-                                    ->label('Consultar')
-                                    ->icon('heroicon-o-magnifying-glass')
-                                    ->color('primary')
-                                    ->action(function ($state, $set, $get) {
-                                        if (!$state) {
-                                            Notification::make()
-                                                ->title('Error')
-                                                ->danger()
-                                                ->body('Debe ingresar un número de documento primero')
-                                                ->send();
-                                            return;
-                                        }
+                        // Cliente seleccionado del dropdown
+                        $cliente = Cliente::find($state);
+                        if ($cliente) {
+                            if ($cliente->estado === 'inactivo') {
+                                // MANTENER cliente_id para que llegue a la validación
+                                // NO poner a null
+                                $set('cliente_encontrado', [
+                                    'tipo_doc' => $cliente->tipo_doc,
+                                    'num_doc' => $cliente->num_doc,
+                                    'nombre' => $cliente->nombre_razon,
+                                    'direccion' => $cliente->direccion,
+                                ]);
+                                $set('cliente_inactivo_encontrado', [
+                                    'id' => $cliente->id,
+                                    'tipo_doc' => $cliente->tipo_doc,
+                                    'num_doc' => $cliente->num_doc,
+                                    'nombre' => $cliente->nombre_razon,
+                                    'direccion' => $cliente->direccion,
+                                ]);
+                                // Valor legible para mostrar en el TextInput de alerta
+                                $set('cliente_inactivo_nombre', $cliente->nombre_razon . ' (' . $cliente->tipo_doc . ': ' . $cliente->num_doc . ')');
+                                $set('mostrar_formulario_cliente', false);
 
-                                        $tipoDoc = $get('tipo_doc');
-                                        if (!$tipoDoc) {
-                                            Notification::make()
-                                                ->title('Error')
-                                                ->danger()
-                                                ->body('Debe seleccionar el tipo de documento primero')
-                                                ->send();
-                                            return;
-                                        }
+                                Notification::make()
+                                    ->title('Cliente Inactivo')
+                                    ->warning()
+                                    ->body("{$cliente->nombre_razon} está INACTIVO. Use el botón '✓ Reactivar Cliente' debajo del campo Cliente antes de continuar con la venta.")
+                                    ->persistent()
+                                    ->send();
+                            } else {
+                                // Cliente activo seleccionado
+                                $set('cliente_id', $cliente->id);
+                                $set('cliente_encontrado', [
+                                    'tipo_doc' => $cliente->tipo_doc,
+                                    'num_doc' => $cliente->num_doc,
+                                    'nombre' => $cliente->nombre_razon,
+                                    'direccion' => $cliente->direccion,
+                                ]);
+                                $set('mostrar_formulario_cliente', false);
+                                $set('cliente_inactivo_encontrado', null);
+                                $set('cliente_inactivo_nombre', null);
 
-                                        // Validar formato de documento
-                                        if ($tipoDoc === 'DNI' && strlen($state) !== 8) {
-                                            Notification::make()
-                                                ->title('Formato Incorrecto')
-                                                ->warning()
-                                                ->body('El DNI debe tener 8 dígitos')
-                                                ->send();
-                                            return;
-                                        }
+                                Notification::make()
+                                    ->title('✅ Cliente Seleccionado')
+                                    ->success()
+                                    ->body("{$cliente->nombre_razon}")
+                                    ->send();
+                            }
+                        }
+                    })
+                    ->suffixAction(
+                        Action::make('consultarAPI')
+                            ->label(fn (callable $get) => $get('tipo_comprobante') === 'factura' ? 'Consultar SUNAT' : 'Consultar RENIEC')
+                            ->icon('heroicon-o-magnifying-glass-circle')
+                            ->color('primary')
+                            ->action(function ($get, $set) {
+                                // Usar lo que ya escribió en la búsqueda
+                                $documentoConsulta = $get('ultima_busqueda_cliente');
+                                $tipoComprobante = $get('tipo_comprobante');
 
-                                        if ($tipoDoc === 'RUC' && strlen($state) !== 11) {
-                                            Notification::make()
-                                                ->title('Formato Incorrecto')
-                                                ->warning()
-                                                ->body('El RUC debe tener 11 dígitos')
-                                                ->send();
-                                            return;
-                                        }
+                                if (empty($documentoConsulta)) {
+                                    Notification::make()
+                                        ->title('Campo Vacío')
+                                        ->warning()
+                                        ->body('Escriba un documento en el campo de búsqueda primero')
+                                        ->send();
+                                    return;
+                                }
 
-                                        // Mostrar notificación de consulta en progreso
+                                // Validar según el tipo de comprobante
+                                if ($tipoComprobante === 'factura') {
+                                    // Para facturas: solo RUC (11 dígitos)
+                                    if (!preg_match('/^\d{11}$/', $documentoConsulta)) {
                                         Notification::make()
-                                            ->title('Consultando...')
-                                            ->info()
-                                            ->body('Consultando documento ' . $state . ' en SUNAT/RENIEC...')
+                                            ->title('RUC Inválido')
+                                            ->danger()
+                                            ->body('El RUC debe tener exactamente 11 dígitos numéricos')
+                                            ->send();
+                                        return;
+                                    }
+                                } elseif ($tipoComprobante === 'boleta') {
+                                    // Para boletas: solo DNI (8 dígitos)
+                                    if (!preg_match('/^\d{8}$/', $documentoConsulta)) {
+                                        Notification::make()
+                                            ->title('DNI Inválido')
+                                            ->danger()
+                                            ->body('El DNI debe tener exactamente 8 dígitos numéricos')
+                                            ->send();
+                                        return;
+                                    }
+                                }
+
+                                // Verificar primero si ya existe
+                                $clienteExistente = Cliente::where('num_doc', $documentoConsulta)->first();
+
+                                if ($clienteExistente) {
+                                    if ($clienteExistente->estado === 'activo') {
+                                        $set('cliente_id', $clienteExistente->id);
+                                        $set('cliente_encontrado', [
+                                            'tipo_doc' => $clienteExistente->tipo_doc,
+                                            'num_doc' => $clienteExistente->num_doc,
+                                            'nombre' => $clienteExistente->nombre_razon,
+                                            'direccion' => $clienteExistente->direccion,
+                                        ]);
+
+                                        Notification::make()
+                                            ->title('Cliente Encontrado Localmente')
+                                            ->success()
+                                            ->body($clienteExistente->nombre_razon)
+                                            ->send();
+                                        return;
+                                    } else {
+                                        $set('cliente_id', null);
+                                        $set('cliente_inactivo_encontrado', [
+                                            'id' => $clienteExistente->id,
+                                            'tipo_doc' => $clienteExistente->tipo_doc,
+                                            'num_doc' => $clienteExistente->num_doc,
+                                            'nombre' => $clienteExistente->nombre_razon,
+                                            'direccion' => $clienteExistente->direccion,
+                                        ]);
+                                        $set('cliente_encontrado', [
+                                            'tipo_doc' => $clienteExistente->tipo_doc,
+                                            'num_doc' => $clienteExistente->num_doc,
+                                            'nombre' => $clienteExistente->nombre_razon,
+                                            'direccion' => $clienteExistente->direccion,
+                                        ]);
+
+                                        Notification::make()
+                                            ->title('Cliente Inactivo')
+                                            ->warning()
+                                            ->body("Presione 'Reactivar' para continuar")
+                                            ->persistent()
+                                            ->send();
+                                        return;
+                                    }
+                                }
+
+                                // No existe - Consultar API
+                                if ($tipoComprobante === 'factura') {
+                                    // Consultar SUNAT para RUC
+                                    Notification::make()
+                                        ->title('Consultando SUNAT...')
+                                        ->info()
+                                        ->body("Buscando RUC {$documentoConsulta}")
+                                        ->send();
+
+                                    try {
+                                        $apisNetService = app(ApisNetPeService::class);
+                                        $response = $apisNetService->consultarRuc($documentoConsulta);
+
+                                        if (isset($response['message']) && $response['message'] === 'not found') {
+                                            $set('mostrar_formulario_cliente', true);
+                                            $set('nuevo_cliente_tipo_doc', 'RUC');
+                                            $set('nuevo_cliente_num_doc', $documentoConsulta);
+
+                                            Notification::make()
+                                                ->title('RUC No Encontrado en SUNAT')
+                                                ->warning()
+                                                ->body('Complete los datos manualmente.')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        if (isset($response['razon_social']) || isset($response['razonSocial']) || isset($response['data']['razon_social'])) {
+                                            $data = $response['data'] ?? $response;
+                                            $razonSocial = $data['razon_social'] ?? $data['razonSocial'] ?? '';
+                                            $direccion = $data['direccion'] ?? '-';
+
+                                            if ($razonSocial) {
+                                                $nuevoCliente = Cliente::create([
+                                                    'tipo_doc' => 'RUC',
+                                                    'num_doc' => $documentoConsulta,
+                                                    'nombre_razon' => $razonSocial,
+                                                    'direccion' => $direccion,
+                                                    'estado' => 'activo',
+                                                ]);
+
+                                                $set('cliente_id', $nuevoCliente->id);
+                                                $set('cliente_encontrado', [
+                                                    'tipo_doc' => 'RUC',
+                                                    'num_doc' => $documentoConsulta,
+                                                    'nombre' => $razonSocial,
+                                                    'direccion' => $direccion,
+                                                ]);
+                                                $set('mostrar_formulario_cliente', false);
+
+                                                Notification::make()
+                                                    ->title('Cliente Registrado desde SUNAT')
+                                                    ->success()
+                                                    ->body($razonSocial)
+                                                    ->duration(5000)
+                                                    ->send();
+                                            }
+                                        }
+                                    } catch (\Exception $e) {
+                                        Notification::make()
+                                            ->title('Error al Consultar SUNAT')
+                                            ->danger()
+                                            ->body($e->getMessage())
                                             ->send();
 
-                                        try {
-                                            $apisNetService = app(ApisNetPeService::class);
+                                        $set('mostrar_formulario_cliente', true);
+                                        $set('nuevo_cliente_tipo_doc', 'RUC');
+                                        $set('nuevo_cliente_num_doc', $documentoConsulta);
+                                    }
+                                } elseif ($tipoComprobante === 'boleta') {
+                                    // Consultar RENIEC para DNI
+                                    Notification::make()
+                                        ->title('Consultando RENIEC...')
+                                        ->info()
+                                        ->body("Buscando DNI {$documentoConsulta}")
+                                        ->send();
 
-                                            if ($tipoDoc === 'DNI') {
-                                                $response = $apisNetService->consultarDni($state);
+                                    try {
+                                        $apisNetService = app(ApisNetPeService::class);
+                                        $response = $apisNetService->consultarDni($documentoConsulta);
 
-                                                // Debug: mostrar respuesta completa
-                                                Log::info('Respuesta DNI API:', $response);
+                                        if (isset($response['message']) && $response['message'] === 'not found') {
+                                            $set('mostrar_formulario_cliente', true);
+                                            $set('nuevo_cliente_tipo_doc', 'DNI');
+                                            $set('nuevo_cliente_num_doc', $documentoConsulta);
 
-                                                // Verificar si hay mensaje de error
-                                                if (isset($response['message'])) {
-                                                    if ($response['message'] === 'not found') {
-                                                        Notification::make()
-                                                            ->title('DNI No Encontrado')
-                                                            ->warning()
-                                                            ->body('No se encontraron datos para el DNI: ' . $state)
-                                                            ->send();
-                                                        return;
-                                                    } else {
-                                                        Notification::make()
-                                                            ->title('Error de API')
-                                                            ->danger()
-                                                            ->body('Error: ' . $response['message'])
-                                                            ->send();
-                                                        return;
-                                                    }
-                                                }
-
-                                                if (isset($response['error'])) {
-                                                    Notification::make()
-                                                        ->title('Error de Consulta')
-                                                        ->danger()
-                                                        ->body('Error al consultar DNI: ' . $response['error'])
-                                                        ->send();
-                                                    return;
-                                                }
-
-                                                // Verificar diferentes estructuras de respuesta posibles
-                                                if (isset($response['full_name']) || isset($response['first_name']) || isset($response['nombres'])) {
-                                                    $data = $response['data'] ?? $response;
-
-                                                    // Priorizar full_name si existe (Decolecta API)
-                                                    if (isset($data['full_name'])) {
-                                                        $nombreCompleto = trim($data['full_name']);
-                                                    } else {
-                                                        // Construir nombre desde campos individuales
-                                                        $nombreCompleto = trim(
-                                                            ($data['first_name'] ?? $data['nombres'] ?? $data['primer_nombre'] ?? '') . ' ' .
-                                                            ($data['first_last_name'] ?? $data['apellidoPaterno'] ?? $data['apellido_paterno'] ?? '') . ' ' .
-                                                            ($data['second_last_name'] ?? $data['apellidoMaterno'] ?? $data['apellido_materno'] ?? '')
-                                                        );
-                                                    }
-
-                                                    if ($nombreCompleto) {
-                                                        $set('nombre_razon', $nombreCompleto);
-                                                        $set('tipo_cliente', 'natural');
-
-                                                        // Completar dirección si está disponible, si no, colocar "-"
-                                                        if (isset($data['direccion']) && $data['direccion']) {
-                                                            $set('direccion', $data['direccion']);
-                                                        } else {
-                                                            $set('direccion', '-');
-                                                        }
-
-                                                        Notification::make()
-                                                            ->title('Consulta Exitosa')
-                                                            ->success()
-                                                            ->body('Datos encontrados: ' . $nombreCompleto)
-                                                            ->send();
-                                                    } else {
-                                                        Notification::make()
-                                                            ->title('Datos Incompletos')
-                                                            ->warning()
-                                                            ->body('La API devolvió datos pero están incompletos')
-                                                            ->send();
-                                                    }
-                                                } else {
-                                                    Notification::make()
-                                                        ->title('DNI No Encontrado')
-                                                        ->warning()
-                                                        ->body('No se encontraron datos para el DNI: ' . $state . '. Respuesta: ' . json_encode($response))
-                                                        ->send();
-                                                }
-
-                                            } elseif ($tipoDoc === 'RUC') {
-                                                $response = $apisNetService->consultarRuc($state);
-
-                                                // Debug: mostrar respuesta completa
-                                                Log::info('Respuesta RUC API:', $response);
-
-                                                // Verificar si hay mensaje de error
-                                                if (isset($response['message'])) {
-                                                    if ($response['message'] === 'not found') {
-                                                        Notification::make()
-                                                            ->title('RUC No Encontrado')
-                                                            ->warning()
-                                                            ->body('No se encontraron datos para el RUC: ' . $state)
-                                                            ->send();
-                                                        return;
-                                                    } else {
-                                                        Notification::make()
-                                                            ->title('Error de API')
-                                                            ->danger()
-                                                            ->body('Error: ' . $response['message'])
-                                                            ->send();
-                                                        return;
-                                                    }
-                                                }
-
-                                                if (isset($response['error'])) {
-                                                    Notification::make()
-                                                        ->title('Error de Consulta')
-                                                        ->danger()
-                                                        ->body('Error al consultar RUC: ' . $response['error'])
-                                                        ->send();
-                                                    return;
-                                                }
-
-                                                // Verificar diferentes estructuras de respuesta posibles
-                                                if (isset($response['razon_social']) || isset($response['razonSocial']) || isset($response['data']['razon_social'])) {
-                                                    $data = $response['data'] ?? $response;
-                                                    $razonSocial = $data['razon_social'] ?? $data['razonSocial'] ?? '';
-
-                                                    if ($razonSocial) {
-                                                        $set('nombre_razon', $razonSocial);
-                                                        $set('tipo_cliente', 'juridica');
-
-                                                        // Completar dirección si está disponible
-                                                        if (isset($data['direccion']) && $data['direccion']) {
-                                                            $set('direccion', $data['direccion']);
-                                                        }
-
-                                                        Notification::make()
-                                                            ->title('Consulta Exitosa')
-                                                            ->success()
-                                                            ->body('Empresa encontrada: ' . $razonSocial)
-                                                            ->send();
-                                                    } else {
-                                                        Notification::make()
-                                                            ->title('Datos Incompletos')
-                                                            ->warning()
-                                                            ->body('La API devolvió datos pero están incompletos')
-                                                            ->send();
-                                                    }
-                                                } else {
-                                                    Notification::make()
-                                                        ->title('RUC No Encontrado')
-                                                        ->warning()
-                                                        ->body('No se encontraron datos para el RUC: ' . $state . '. Respuesta: ' . json_encode($response))
-                                                        ->send();
-                                                }
-                                            }
-
-                                        } catch (\Exception $e) {
                                             Notification::make()
-                                                ->title('Error del Sistema')
-                                                ->danger()
-                                                ->body('Error interno: ' . $e->getMessage())
+                                                ->title('DNI No Encontrado en RENIEC')
+                                                ->warning()
+                                                ->body('Complete los datos manualmente.')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        // Buscar datos de la persona - probar diferentes formatos de respuesta
+                                        $data = $response['data'] ?? $response;
+
+                                        // Intentar diferentes variaciones de nombres de campos (APIs Perú)
+                                        $nombres = $data['nombres'] ?? $data['name'] ?? $data['primer_nombre'] ?? $data['nombre'] ?? '';
+                                        $apellidoPaterno = $data['apellido_paterno'] ?? $data['apellidoPaterno'] ?? $data['paternal_surname'] ?? $data['apellidoP'] ?? '';
+                                        $apellidoMaterno = $data['apellido_materno'] ?? $data['apellidoMaterno'] ?? $data['maternal_surname'] ?? $data['apellidoM'] ?? '';
+
+                                        // Si viene el nombre completo en un solo campo
+                                        $nombreCompletoDirecto = $data['nombre_completo'] ?? $data['nombreCompleto'] ?? $data['full_name'] ?? '';
+
+                                        // Construir nombre completo
+                                        if (!empty($nombreCompletoDirecto)) {
+                                            $nombreCompleto = trim($nombreCompletoDirecto);
+                                        } else {
+                                            $nombreCompleto = trim("{$apellidoPaterno} {$apellidoMaterno} {$nombres}");
+                                        }
+
+                                        if (!empty($nombreCompleto) && strlen($nombreCompleto) > 3) {
+                                            $nuevoCliente = Cliente::create([
+                                                'tipo_doc' => 'DNI',
+                                                'num_doc' => $documentoConsulta,
+                                                'nombre_razon' => $nombreCompleto,
+                                                'direccion' => '-',
+                                                'estado' => 'activo',
+                                            ]);
+
+                                            $set('cliente_id', $nuevoCliente->id);
+                                            $set('cliente_encontrado', [
+                                                'tipo_doc' => 'DNI',
+                                                'num_doc' => $documentoConsulta,
+                                                'nombre' => $nombreCompleto,
+                                                'direccion' => '-',
+                                            ]);
+                                            $set('mostrar_formulario_cliente', false);
+
+                                            Notification::make()
+                                                ->title('Cliente Registrado desde RENIEC')
+                                                ->success()
+                                                ->body($nombreCompleto)
+                                                ->duration(5000)
+                                                ->send();
+                                        } else {
+                                            // No se pudo obtener el nombre
+                                            $set('mostrar_formulario_cliente', true);
+                                            $set('nuevo_cliente_tipo_doc', 'DNI');
+                                            $set('nuevo_cliente_num_doc', $documentoConsulta);
+
+                                            Notification::make()
+                                                ->title('Datos Incompletos')
+                                                ->warning()
+                                                ->body('Complete los datos manualmente.')
                                                 ->send();
                                         }
-                                    })
-                                    ->tooltip('Consultar documento en base de datos externa')
-                            ]),
+                                    } catch (\Exception $e) {
+                                        Notification::make()
+                                            ->title('Error al Consultar RENIEC')
+                                            ->danger()
+                                            ->body($e->getMessage())
+                                            ->send();
 
-                        TextInput::make('nombre_razon')
-                            ->label('Nombre / Razón Social')
-                            ->required()
-                            ->maxLength(255),
-                         Select::make('tipo_cliente')
-                            ->label('Tipo de Cliente')
-                            ->options([
-                                'natural' => 'Persona Natural',
-                                'natural_con_negocio' => 'Persona Natural con Negocio (RUC 10)',
-                                'juridica' => 'Persona Jurídica',
-                            ])
-                            ->required(),
-                        Textarea::make('direccion')
-                            ->label('Dirección')
-                            ->rows(2)
-                            ->maxLength(500),
+                                        $set('mostrar_formulario_cliente', true);
+                                        $set('nuevo_cliente_tipo_doc', 'DNI');
+                                        $set('nuevo_cliente_num_doc', $documentoConsulta);
+                                    }
+                                }
+                            })
+                            ->tooltip(fn (callable $get) => $get('tipo_comprobante') === 'factura' ? 'Consultar RUC en SUNAT' : 'Consultar DNI en RENIEC')
+                    ),
 
+                // Campos de control (no se guardan en BD)
+                Hidden::make('mostrar_formulario_cliente')
+                    ->default(false)
+                    ->dehydrated(false),
 
+                Hidden::make('cliente_encontrado')
+                    ->dehydrated(false),
+
+                Hidden::make('cliente_inactivo_encontrado')
+                    ->dehydrated(false),
+
+                // Campo oculto para guardar la última búsqueda del usuario
+                Hidden::make('ultima_busqueda_cliente')
+                    ->dehydrated(false),
+
+                // Campo eliminado: "Cliente Encontrado" - redundante ya que el Select muestra la info completa
+
+                // Nombre rápido para TICKET (no se persiste en clientes)
+                TextInput::make('cliente_ticket_nombre')
+                    ->label('Nombre para ticket')
+                  //  ->placeholder('Escriba el nombre que saldrá en el ticket')
+                    ->visible(fn (callable $get) => $get('tipo_comprobante') === 'ticket')
+                    ->columnSpan(1),
+
+                // Formulario para crear nuevo cliente (aparece solo si no se encontró)
+                Select::make('nuevo_cliente_tipo_doc')
+                    ->label('Tipo de Documento')
+                    ->options([
+                        'DNI' => 'DNI',
+                        'RUC' => 'RUC',
                     ])
-                    ->createOptionModalHeading('Registrar Nuevo Cliente'),
+                    ->dehydrated(false)
+                    ->visible(fn (callable $get) => $get('mostrar_formulario_cliente') === true && $get('tipo_comprobante') !== 'ticket')
+                    ->live(),
+
+                TextInput::make('nuevo_cliente_num_doc')
+                    ->label('Número de Documento')
+                    ->dehydrated(false)
+                    ->visible(fn (callable $get) => $get('mostrar_formulario_cliente') === true && $get('tipo_comprobante') !== 'ticket')
+                    ->maxLength(20)
+                    ->suffixAction(
+                        Action::make('consultarAPI')
+                            ->label('Consultar API')
+                            ->icon('heroicon-o-magnifying-glass')
+                            ->color('primary')
+                            ->action(function ($state, $set, $get) {
+                                if (!$state) {
+                                    Notification::make()
+                                        ->title('Error')
+                                        ->danger()
+                                        ->body('Debe ingresar un número de documento primero')
+                                        ->send();
+                                    return;
+                                }
+
+                                $tipoDoc = $get('nuevo_cliente_tipo_doc');
+                                if (!$tipoDoc) {
+                                    Notification::make()
+                                        ->title('Error')
+                                        ->danger()
+                                        ->body('Debe seleccionar el tipo de documento primero')
+                                        ->send();
+                                    return;
+                                }
+
+                                // Validar formato
+                                if ($tipoDoc === 'DNI' && strlen($state) !== 8) {
+                                    Notification::make()
+                                        ->title('Formato Incorrecto')
+                                        ->warning()
+                                        ->body('El DNI debe tener 8 dígitos')
+                                        ->send();
+                                    return;
+                                }
+
+                                if ($tipoDoc === 'RUC' && strlen($state) !== 11) {
+                                    Notification::make()
+                                        ->title('Formato Incorrecto')
+                                        ->warning()
+                                        ->body('El RUC debe tener 11 dígitos')
+                                        ->send();
+                                    return;
+                                }
+
+                                Notification::make()
+                                    ->title('Consultando...')
+                                    ->info()
+                                    ->body('Consultando documento en SUNAT/RENIEC...')
+                                    ->send();
+
+                                try {
+                                    $apisNetService = app(ApisNetPeService::class);
+
+                                    if ($tipoDoc === 'DNI') {
+                                        $response = $apisNetService->consultarDni($state);
+
+                                        if (isset($response['message']) && $response['message'] === 'not found') {
+                                            Notification::make()
+                                                ->title('DNI No Encontrado')
+                                                ->warning()
+                                                ->body('No se encontraron datos. Ingrese manualmente.')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        if (isset($response['full_name']) || isset($response['first_name']) || isset($response['nombres'])) {
+                                            $data = $response['data'] ?? $response;
+
+                                            if (isset($data['full_name'])) {
+                                                $nombreCompleto = trim($data['full_name']);
+                                            } else {
+                                                $nombreCompleto = trim(
+                                                    ($data['first_name'] ?? $data['nombres'] ?? '') . ' ' .
+                                                    ($data['first_last_name'] ?? $data['apellidoPaterno'] ?? '') . ' ' .
+                                                    ($data['second_last_name'] ?? $data['apellidoMaterno'] ?? '')
+                                                );
+                                            }
+
+                                            if ($nombreCompleto) {
+                                                $set('nuevo_cliente_nombre', $nombreCompleto);
+                                                $set('nuevo_cliente_direccion', $data['direccion'] ?? '-');
+
+                                                Notification::make()
+                                                    ->title('Consulta Exitosa')
+                                                    ->success()
+                                                    ->body('Datos encontrados: ' . $nombreCompleto)
+                                                    ->send();
+                                            }
+                                        }
+                                    } elseif ($tipoDoc === 'RUC') {
+                                        $response = $apisNetService->consultarRuc($state);
+
+                                        if (isset($response['message']) && $response['message'] === 'not found') {
+                                            Notification::make()
+                                                ->title('RUC No Encontrado')
+                                                ->warning()
+                                                ->body('No se encontraron datos. Ingrese manualmente.')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        if (isset($response['razon_social']) || isset($response['razonSocial']) || isset($response['data']['razon_social'])) {
+                                            $data = $response['data'] ?? $response;
+                                            $razonSocial = $data['razon_social'] ?? $data['razonSocial'] ?? '';
+
+                                            if ($razonSocial) {
+                                                $set('nuevo_cliente_nombre', $razonSocial);
+                                                $set('nuevo_cliente_direccion', $data['direccion'] ?? '-');
+
+                                                Notification::make()
+                                                    ->title('Consulta Exitosa')
+                                                    ->success()
+                                                    ->body('Empresa encontrada: ' . $razonSocial)
+                                                    ->send();
+                                            }
+                                        }
+                                    }
+                                } catch (\Exception $e) {
+                                    Notification::make()
+                                        ->title('Error del Sistema')
+                                        ->danger()
+                                        ->body('Error interno: ' . $e->getMessage())
+                                        ->send();
+                                }
+                            })
+                            ->tooltip('Consultar en SUNAT/RENIEC')
+                    ),
+
+                TextInput::make('nuevo_cliente_nombre')
+                    ->label('Nombre / Razón Social')
+                    ->placeholder('Ingrese el nombre completo...')
+                    ->maxLength(255)
+                    ->dehydrated(false)
+                    ->visible(fn (callable $get) => $get('mostrar_formulario_cliente') === true && $get('tipo_comprobante') !== 'ticket'),
+
+                TextInput::make('nuevo_cliente_direccion')
+                    ->label('Dirección (Opcional)')
+                    ->placeholder('Ingrese la dirección...')
+                    ->default('-')
+                    ->maxLength(500)
+                    ->dehydrated(false)
+                    ->visible(fn (callable $get) => $get('mostrar_formulario_cliente') === true && $get('tipo_comprobante') !== 'ticket')
+                    ->hintActions([
+                        Action::make('guardarNuevoCliente')
+                            ->label('✓ Guardar Cliente')
+                            ->color('success')
+                            ->action(function ($set, $get) {
+                                $tipoDoc = $get('nuevo_cliente_tipo_doc');
+                                $numDoc = $get('nuevo_cliente_num_doc');
+                                $nombre = $get('nuevo_cliente_nombre');
+                                $direccion = $get('nuevo_cliente_direccion') ?? '-';
+                                $tipoComprobante = $get('tipo_comprobante');
+
+                                // Validaciones
+                                if ($tipoComprobante !== 'ticket') {
+                                    if (!$tipoDoc || !$numDoc) {
+                                        Notification::make()
+                                            ->title('Datos Incompletos')
+                                            ->danger()
+                                            ->body('Debe completar el tipo y número de documento')
+                                            ->send();
+                                        return;
+                                    }
+                                }
+
+                                if (!$nombre) {
+                                    Notification::make()
+                                        ->title('Datos Incompletos')
+                                        ->danger()
+                                        ->body('Debe ingresar el nombre del cliente')
+                                        ->send();
+                                    return;
+                                }
+
+                                try {
+                                    // VALIDAR que no exista el documento (ni activo ni inactivo)
+                                    if ($numDoc) {
+                                        $clienteExistente = Cliente::where('num_doc', $numDoc)->first();
+
+                                        if ($clienteExistente) {
+                                            if ($clienteExistente->estado === 'inactivo') {
+                                                Notification::make()
+                                                    ->title('Cliente ya existe (INACTIVO)')
+                                                    ->warning()
+                                                    ->body("El documento {$numDoc} pertenece a un cliente inactivo: {$clienteExistente->nombre_razon}. Busque el documento nuevamente y use el botón 'Reactivar'.")
+                                                    ->persistent()
+                                                    ->send();
+                                                return;
+                                            } else {
+                                                Notification::make()
+                                                    ->title('Cliente ya existe')
+                                                    ->danger()
+                                                    ->body("El documento {$numDoc} ya está registrado: {$clienteExistente->nombre_razon}")
+                                                    ->send();
+                                                return;
+                                            }
+                                        }
+                                    }
+
+                                    // Crear el cliente en la base de datos
+                                    $nuevoCliente = Cliente::create([
+                                        'tipo_doc' => $tipoDoc ?? 'SIN_DOC',
+                                        'num_doc' => $numDoc ?? '',
+                                        'nombre_razon' => $nombre,
+                                        'direccion' => $direccion,
+                                        'tipo_cliente' => $tipoDoc === 'RUC' ? 'juridica' : 'natural',
+                                        'estado' => 'activo',
+                                        'fecha_registro' => now(),
+                                    ]);
+
+                                    // Asignar el cliente recién creado
+                                    $set('cliente_id', $nuevoCliente->id);
+                                    $set('cliente_encontrado', [
+                                        'tipo_doc' => $nuevoCliente->tipo_doc,
+                                        'num_doc' => $nuevoCliente->num_doc,
+                                        'nombre' => $nuevoCliente->nombre_razon,
+                                        'direccion' => $nuevoCliente->direccion,
+                                    ]);
+
+                                    // Limpiar formulario de nuevo cliente
+                                    $set('mostrar_formulario_cliente', false);
+                                    $set('nuevo_cliente_tipo_doc', null);
+                                    $set('nuevo_cliente_num_doc', null);
+                                    $set('nuevo_cliente_nombre', null);
+                                    $set('nuevo_cliente_direccion', null);
+
+                                    Notification::make()
+                                        ->title('Cliente Registrado')
+                                        ->success()
+                                        ->body("Cliente {$nombre} registrado correctamente")
+                                        ->send();
+
+                                } catch (\Exception $e) {
+                                    Notification::make()
+                                        ->title('Error al Guardar')
+                                        ->danger()
+                                        ->body('Error: ' . $e->getMessage())
+                                        ->send();
+                                }
+                            }),
+
+                        Action::make('cancelarNuevoCliente')
+                            ->label('✗ Cancelar')
+                            ->color('danger')
+                            ->action(function ($set) {
+                                $set('mostrar_formulario_cliente', false);
+                                $set('nuevo_cliente_tipo_doc', null);
+                                $set('nuevo_cliente_num_doc', null);
+                                $set('nuevo_cliente_nombre', null);
+                                $set('nuevo_cliente_direccion', null);
+                                $set('buscar_cliente', null);
+                            }),
+                    ]),
 
                 // === DETALLES DE LA VENTA (PRODUCTOS) ===
                 Repeater::make('detalleVentas')
@@ -580,7 +1039,7 @@ class VentaForm
                     ])
                     ->columns(5)
                     ->defaultItems(1)
-                    ->addActionLabel('➕ Agregar Producto')
+                    ->addActionLabel('+ Agregar Producto')
                     ->collapsible()
                     ->itemLabel(fn (array $state): ?string =>
                         isset($state['producto_id']) && isset($state['cantidad_venta'])
@@ -654,7 +1113,7 @@ class VentaForm
                     ->live()
                     ->default('efectivo')
                     ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
-                    ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Seleccione cómo pagará el cliente'),
+                    ->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : ''),
 
                 TextInput::make('cod_operacion')
                     ->label('Código de Operación / Transacción')

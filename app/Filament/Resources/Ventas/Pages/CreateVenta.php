@@ -97,9 +97,50 @@ class CreateVenta extends CreateRecord
         // Validar stock disponible antes de crear la venta
         $data = $this->form->getState();
 
+        // Validar que se haya seleccionado un cliente (salvo para TICKET, que permite nombre rápido sin persistir)
+        $tipoComprobante = $data['tipo_comprobante'] ?? null;
+        if (($tipoComprobante ?? null) !== 'ticket') {
+            if (empty($data['cliente_id'])) {
+                // Verificar si hay un cliente inactivo detectado
+                $clienteInactivo = $data['cliente_inactivo_encontrado'] ?? null;
+
+                if ($clienteInactivo && isset($clienteInactivo['nombre'])) {
+                    // Hay un cliente inactivo, mensaje específico
+                    Notification::make()
+                        ->title('Cliente Inactivo')
+                        ->body("El cliente {$clienteInactivo['nombre']} está INACTIVO. Debe presionar el botón 'Reactivar' antes de crear la venta.")
+                        ->warning()
+                        ->persistent()
+                        ->send();
+                } else {
+                    // No hay cliente seleccionado
+                    Notification::make()
+                        ->title('Cliente Requerido')
+                        ->body('Debe buscar y seleccionar un cliente antes de crear la venta.')
+                        ->danger()
+                        ->persistent()
+                        ->send();
+                }
+
+                $this->halt();
+            }
+        }
+
         // Validar combinación correcta de tipo de comprobante y tipo de cliente
         if (isset($data['tipo_comprobante']) && isset($data['cliente_id'])) {
             $cliente = \App\Models\Cliente::find($data['cliente_id']);
+
+            // Bloquear si el cliente está INACTIVO (protección server-side)
+            if ($cliente && $cliente->estado === 'inactivo') {
+                Notification::make()
+                    ->title('Cliente Inactivo')
+                    ->danger()
+                    ->body("El cliente {$cliente->nombre_razon} está INACTIVO. Debe reactivarlo antes de crear la venta.")
+                    ->persistent()
+                    ->send();
+
+                $this->halt();
+            }
 
             if ($cliente) {
                 // Regla 1: FACTURAS solo para clientes con RUC
@@ -182,11 +223,17 @@ class CreateVenta extends CreateRecord
             'fecha_emision' => $data['fecha_emision'] ?? now(),
         ];
 
+        // Mapear el nombre rápido de ticket al campo nombre_cliente_temporal
+        if (isset($data['cliente_ticket_nombre']) && !empty($data['cliente_ticket_nombre'])) {
+            $data['nombre_cliente_temporal'] = $data['cliente_ticket_nombre'];
+        }
+
         // Eliminar campos que no pertenecen a la tabla ventas
         unset($data['tipo_comprobante']);
         unset($data['serie']);
         unset($data['numero']);
         unset($data['fecha_emision']);
+        unset($data['cliente_ticket_nombre']);
 
         return $data;
     }
@@ -242,12 +289,23 @@ class CreateVenta extends CreateRecord
                     ]);
 
                     // Registrar movimiento de inventario (SALIDA)
+                    // Usar el nombre temporal del cliente para TICKETs si existe,
+                    // sino usar el nombre del cliente relacionado (si existe).
+                    $clienteNombre = $venta->nombre_cliente_temporal ?? optional($venta->cliente)->nombre_razon ?? 'Cliente General';
+
+                    // Truncar nombre del cliente si es muy largo para evitar exceder el límite del campo
+                    // Campo motivo_movimiento: 255 caracteres - "Venta #XXX - Cliente: " ≈ 25 caracteres
+                    // Dejamos máximo 220 caracteres para el nombre
+                    if (strlen($clienteNombre) > 220) {
+                        $clienteNombre = substr($clienteNombre, 0, 217) . '...';
+                    }
+
                     MovimientoInventario::create([
                         'producto_id' => $producto->id,
                         'user_id' => Auth::id(),
                         'tipo' => 'salida',
                         'cantidad_movimiento' => $detalle->cantidad_venta,
-                        'motivo_movimiento' => "Venta #{$venta->id} - Cliente: {$venta->cliente->nombre_razon}",
+                        'motivo_movimiento' => "Venta #{$venta->id} - Cliente: {$clienteNombre}",
                         'fecha_movimiento' => now(),
                     ]);
 
@@ -284,11 +342,12 @@ class CreateVenta extends CreateRecord
                     ->send();
             }
         });
+
     }
 
     /**
-     * Redirigir automáticamente a la impresión del comprobante después de crear la venta
-     */
+      * Redirigir automáticamente a la impresión del comprobante después de crear la venta
+      */
     protected function getRedirectUrl(): string
     {
         // Redirigir a la página de impresión del comprobante recién creado

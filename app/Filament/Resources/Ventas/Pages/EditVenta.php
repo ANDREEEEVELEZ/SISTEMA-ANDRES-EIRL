@@ -23,12 +23,18 @@ class EditVenta extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         if ($this->record) {
+            // Cargar datos del comprobante
             $comprobante = $this->record->comprobantes()->first();
             if ($comprobante) {
                 $data['tipo_comprobante'] = $comprobante->tipo;
                 $data['serie'] = $comprobante->serie;
                 $data['numero'] = str_pad($comprobante->correlativo, 6, '0', STR_PAD_LEFT);
                 $data['fecha_emision'] = $comprobante->fecha_emision;
+            }
+
+            // Cargar nombre temporal del cliente si existe
+            if (!empty($this->record->nombre_cliente_temporal)) {
+                $data['cliente_ticket_nombre'] = $this->record->nombre_cliente_temporal;
             }
         }
         return $data;

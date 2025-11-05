@@ -80,14 +80,33 @@
             font-size: 11px;
         }
 
+        /* Usar grid para alinear etiqueta (columna fija) y valor (columna flexible) */
         .info-row {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 75px 1fr;
+            gap: 4px;
+            align-items: start;
             margin: 3px 0;
         }
 
-        .info-label {
+        /* Usar cuando necesitamos separar elementos a los extremos (ej. Fecha/Hora) */
+        .info-row.info-row--between {
+            grid-template-columns: 1fr auto;
+            gap: 0;
+        }
+
+        .info-label,
+        .info-row > span:first-child {
             font-weight: bold;
+        }
+
+        /* Row compacta: etiquetas y valores cerca uno del otro */
+        .info-row--compact {
+            gap: 8px;
+        }
+
+        .info-row > .value {
+            font-weight: normal;
         }
 
         .separator {
@@ -273,18 +292,14 @@
 
         <!-- Información de la venta -->
         <div class="info-section">
-            <div class="info-row">
-                <span class="info-label">Fecha:</span>
-                <span>{{ $venta->fecha_venta->format('d/m/Y') }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Hora:</span>
-                <span>{{ $venta->hora_venta ? $venta->hora_venta->format('H:i:s') : $venta->created_at->format('H:i:s') }}</span>
+            <div class="info-row info-row--between">
+                <span class="info-label">Fecha: {{ $venta->fecha_venta->format('d/m/Y') }}</span>
+                <span class="info-label">Hora: {{ $venta->hora_venta ? $venta->hora_venta->format('H:i:s') : $venta->created_at->format('H:i:s') }}</span>
             </div>
             @if($venta->user)
-            <div class="info-row">
+            <div class="info-row info-row--compact">
                 <span class="info-label">Vendedor:</span>
-                <span>{{ $venta->user->name }}</span>
+                <span class="value">{{ $venta->user->name }}</span>
             </div>
             @endif
         </div>
@@ -293,26 +308,26 @@
 
         <!-- Información del cliente -->
         <div class="info-section">
-            <p class="bold">CLIENTE:</p>
             @if($venta->cliente)
             <div class="info-row">
-                <span>{{ $venta->cliente->nombre_razon }}</span>
+                <span class="bold">Cliente:</span>
+                <span class="value">{{ $venta->cliente->nombre_razon }}</span>
             </div>
             <div class="info-row">
-                <span class="info-label">{{ $venta->cliente->tipo_doc }}:</span>
-                <span>{{ $venta->cliente->num_doc }}</span>
+                <span class="bold">{{ $venta->cliente->tipo_doc }}:</span>
+                <span class="value">{{ $venta->cliente->num_doc }}</span>
             </div>
-            @if($venta->cliente->direccion)
             <div class="info-row">
-                <span>{{ $venta->cliente->direccion }}</span>
+                <span class="bold">Dirección:</span>
+                <span class="value">@if($venta->cliente->tipo_doc === 'DNI') - @else {{ $venta->cliente->direccion ?? '-' }} @endif</span>
             </div>
-            @endif
             @else
-            <p>Cliente General</p>
+            <div class="info-row">
+                <span class="bold">Cliente:</span>
+                <span class="value">Cliente General</span>
+            </div>
             @endif
         </div>
-
-        <div class="separator"></div>
 
         <!-- Detalle de productos -->
         <div class="productos">

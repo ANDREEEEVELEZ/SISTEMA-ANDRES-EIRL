@@ -74,12 +74,29 @@
             margin: 5px 0;
         }
 
+        /* Usar grid para alinear estrictamente etiqueta (columna fija) y valor (columna flexible) */
         .info-row {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 75px 1fr; /* etiqueta fijo, valor flexible */
+            gap: 4px;
+            align-items: start;
             margin: 2px 0;
         }
 
+        /* Excepción para filas que deben separar elementos a los extremos (Fecha/Hora) */
+        .info-row.info-row--between {
+            grid-template-columns: 1fr auto;
+            gap: 0;
+        }
+
+        /* Etiqueta y valor: etiqueta en negrita, valor sin negrita */
+        .info-row > span:first-child {
+            font-weight: bold;
+        }
+
+        .info-row > .value {
+            font-weight: normal;
+        }
         .separator {
             border-top: 1px dashed #000;
             margin: 5px 0;
@@ -269,9 +286,9 @@
 
         <!-- Información básica -->
         <div class="info">
-            <div class="info-row">
-                <span>{{ $venta->fecha_venta->format('d/m/Y') }}</span>
-                <span>{{ $venta->hora_venta ? $venta->hora_venta->format('H:i') : $venta->created_at->format('H:i') }}</span>
+            <div class="info-row info-row--between">
+                <span>Fecha: {{ $venta->fecha_venta->format('d/m/Y') }}</span>
+                <span>Hora: {{ $venta->hora_venta ? $venta->hora_venta->format('H:i:s') : $venta->created_at->format('H:i:s') }}</span>
             </div>
         </div>
 
@@ -279,15 +296,29 @@
 
         <!-- Cliente (compacto) -->
         <div class="cliente">
-            <p class="bold">
-                @if($venta->cliente)
-                    {{ $venta->cliente->nombre_razon }}
-                @else
-                    Cliente General
-                @endif
-            </p>
-            @if($venta->cliente && $venta->cliente->num_doc)
-            <p>{{ $venta->cliente->tipo_doc }}: {{ $venta->cliente->num_doc }}</p>
+            @if(!empty($venta->nombre_cliente_temporal))
+                <div class="info-row">
+                    <span class="bold">Cliente:</span>
+                    <span class="value">{{ $venta->nombre_cliente_temporal }}</span>
+                </div>
+            @elseif($venta->cliente)
+                <div class="info-row">
+                    <span class="bold">Cliente:</span>
+                    <span class="value">{{ $venta->cliente->nombre_razon }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="bold">{{ $venta->cliente->tipo_doc }}:</span>
+                    <span class="value">{{ $venta->cliente->num_doc }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="bold">Dirección:</span>
+                    <span class="value">@if($venta->cliente->tipo_doc === 'DNI') - @else {{ $venta->cliente->direccion ?? '-' }} @endif</span>
+                </div>
+            @else
+                <div class="info-row">
+                    <span class="bold">Cliente:</span>
+                    <span class="value">Cliente General</span>
+                </div>
             @endif
         </div>
 

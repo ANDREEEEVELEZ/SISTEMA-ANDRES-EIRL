@@ -118,8 +118,27 @@ class VentasTable
 
                 TextColumn::make('cliente.nombre_razon')
                     ->label('Cliente')
-                    ->searchable()
-                    ->sortable()
+                    ->getStateUsing(function ($record) {
+                        // Priorizar nombre_cliente_temporal para tickets
+                        if (!empty($record->nombre_cliente_temporal)) {
+                            return $record->nombre_cliente_temporal;
+                        }
+                        return $record->cliente ? $record->cliente->nombre_razon : '-';
+                    })
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where(function ($query) use ($search) {
+                            $query->where('nombre_cliente_temporal', 'like', "%{$search}%")
+                                  ->orWhereHas('cliente', function ($query) use ($search) {
+                                      $query->where('nombre_razon', 'like', "%{$search}%");
+                                  });
+                        });
+                    })
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query
+                            ->leftJoin('clientes', 'ventas.cliente_id', '=', 'clientes.id')
+                            ->orderByRaw("COALESCE(ventas.nombre_cliente_temporal, clientes.nombre_razon) {$direction}")
+                            ->select('ventas.*');
+                    })
                     ->limit(30)
                     ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
@@ -131,6 +150,9 @@ class VentasTable
 
                 TextColumn::make('cliente.num_doc')
                     ->label('Doc. Cliente')
+                    ->getStateUsing(function ($record) {
+                        return $record->cliente ? $record->cliente->num_doc : '-';
+                    })
                     ->searchable(),
                     //->toggleable(),
 
