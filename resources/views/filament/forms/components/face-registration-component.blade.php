@@ -54,13 +54,33 @@
                                 x-ref="canvas"
                                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none;"
                             ></canvas>
+                            
+                            <!-- Círculo de seguimiento facial dinámico -->
+                            <div 
+                                x-ref="faceOverlay"
+                                class="face-tracking-overlay"
+                                :class="{
+                                    'tracking': faceDetectedCount > 0,
+                                    'no-face': faceDetectedCount === 0
+                                }"
+                            ></div>
                         </div>
                         
-                        <!-- Instrucciones -->
+                        <!-- Instrucciones con guía de posición -->
                         <div class="absolute bottom-4 left-4 right-4 bg-black/80 backdrop-blur-sm rounded-lg px-4 py-3 border border-cyan-400/30">
                             <p class="text-white text-sm text-center font-medium">
                                 <span x-text="detectionMessage"></span>
                             </p>
+                            <p 
+                                x-show="guidanceMessage" 
+                                x-text="guidanceMessage"
+                                class="text-xs text-center mt-1"
+                                :class="{
+                                    'text-green-400': guidanceType === 'success',
+                                    'text-yellow-400': guidanceType === 'warning',
+                                    'text-cyan-400': guidanceType === 'info'
+                                }"
+                            ></p>
                         </div>
                     </div>
                     
@@ -222,6 +242,8 @@ function faceRegistrationComponent(empleadoId, isEditing) {
         detectionInterval: null,
         faceDetectedCount: 0,
         detectionMessage: 'Posiciona tu rostro frente a la cámara',
+        guidanceMessage: '',
+        guidanceType: 'info',
         status: {
             text: 'Cargando modelos...',
             color: 'bg-yellow-500 text-white',
@@ -316,6 +338,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
             const video = this.$refs.video;
             const canvas = this.$refs.canvas;
             const ctx = canvas.getContext('2d');
+            const faceOverlay = this.$refs.faceOverlay;
             
             const detectFace = async () => {
                 if (!this.cameraOpen || this.capturedImage) {
@@ -341,8 +364,6 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                         const scaleX = canvas.width / video.videoWidth;
                         const scaleY = canvas.height / video.videoHeight;
                         
-                        console.log('Escalas:', { scaleX, scaleY, canvasW: canvas.width, canvasH: canvas.height, videoW: video.videoWidth, videoH: video.videoHeight });
-                        
                         // Escalar la detección
                         const scaledBox = {
                             x: detection.box.x * scaleX,
@@ -351,18 +372,17 @@ function faceRegistrationComponent(empleadoId, isEditing) {
                             height: detection.box.height * scaleY
                         };
                         
-                        console.log('Box escalado:', scaledBox);
+                        // Actualizar posición del círculo de seguimiento
+                        this.updateOverlayPosition(scaledBox, canvas);
                         
-                        console.log('Dibujando recuadro en canvas...');
-                        
-                        // Dibujar solo la caja delimitadora con efecto neón
-                        this.drawFaceBox(ctx, scaledBox);
-                        
-                        console.log('Dibujo completado');
+                        // Proporcionar guía de posición
+                        this.provideFaceGuidance(scaledBox, canvas);
                         
                     } else {
                         this.faceDetectedCount = 0;
                         this.detectionMessage = 'Posiciona tu rostro frente a la cámara';
+                        this.guidanceMessage = '';
+                        this.resetOverlayPosition();
                     }
                     
                 } catch (error) {
@@ -379,70 +399,58 @@ function faceRegistrationComponent(empleadoId, isEditing) {
             detectFace();
         },
         
-        drawFaceBox(ctx, box) {
-            const { x, y, width, height } = box;
+        updateOverlayPosition(box, canvas) {
+            const faceOverlay = this.$refs.faceOverlay;
             
-            console.log('drawFaceBox llamado con:', box);
+            // Calcular el centro del rostro detectado
+            const centerX = box.x + box.width / 2;
+            const centerY = box.y + box.height / 2;
             
-            // Guardar estado del contexto
-            ctx.save();
+            // Calcular el tamaño del círculo basado en el tamaño del rostro
+            const faceSize = Math.max(box.width, box.height);
+            const overlaySize = Math.min(Math.max(faceSize * 1.3, 150), 350); // Entre 150px y 350px
             
-            // Configurar estilo de línea - verde medio
-            ctx.strokeStyle = '#10B981'; // Verde medio (verde esmeralda)
-            ctx.lineWidth = 4;
-            ctx.shadowBlur = 0; // Sin efecto de brillo
+            // Mover el overlay a la posición del rostro
+            faceOverlay.style.left = `${centerX}px`;
+            faceOverlay.style.top = `${centerY}px`;
+            faceOverlay.style.width = `${overlaySize}px`;
+            faceOverlay.style.height = `${overlaySize}px`;
+        },
+        
+        resetOverlayPosition() {
+            const faceOverlay = this.$refs.faceOverlay;
+            faceOverlay.style.left = '50%';
+            faceOverlay.style.top = '50%';
+            faceOverlay.style.width = '200px';
+            faceOverlay.style.height = '200px';
+        },
+        
+        provideFaceGuidance(box, canvas) {
+            const centerX = box.x + box.width / 2;
+            const centerY = box.y + box.height / 2;
+            const canvasCenterX = canvas.width / 2;
+            const canvasCenterY = canvas.height / 2;
             
-            // Dibujar rectángulo redondeado
-            const radius = 15;
-            ctx.beginPath();
-            ctx.moveTo(x + radius, y);
-            ctx.lineTo(x + width - radius, y);
-            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-            ctx.lineTo(x + width, y + height - radius);
-            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-            ctx.lineTo(x + radius, y + height);
-            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-            ctx.lineTo(x, y + radius);
-            ctx.quadraticCurveTo(x, y, x + radius, y);
-            ctx.closePath();
-            ctx.stroke();
+            const offsetX = centerX - canvasCenterX;
+            const offsetY = centerY - canvasCenterY;
             
-            // Dibujar esquinas decorativas
-            const cornerLength = 30;
-            ctx.lineWidth = 6;
+            const threshold = 50; // píxeles de tolerancia
             
-            // Esquina superior izquierda
-            ctx.beginPath();
-            ctx.moveTo(x, y + cornerLength);
-            ctx.lineTo(x, y);
-            ctx.lineTo(x + cornerLength, y);
-            ctx.stroke();
-            
-            // Esquina superior derecha
-            ctx.beginPath();
-            ctx.moveTo(x + width - cornerLength, y);
-            ctx.lineTo(x + width, y);
-            ctx.lineTo(x + width, y + cornerLength);
-            ctx.stroke();
-            
-            // Esquina inferior izquierda
-            ctx.beginPath();
-            ctx.moveTo(x, y + height - cornerLength);
-            ctx.lineTo(x, y + height);
-            ctx.lineTo(x + cornerLength, y + height);
-            ctx.stroke();
-            
-            // Esquina inferior derecha
-            ctx.beginPath();
-            ctx.moveTo(x + width - cornerLength, y + height);
-            ctx.lineTo(x + width, y + height);
-            ctx.lineTo(x + width, y + height - cornerLength);
-            ctx.stroke();
-            
-            // Restaurar estado del contexto
-            ctx.restore();
-            
-            console.log('drawFaceBox completado');
+            if (Math.abs(offsetX) < threshold && Math.abs(offsetY) < threshold) {
+                this.guidanceMessage = '¡Posición perfecta! ✓';
+                this.guidanceType = 'success';
+            } else {
+                let direction = '';
+                if (Math.abs(offsetX) > threshold) {
+                    direction = offsetX > 0 ? 'Muévete a la izquierda' : 'Muévete a la derecha';
+                }
+                if (Math.abs(offsetY) > threshold) {
+                    if (direction) direction += ' y ';
+                    direction += offsetY > 0 ? 'hacia arriba' : 'hacia abajo';
+                }
+                this.guidanceMessage = direction;
+                this.guidanceType = 'warning';
+            }
         },
         
         
@@ -508,6 +516,7 @@ function faceRegistrationComponent(empleadoId, isEditing) {
         retakePhoto() {
             this.capturedImage = null;
             this.faceDescriptors = null;
+            this.guidanceMessage = '';
             this.status = { 
                 text: 'Cámara lista', 
                 color: 'bg-success-500 text-white',
@@ -653,6 +662,45 @@ function faceRegistrationComponent(empleadoId, isEditing) {
 <style>
 [x-cloak] { 
     display: none !important; 
+}
+
+/* Círculo de seguimiento facial dinámico */
+.face-tracking-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border: 3px solid #10b981;
+    border-radius: 50%;
+    pointer-events: none;
+    transition: all 0.3s ease-out;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5),
+                inset 0 0 20px rgba(16, 185, 129, 0.2);
+    z-index: 20;
+}
+
+.face-tracking-overlay.tracking {
+    border-color: #10b981;
+    animation: pulse-tracking 1.5s ease-in-out infinite;
+}
+
+.face-tracking-overlay.no-face {
+    border-color: #f59e0b;
+    border-style: dashed;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+}
+
+@keyframes pulse-tracking {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.5),
+                    inset 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(16, 185, 129, 0.8),
+                    inset 0 0 30px rgba(16, 185, 129, 0.4);
+    }
 }
 
 /* Animación de pulso para el indicador de rostro detectado */
