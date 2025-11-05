@@ -48,9 +48,46 @@
             transform: translate(-50%, -50%);
             width: 200px;
             height: 200px;
-            border: 3px dashed #00ff00;
+            border: 3px solid #00ff00;
             border-radius: 50%;
             pointer-events: none;
+            transition: all 0.3s ease-out;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
+                        inset 0 0 20px rgba(0, 255, 0, 0.2);
+        }
+        
+        .camera-overlay.tracking {
+            border-color: #00ff00;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .camera-overlay.no-face {
+            border-color: #ff9800;
+            border-style: dashed;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
+                            inset 0 0 20px rgba(0, 255, 0, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(0, 255, 0, 0.8),
+                            inset 0 0 30px rgba(0, 255, 0, 0.4);
+            }
+        }
+        
+        .face-guidance {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            white-space: nowrap;
         }
         
         .status-indicator {
@@ -172,9 +209,13 @@
             <div id="facialSection">
                 <div class="camera-container">
                     <video id="video" autoplay muted></video>
+                    <canvas id="overlay" style="position: absolute; top: 0; left: 0; pointer-events: none;"></canvas>
                     <div class="camera-overlay"></div>
                     <div id="status" class="status-indicator">
                         <i class="fas fa-camera me-1"></i> Preparando cámara...
+                    </div>
+                    <div id="faceGuidance" class="face-guidance" style="display: none;">
+                        <i class="fas fa-user-circle me-1"></i> <span id="guidanceText">Centrate en la cámara</span>
                     </div>
                 </div>
                 
@@ -263,6 +304,7 @@
         class FaceAttendanceSystem {
             constructor() {
                 this.video = document.getElementById('video');
+                this.canvas = document.getElementById('overlay');
                 this.scanBtn = document.getElementById('scanBtn');
                 this.status = document.getElementById('status');
                 this.resultCard = document.getElementById('resultCard');
@@ -272,11 +314,15 @@
                 this.manualSection = document.getElementById('manualSection');
                 this.manualForm = document.getElementById('manualForm');
                 this.backToScanBtn = document.getElementById('backToScanBtn');
+                this.cameraOverlay = document.querySelector('.camera-overlay');
+                this.faceGuidance = document.getElementById('faceGuidance');
+                this.guidanceText = document.getElementById('guidanceText');
                 
                 this.isModelLoaded = false;
                 this.isScanning = false;
                 this.intentosFallidos = 0;
                 this.MAX_INTENTOS = 3;
+                this.faceTrackingInterval = null;
                 
                 this.init();
             }
@@ -286,6 +332,7 @@
                     await this.loadModels();
                     await this.startCamera();
                     this.setupEventListeners();
+                    this.startFaceTracking(); // Iniciar seguimiento de rostro
                 } catch (error) {
                     console.error('Error inicializando sistema:', error);
                     this.updateStatus('error', 'Error inicializando el sistema');
@@ -322,6 +369,9 @@
                     
                     return new Promise((resolve) => {
                         this.video.onloadedmetadata = () => {
+                            // Configurar canvas overlay
+                            this.canvas.width = this.video.videoWidth;
+                            this.canvas.height = this.video.videoHeight;
                             resolve();
                         };
                     });
@@ -330,6 +380,119 @@
                     this.updateStatus('error', 'No se puede acceder a la cámara');
                     throw error;
                 }
+            }
+            
+            startFaceTracking() {
+                // Detener tracking anterior si existe
+                if (this.faceTrackingInterval) {
+                    clearInterval(this.faceTrackingInterval);
+                }
+                
+                // Iniciar tracking continuo cada 100ms
+                this.faceTrackingInterval = setInterval(async () => {
+                    if (!this.isModelLoaded || this.isScanning) return;
+                    
+                    try {
+                        const detection = await faceapi
+                            .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks();
+                        
+                        if (detection) {
+                            this.updateOverlayPosition(detection.detection.box);
+                            this.provideFaceGuidance(detection.detection.box);
+                            this.cameraOverlay.classList.add('tracking');
+                            this.cameraOverlay.classList.remove('no-face');
+                        } else {
+                            this.resetOverlayPosition();
+                            this.cameraOverlay.classList.remove('tracking');
+                            this.cameraOverlay.classList.add('no-face');
+                            this.showGuidance('No se detecta rostro');
+                        }
+                    } catch (error) {
+                        // Silenciosamente manejar errores de detección
+                    }
+                }, 100);
+            }
+            
+            updateOverlayPosition(box) {
+                const videoRect = this.video.getBoundingClientRect();
+                const scaleX = videoRect.width / this.video.videoWidth;
+                const scaleY = videoRect.height / this.video.videoHeight;
+                
+                // Calcular el centro del rostro detectado
+                const centerX = (box.x + box.width / 2) * scaleX;
+                const centerY = (box.y + box.height / 2) * scaleY;
+                
+                // Calcular el tamaño del círculo basado en el tamaño del rostro
+                const faceSize = Math.max(box.width, box.height) * Math.max(scaleX, scaleY);
+                const overlaySize = Math.min(Math.max(faceSize * 1.3, 150), 300); // Entre 150px y 300px
+                
+                // Mover el overlay a la posición del rostro
+                this.cameraOverlay.style.left = `${centerX}px`;
+                this.cameraOverlay.style.top = `${centerY}px`;
+                this.cameraOverlay.style.width = `${overlaySize}px`;
+                this.cameraOverlay.style.height = `${overlaySize}px`;
+            }
+            
+            resetOverlayPosition() {
+                this.cameraOverlay.style.left = '50%';
+                this.cameraOverlay.style.top = '50%';
+                this.cameraOverlay.style.width = '200px';
+                this.cameraOverlay.style.height = '200px';
+            }
+            
+            provideFaceGuidance(box) {
+                const videoRect = this.video.getBoundingClientRect();
+                const scaleX = videoRect.width / this.video.videoWidth;
+                const scaleY = videoRect.height / this.video.videoHeight;
+                
+                const centerX = (box.x + box.width / 2) * scaleX;
+                const centerY = (box.y + box.height / 2) * scaleY;
+                const videoCenterX = videoRect.width / 2;
+                const videoCenterY = videoRect.height / 2;
+                
+                const offsetX = centerX - videoCenterX;
+                const offsetY = centerY - videoCenterY;
+                
+                const threshold = 50; // píxeles de tolerancia
+                
+                if (Math.abs(offsetX) < threshold && Math.abs(offsetY) < threshold) {
+                    this.showGuidance('¡Posición perfecta! ✓', 'success');
+                } else {
+                    let direction = '';
+                    if (Math.abs(offsetX) > threshold) {
+                        direction = offsetX > 0 ? 'Muévete a la izquierda' : 'Muévete a la derecha';
+                    }
+                    if (Math.abs(offsetY) > threshold) {
+                        if (direction) direction += ' y ';
+                        direction += offsetY > 0 ? 'hacia arriba' : 'hacia abajo';
+                    }
+                    this.showGuidance(direction, 'warning');
+                }
+            }
+            
+            showGuidance(text, type = 'info') {
+                this.faceGuidance.style.display = 'block';
+                this.guidanceText.textContent = text;
+                
+                // Cambiar color según el tipo
+                if (type === 'success') {
+                    this.faceGuidance.style.background = 'rgba(40, 167, 69, 0.9)';
+                } else if (type === 'warning') {
+                    this.faceGuidance.style.background = 'rgba(255, 193, 7, 0.9)';
+                    this.faceGuidance.style.color = '#000';
+                } else {
+                    this.faceGuidance.style.background = 'rgba(0, 0, 0, 0.7)';
+                    this.faceGuidance.style.color = '#fff';
+                }
+            }
+            
+            stopFaceTracking() {
+                if (this.faceTrackingInterval) {
+                    clearInterval(this.faceTrackingInterval);
+                    this.faceTrackingInterval = null;
+                }
+                this.faceGuidance.style.display = 'none';
             }
             
             setupEventListeners() {
@@ -409,6 +572,7 @@
             }
             
             showManualForm() {
+                this.stopFaceTracking(); // Detener tracking al cambiar a modo manual
                 this.facialSection.style.display = 'none';
                 this.manualSection.style.display = 'block';
                 this.hideResult();
@@ -426,7 +590,9 @@
                 this.hideResult();
                 
                 // Reiniciar cámara
-                this.startCamera();
+                this.startCamera().then(() => {
+                    this.startFaceTracking(); // Reiniciar tracking
+                });
                 
                 // Limpiar formulario
                 document.getElementById('dniInput').value = '';
