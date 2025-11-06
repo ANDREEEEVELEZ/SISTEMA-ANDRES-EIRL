@@ -91,6 +91,20 @@
             margin: 2px 0;
         }
 
+        /* Para filas compactas (ej. método de pago), permitir que la etiqueta se ajuste
+           al contenido y evitar saltos de línea entre etiqueta y valor */
+        .info-row--compact {
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+        }
+
+        .info-row--compact > .info-label,
+        .info-row--compact > .value {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         /* Excepción para filas que deben separar elementos a los extremos (Fecha/Hora) */
         .info-row.info-row--between {
             grid-template-columns: 1fr auto;
@@ -279,7 +293,11 @@
         <div class="empresa">
             <h2>{{ $empresa['nombre'] }}</h2>
             <p>RUC: {{ $empresa['ruc'] }}</p>
-            <p>{{ $empresa['telefono'] }}</p>
+            @if(isset($comprobante) && $comprobante->tipo === 'ticket')
+                <p>AV. RAMON CASTILLA NRO 123 CERCADO</p>
+            @else
+                <p>{{ $empresa['telefono'] }}</p>
+            @endif
         </div>
 
         <!-- Título -->
@@ -377,31 +395,36 @@
 
         <!-- Método de pago -->
         <div class="pago">
+            @if(isset($comprobante) && in_array($comprobante->tipo, ['boleta', 'factura']))
+                <p>
+                    <span class="bold">Forma de pago: </span>Contado
+                </p>
+            @endif
             <p>
-                <span class="bold">Pago: </span>
+                <span class="bold">Método de Pago: </span>
                 @switch($venta->metodo_pago)
                     @case('efectivo')
-                        Efectivo
+                        EFECTIVO
                         @break
                     @case('tarjeta')
-                        Tarjeta
+                        TARJETA
                         @break
                     @case('yape')
-                        Yape
+                        YAPE
                         @break
                     @case('plin')
-                        Plin
+                        PLIN
                         @break
                     @case('transferencia')
-                        Transferencia
+                        TRANSFERENCIA
                         @break
                     @default
-                        {{ ucfirst($venta->metodo_pago) }}
+                        {{ strtoupper($venta->metodo_pago) }}
                 @endswitch
+                @if($venta->cod_operacion)
+                    &nbsp;&nbsp;|&nbsp;&nbsp;<span class="bold">Op:</span> {{ $venta->cod_operacion }}
+                @endif
             </p>
-            @if($venta->cod_operacion)
-            <p style="font-size: 9px;">Op: {{ $venta->cod_operacion }}</p>
-            @endif
         </div>
 
         <!-- Footer -->

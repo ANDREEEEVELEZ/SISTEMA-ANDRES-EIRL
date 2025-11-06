@@ -34,11 +34,12 @@ class CrearNota extends Page
         return $schema
             ->components([
                 Select::make('tipo_nota')
-                    ->label('Tipo de Nota')
+                    ->label('Nota')
                     ->options([
                         'nota_credito' => 'Nota de Crédito',
-                        'nota_debito' => 'Nota de Débito',
+                       // 'nota_debito' => 'Nota de Débito',
                     ])
+                     ->default('Nota de Crédito')
                     ->required()
                     ->live(),
 

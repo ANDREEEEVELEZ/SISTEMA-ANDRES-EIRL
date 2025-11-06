@@ -30,6 +30,8 @@ class EditVenta extends EditRecord
                 $data['serie'] = $comprobante->serie;
                 $data['numero'] = str_pad($comprobante->correlativo, 6, '0', STR_PAD_LEFT);
                 $data['fecha_emision'] = $comprobante->fecha_emision;
+                // Incluir motivo de anulación si existe para mostrarlo en el formulario de edición
+                $data['motivo_anulacion'] = $comprobante->motivo_anulacion;
             }
 
             // Cargar nombre temporal del cliente si existe

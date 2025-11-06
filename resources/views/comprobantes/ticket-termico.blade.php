@@ -97,6 +97,20 @@
             margin: 3px 0;
         }
 
+        /* Para filas compactas (ej. método de pago), permitir que la etiqueta se ajuste
+           al contenido y evitar saltos de línea entre etiqueta y valor */
+        .info-row--compact {
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+        }
+
+        .info-row--compact > .info-label,
+        .info-row--compact > .value {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         /* Usar cuando necesitamos separar elementos a los extremos (ej. Fecha/Hora) */
         .info-row.info-row--between {
             grid-template-columns: 1fr auto;
@@ -270,7 +284,11 @@
         <div class="empresa">
             <h2>{{ $empresa['nombre'] }}</h2>
             <p>RUC: {{ $empresa['ruc'] }}</p>
-            <p>{{ $empresa['direccion'] }}</p>
+            @if(isset($comprobante) && $comprobante->tipo === 'ticket')
+                <p>AV. RAMON CASTILLA NRO 123 CERCADO</p>
+            @else
+                <p>{{ $empresa['direccion'] }}</p>
+            @endif
             <p>Tel: {{ $empresa['telefono'] }}</p>
             @if(isset($empresa['email']))
             <p>{{ $empresa['email'] }}</p>
@@ -391,12 +409,17 @@
         </div>
 
         <div class="separator"></div>
-
         <!-- Información de pago -->
         <div class="info-section">
-            <div class="info-row">
+            @if(isset($comprobante) && in_array($comprobante->tipo, ['boleta', 'factura']))
+                <div class="info-row info-row--compact">
+                    <span class="info-label">Forma de pago:</span>
+                    <span class="value">Contado</span>
+                </div>
+            @endif
+            <div class="info-row info-row--compact">
                 <span class="info-label">Método de Pago:</span>
-                <span class="bold">
+                <span class="value">
                     @switch($venta->metodo_pago)
                         @case('efectivo')
                             EFECTIVO
@@ -416,14 +439,11 @@
                         @default
                             {{ strtoupper($venta->metodo_pago) }}
                     @endswitch
+                    @if($venta->cod_operacion)
+                        &nbsp;&nbsp;|&nbsp;&nbsp;<span class="info-label">Cód. Operación:</span> {{ $venta->cod_operacion }}
+                    @endif
                 </span>
             </div>
-            @if($venta->cod_operacion)
-            <div class="info-row">
-                <span class="info-label">Cód. Operación:</span>
-                <span>{{ $venta->cod_operacion }}</span>
-            </div>
-            @endif
         </div>
 
         <!-- Pie de página -->

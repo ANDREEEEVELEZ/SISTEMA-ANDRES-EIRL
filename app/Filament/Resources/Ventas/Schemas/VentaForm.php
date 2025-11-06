@@ -184,6 +184,8 @@ class VentaForm
                     ->dehydrated()
                     ->columnSpan(1),
 
+
+
                 // -- Información del Cliente --
                 // Campos de control (no se guardan en BD)
                 Hidden::make('mostrar_formulario_cliente')
@@ -926,6 +928,16 @@ class VentaForm
                     ]),
 
                 // === DETALLES DE LA VENTA (PRODUCTOS) ===
+                // Motivo de Anulación (solo lectura) - mostrado antes de los productos
+                Textarea::make('motivo_anulacion')
+                    ->label('Motivo de Anulación')
+                    ->rows(1)
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->visible(fn (callable $get) => !empty($get('motivo_anulacion')))
+                    ->extraAttributes(['style' => 'color:#b91c1c; width:100%; max-width:100%; font-weight:300; font-size:12px; line-height:1.1; border-left:4px solid #ef4444; padding:4px 6px; background:#fff7f6; margin-bottom:6px; max-height:36px; overflow:hidden;'])
+                    ->columnSpan(2),
+
                 Repeater::make('detalleVentas')
                     ->label('Productos de la Venta')
                     ->relationship('detalleVentas')

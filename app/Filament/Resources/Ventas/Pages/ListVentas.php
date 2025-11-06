@@ -88,11 +88,11 @@ class ListVentas extends ListRecords
                 })
                 ->modalSubmitActionLabel('Exportar'),
             Action::make('anular_comprobante')
-                ->label('Anular Comprobante')
+                ->label('Emitir nota/Anular comprobante')
                 ->color('danger')
                 ->icon('heroicon-o-x-circle')
                 ->modal()
-                ->modalHeading('Anular Comprobante')
+                ->modalHeading('Emitir nota /Anular comprobante')
                 ->modalWidth('3xl')
                 ->form([
                     // Paso 1: Seleccionar tipo de comprobante
@@ -105,7 +105,7 @@ class ListVentas extends ListRecords
                         ])
                         ->required()
                         ->live()
-                        ->afterStateUpdated(function ($state, $set) {
+                        ->afterStateUpdated(function ($state, $set, $get) {
                             // Al cambiar el tipo de comprobante, cargar la serie por defecto (si existe)
                             $serieComprobante = SerieComprobante::where('tipo', $state)
                                 ->where('aplica_a', 'ninguno')
@@ -127,6 +127,12 @@ class ListVentas extends ListRecords
                                     $set('serie', null);
                                 }
                             }
+
+                            // Si es boleta o factura, establecer tipo_nota por defecto y cargar series de la nota
+                            if (in_array($state, ['boleta', 'factura'])) {
+                                $set('tipo_nota', 'credito');
+                                $this->cargarSeriesAutomaticas('credito', $set, $get);
+                            }
                         }),
 
                     // Paso 2: Seleccionar tipo de nota (solo para boleta/factura)
@@ -134,13 +140,34 @@ class ListVentas extends ListRecords
                         ->label('Tipo de Nota')
                         ->options([
                             'credito' => 'Nota de Crédito',
-                            'debito' => 'Nota de Débito',
+                           // 'debito' => 'Nota de Débito',
                         ])
+                        ->default('credito')
                         ->required()
                         ->live()
                         ->afterStateUpdated(function ($state, $set, $get) {
                             $this->cargarSeriesAutomaticas($state, $set, $get);
                         })
+                        ->visible(fn (callable $get) => in_array($get('tipo_comprobante'), ['boleta', 'factura'])),
+
+                    // Paso 3: Seleccionar motivo de la nota de crédito (Catálogo 09 SUNAT)
+                    Forms\Components\Select::make('codigo_tipo_nota')
+                        ->label('Motivo de la Nota de Crédito')
+                        ->options([
+                            '01' => '01 - Anulación de la Operación',
+                            // '02' => '02 - Anulación por Error en el RUC',
+                            // '03' => '03 - Corrección por error en la descripción',
+                            // '04' => '04 - Descuento Global',
+                            // '05' => '05 - Descuento por ítem',
+                            // '06' => '06 - Devolución Total',
+                            // '07' => '07 - Devolución por ítem',
+                            // '08' => '08 - Bonificación',
+                            // '09' => '09 - Disminución en el valor',
+                            // '13' => '13 - Ajustes - montos y/o fechas de pago',
+                        ])
+                        ->default('01')
+                        ->required()
+                        //->helperText('Catálogo 09 SUNAT - Por ahora solo disponible Anulación de la Operación')
                         ->visible(fn (callable $get) => in_array($get('tipo_comprobante'), ['boleta', 'factura'])),
 
                     // Campos de serie y número de la nota (auto-cargados)
@@ -149,7 +176,7 @@ class ListVentas extends ListRecords
                         ->required()
                         ->disabled()
                         ->dehydrated()
-                        ->visible(fn (callable $get) => $get('tipo_nota')),
+                        ->visible(fn (callable $get) => in_array($get('tipo_comprobante'), ['boleta', 'factura'])),
 
                     Forms\Components\TextInput::make('numero_nota')
                         ->label('Número de la Nota')
@@ -157,7 +184,7 @@ class ListVentas extends ListRecords
                         ->numeric()
                         ->disabled()
                         ->dehydrated()
-                        ->visible(fn (callable $get) => $get('tipo_nota')),
+                        ->visible(fn (callable $get) => in_array($get('tipo_comprobante'), ['boleta', 'factura'])),
 
                     // Serie y número del comprobante a anular (auto-cargados con posibilidad de editar)
                     Forms\Components\TextInput::make('serie')
@@ -167,7 +194,7 @@ class ListVentas extends ListRecords
                         ->afterStateUpdated(function ($state, callable $get) {
                             $this->buscarVentaModal($get);
                         })
-                        ->visible(fn (callable $get) => $get('tipo_nota') || $get('tipo_comprobante') === 'ticket'),
+                        ->visible(fn (callable $get) => !empty($get('tipo_comprobante'))),
 
                     Forms\Components\TextInput::make('numero')
                         ->label(fn (callable $get) => 'Número de la ' . ucfirst($get('tipo_comprobante') ?? 'Comprobante') . ' a Anular')
@@ -177,7 +204,7 @@ class ListVentas extends ListRecords
                         ->afterStateUpdated(function ($state, callable $get) {
                             $this->buscarVentaModal($get);
                         })
-                        ->visible(fn (callable $get) => $get('tipo_nota') || $get('tipo_comprobante') === 'ticket'),
+                        ->visible(fn (callable $get) => !empty($get('tipo_comprobante'))),
 
                     // Paso 5: Mostrar detalle del documento referenciado
                     Forms\Components\Placeholder::make('venta_info')
@@ -187,6 +214,14 @@ class ListVentas extends ListRecords
 
                             $comprobante = $this->ventaEncontrada->comprobantes->first();
                             $html = '<div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+
+                            // Si el comprobante está anulado, mostrar motivo de anulación arriba en destaque
+                            if (($comprobante?->estado ?? null) === 'anulado' && !empty($comprobante?->motivo_anulacion)) {
+                                $html .= '<div style="background:#fff3f0;border-left:4px solid #ef4444;padding:8px;margin-bottom:10px;border-radius:4px;color:#7f1d1d;">';
+                                $html .= '<strong>Motivo de anulación:</strong> ' . e($comprobante->motivo_anulacion);
+                                $html .= '</div>';
+                            }
+
                             $html .= '<h4 style="margin: 0 0 10px 0; color: #1f2937;">📋 ' . strtoupper($comprobante?->tipo ?? 'N/A') . ' ' . $comprobante?->serie . '-' . $comprobante?->correlativo . '</h4>';
                             $html .= '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">';
                             $html .= '<div><strong>📅 Fecha:</strong> ' . \Carbon\Carbon::parse($this->ventaEncontrada->fecha_venta)->format('d/m/Y') . '</div>';
@@ -209,11 +244,13 @@ class ListVentas extends ListRecords
                         ->placeholder('Describe el motivo de la nota de crédito/débito...')
                         ->visible(fn (callable $get) => $get('tipo_nota') && $this->ventaEncontrada !== null),
 
+                    // Para tickets pedimos motivo de anulación antes de ejecutar la anulación
                     Forms\Components\Textarea::make('motivo_anulacion')
                         ->label('Motivo de Anulación')
                         ->required()
                         ->rows(3)
                         ->placeholder('Describe el motivo de la anulación del ticket...')
+                        // Mostrar el motivo tan pronto se seleccione 'ticket', no esperar a que se busque la venta
                         ->visible(fn (callable $get) => $get('tipo_comprobante') === 'ticket'),
                 ])
                 ->action(function (array $data) {
@@ -275,7 +312,7 @@ class ListVentas extends ListRecords
             if ($comprobante) {
                 $comprobante->update([
                     'estado' => 'anulado',
-                    'motivo_anulacion' => $data['motivo_anulacion'],
+                    'motivo_anulacion' => $data['motivo_anulacion'] ?? null,
                 ]);
             }
 
@@ -364,6 +401,7 @@ class ListVentas extends ListRecords
                 'venta_id' => $this->ventaEncontrada->id,
                 'serie_comprobante_id' => $serieComprobante->id,
                 'tipo' => $tipoNota,
+                'codigo_tipo_nota' => $data['codigo_tipo_nota'] ?? null, // Catálogo 09 (NC) o 10 (ND) SUNAT
                 'serie' => $data['serie_nota'],
                 'correlativo' => $data['numero_nota'],
                 'fecha_emision' => now(),

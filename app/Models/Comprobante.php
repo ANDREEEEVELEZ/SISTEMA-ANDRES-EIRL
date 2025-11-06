@@ -17,6 +17,7 @@ class Comprobante extends Model
         'venta_id',
         'serie_comprobante_id',
         'tipo',
+        'codigo_tipo_nota',
         'serie',
         'correlativo',
         'fecha_emision',
