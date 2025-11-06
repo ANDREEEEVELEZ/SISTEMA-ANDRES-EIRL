@@ -74,7 +74,7 @@ class EditVenta extends EditRecord
                     ->modalHeading('Anular Ticket')
                     ->modalDescription('¿Está seguro de que desea anular este ticket? Esta acción no se puede deshacer.')
                     ->form([
-                        \Filament\Forms\Components\Textarea::make('observacion')
+                        \Filament\Forms\Components\Textarea::make('motivo_anulacion')
                             ->label('Motivo de anulación')
                             ->required()
                             ->maxLength(500)
@@ -82,9 +82,20 @@ class EditVenta extends EditRecord
                     ])
                     ->action(function (array $data) {
                         $this->record->update([
-                            'estado_venta' => 'anulada',
-                            'observacion' => $data['observacion']
+                            'estado_venta' => 'anulada'
                         ]);
+
+                        // Actualizar el comprobante con el motivo de anulación
+                        $comprobante = $this->record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
+
+                        if ($comprobante) {
+                            $comprobante->update([
+                                'estado' => 'anulado',
+                                'motivo_anulacion' => $data['motivo_anulacion']
+                            ]);
+                        }
 
                         Notification::make()
                             ->title('Ticket anulado')

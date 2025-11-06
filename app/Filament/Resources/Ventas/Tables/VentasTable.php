@@ -18,8 +18,7 @@ class VentasTable
     protected static function anularTicket($record, $observacion = null): void
     {
         $record->update([
-            'estado_venta' => 'anulada',
-            'observacion' => $observacion ?? 'Ticket anulado'
+            'estado_venta' => 'anulada'
         ]);
 
         // Marcar el comprobante principal como anulado (tickets no tienen notas relacionadas)
@@ -28,10 +27,10 @@ class VentasTable
             ->first();
 
         if ($comprobante) {
-            // Guardar estado y motivo de anulación (si se pasó observación)
+            // Guardar estado y motivo de anulación
             $comprobante->update([
                 'estado' => 'anulado',
-                'motivo_anulacion' => $observacion ?? null,
+                'motivo_anulacion' => $observacion ?? 'Ticket anulado',
             ]);
         }
 

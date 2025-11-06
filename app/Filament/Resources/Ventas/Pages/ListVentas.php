@@ -226,8 +226,8 @@ class ListVentas extends ListRecords
                             $html .= '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">';
                             $html .= '<div><strong>📅 Fecha:</strong> ' . \Carbon\Carbon::parse($this->ventaEncontrada->fecha_venta)->format('d/m/Y') . '</div>';
                             $html .= '<div><strong>🏷️ Estado:</strong> ' . strtoupper($this->ventaEncontrada->estado_venta) . '</div>';
-                            $html .= '<div><strong>👤 Cliente:</strong> ' . $this->ventaEncontrada->cliente->nombre_razon . '</div>';
-                            $html .= '<div><strong>🆔 Documento:</strong> ' . $this->ventaEncontrada->cliente->num_doc . '</div>';
+                            $html .= '<div><strong>👤 Cliente:</strong> ' . ($this->ventaEncontrada->cliente?->nombre_razon ?? $this->ventaEncontrada->nombre_cliente_temporal ?? 'Cliente General') . '</div>';
+                            $html .= '<div><strong>🆔 Documento:</strong> ' . ($this->ventaEncontrada->cliente?->num_doc ?? 'S/N') . '</div>';
                             $html .= '</div>';
                             $html .= '<div style="text-align: center; font-size: 18px; font-weight: bold; color: #059669;">💰 Total: S/. ' . number_format((float)$this->ventaEncontrada->total_venta, 2) . '</div>';
                             $html .= '</div>';
@@ -236,21 +236,20 @@ class ListVentas extends ListRecords
                         })
                         ->visible(fn () => $this->ventaEncontrada !== null),
 
-                    // Paso 6: Motivo de anulación
+                    // Paso 6: Motivo de la nota (solo para boletas y facturas)
                     Forms\Components\Textarea::make('motivo_nota')
                         ->label('Motivo de la Nota')
                         ->required()
                         ->rows(3)
                         ->placeholder('Describe el motivo de la nota de crédito/débito...')
-                        ->visible(fn (callable $get) => $get('tipo_nota') && $this->ventaEncontrada !== null),
+                        ->visible(fn (callable $get) => in_array($get('tipo_comprobante'), ['boleta', 'factura']) && $get('tipo_nota') && $this->ventaEncontrada !== null),
 
-                    // Para tickets pedimos motivo de anulación antes de ejecutar la anulación
+                    // Para tickets pedimos motivo de anulación (solo para tickets)
                     Forms\Components\Textarea::make('motivo_anulacion')
                         ->label('Motivo de Anulación')
                         ->required()
                         ->rows(3)
                         ->placeholder('Describe el motivo de la anulación del ticket...')
-                        // Mostrar el motivo tan pronto se seleccione 'ticket', no esperar a que se busque la venta
                         ->visible(fn (callable $get) => $get('tipo_comprobante') === 'ticket'),
                 ])
                 ->action(function (array $data) {
