@@ -67,14 +67,121 @@ class VentasTable
             ->send();
     }
 
+    protected static function crearNotaCredito($record, array $data): void
+    {
+        try {
+            $comprobante = $record->comprobantes()
+                ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                ->first();
+
+            if (!$comprobante) {
+                Notification::make()
+                    ->title('Error')
+                    ->body('No se encontró el comprobante a anular.')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
+            $tipoComprobante = $comprobante->tipo;
+            $tipoNotaDB = 'nota de credito';
+
+            // Buscar la serie configurada para la nota
+            $serieNota = \App\Models\SerieComprobante::where('tipo', $tipoNotaDB)
+                ->where('aplica_a', $tipoComprobante)
+                ->where('serie', $data['serie_nota'])
+                ->first();
+
+            if (!$serieNota) {
+                Notification::make()
+                    ->title('Error')
+                    ->body('No se encontró la serie de comprobante configurada para esta nota.')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
+            // Crear la nota de crédito
+            $nota = \App\Models\Comprobante::create([
+                'venta_id' => $record->id,
+                'serie_comprobante_id' => $serieNota->id,
+                'tipo' => $tipoNotaDB,
+                'codigo_tipo_nota' => $data['codigo_tipo_nota'] ?? '01',
+                'serie' => $data['serie_nota'],
+                'correlativo' => $data['numero_nota'],
+                'fecha_emision' => now(),
+                'sub_total' => $record->subtotal_venta,
+                'igv' => $record->igv,
+                'total' => $record->total_venta,
+                'estado' => 'emitido',
+                'motivo_anulacion' => $data['motivo_nota'],
+            ]);
+
+            // Actualizar el último número de la serie
+            $serieNota->increment('ultimo_numero');
+
+            // Actualizar la venta como anulada
+            $record->update(['estado_venta' => 'anulada']);
+
+            // Actualizar el comprobante original como anulado
+            $comprobante->update([
+                'estado' => 'anulado',
+                'motivo_anulacion' => "Anulado con NC {$data['serie_nota']}-{$data['numero_nota']}",
+            ]);
+
+            // Crear la relación entre el comprobante original y la nota
+            \App\Models\ComprobanteRelacion::create([
+                'comprobante_origen_id' => $comprobante->id,
+                'comprobante_relacionado_id' => $nota->id,
+                'tipo_relacion' => $tipoNotaDB,
+            ]);
+
+            // REVERTIR INVENTARIO
+            foreach ($record->detalleVentas as $detalle) {
+                $producto = $detalle->producto;
+
+                if ($producto) {
+                    $stockAnterior = $producto->stock_total;
+                    $nuevoStock = $stockAnterior + $detalle->cantidad_venta;
+
+                    $producto->update([
+                        'stock_total' => $nuevoStock
+                    ]);
+
+                    \App\Models\MovimientoInventario::create([
+                        'producto_id' => $producto->id,
+                        'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                        'tipo' => 'entrada',
+                        'cantidad_movimiento' => $detalle->cantidad_venta,
+                        'motivo_movimiento' => "Reversión por anulación de Venta #{$record->id} con NC",
+                        'fecha_movimiento' => now(),
+                    ]);
+                }
+            }
+
+            Notification::make()
+                ->title('Nota de Crédito Creada')
+                ->body("Se creó la Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} para anular {$comprobante->tipo} {$comprobante->serie}-{$comprobante->correlativo}. El inventario ha sido restablecido.")
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error')
+                ->body('Error al crear la nota: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
             ->columns([
                 TextColumn::make('comprobantes')
                     ->label('Comprobante')
-                    ->formatStateUsing(function ($record) {
-                        // Mostrar solo el comprobante principal (SIN referencia a la nota)
+                    ->getStateUsing(function ($record) {
+                        // Obtener solo el comprobante principal (sin notas) y devolver una cadena
                         $comprobante = $record->comprobantes()
                             ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
                             ->first();
@@ -95,7 +202,6 @@ class VentasTable
                             return 'danger';
                         }
 
-                        // Color según el estado del comprobante
                         if ($comprobante->estado === 'emitido') {
                             return 'success';
                         } elseif ($comprobante->estado === 'anulado') {
@@ -107,7 +213,7 @@ class VentasTable
                         return 'gray';
                     })
                     ->description(function ($record) {
-                        // Mostrar solo la referencia a la nota (segunda línea)
+                        // Mostrar referencia a la nota solo cuando el comprobante principal esté anulado
                         $comprobante = $record->comprobantes()
                             ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
                             ->first();
@@ -316,6 +422,7 @@ class VentasTable
                     }),
             ])
             ->recordActions([
+                // BOTÓN 1: Imprimir (siempre visible)
                 Action::make('imprimir')
                     ->label('Imprimir')
                     ->icon('heroicon-o-printer')
@@ -324,22 +431,30 @@ class VentasTable
                     ->extraAttributes(['style' => 'min-width:110px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; padding-left:2px; margin-right:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:4px 4px; line-height:1;'])
                     ->openUrlInNewTab(true),
 
-                // Placeholder to keep spacing when 'Anular' is not visible
-                Action::make('anular_placeholder')
-                    ->label('Anular')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->disabled()
+                // BOTÓN 2: Imprimir Nota O Anular/Emitir Nota (uno u otro, siempre 2 botones totales)
+                // Opción A: Imprimir Nota (si existe nota emitida)
+                Action::make('imprimir_nota')
+                    ->label('Nota')
+                    ->icon('heroicon-o-document-text')
+                    ->color('warning')
                     ->visible(function ($record) {
-                        $comprobante = $record->comprobantes()
-                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                        $nota = $record->comprobantes()
+                            ->whereIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->where('estado', 'emitido')
                             ->first();
-
-                        // Mostrar placeholder cuando ANULAR no esté disponible
-                        return !($comprobante && $comprobante->estado === 'emitido');
+                        return $nota !== null;
                     })
-                    ->extraAttributes(['style' => 'min-width:110px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; padding-left:2px; white-space:nowrap; opacity:0; pointer-events:none; padding:4px 4px; line-height:1;']),
+                    ->url(function ($record) {
+                        $nota = $record->comprobantes()
+                            ->whereIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->where('estado', 'emitido')
+                            ->first();
+                        return route('nota.imprimir', $nota->id);
+                    })
+                    ->extraAttributes(['style' => 'min-width:110px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; padding-left:2px; margin-right:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:4px 4px; line-height:1;'])
+                    ->openUrlInNewTab(true),
 
+                // Opción B: Anular/Emitir Nota (si NO hay nota emitida Y está emitido)
                 Action::make('anular')
                     ->label(function ($record) {
                         $comprobante = $record->comprobantes()
@@ -352,38 +467,115 @@ class VentasTable
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(function ($record) {
-                        // Verificar que el comprobante principal esté emitido
+                        // Solo visible si NO hay nota emitida Y el comprobante está emitido
                         $comprobante = $record->comprobantes()
                             ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
                             ->first();
 
-                        return $comprobante && $comprobante->estado === 'emitido';
+                        $nota = $record->comprobantes()
+                            ->whereIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->where('estado', 'emitido')
+                            ->first();
+
+                        return $nota === null && $comprobante && $comprobante->estado === 'emitido';
                     })
                     ->extraAttributes(['style' => 'min-width:110px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; padding-left:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:4px 4px; line-height:1;'])
+                    ->fillForm(function ($record) {
+                        // Pre-cargar datos del comprobante actual
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
+
+                        if (!$comprobante) {
+                            return [];
+                        }
+
+                        $tipoComprobante = $comprobante->tipo;
+
+                        // Cargar series automáticas de la nota según el tipo de comprobante
+                        $tipoNotaDB = 'nota de credito';
+                        $serieNota = \App\Models\SerieComprobante::where('tipo', $tipoNotaDB)
+                            ->where('aplica_a', $tipoComprobante)
+                            ->latest('id')
+                            ->first();
+
+                        $serieNotaDefault = $tipoComprobante === 'boleta' ? 'BC01' : 'FC01';
+                        $numeroNotaDefault = $serieNota ? ($serieNota->ultimo_numero + 1) : 1;
+
+                        return [
+                            'tipo_comprobante' => $tipoComprobante,
+                            'serie_comprobante' => $comprobante->serie,
+                            'numero_comprobante' => $comprobante->correlativo,
+                            'serie_nota' => $serieNota ? $serieNota->serie : $serieNotaDefault,
+                            'numero_nota' => $numeroNotaDefault,
+                            'codigo_tipo_nota' => '01', // Anulación de la operación
+                        ];
+                    })
                     ->form([
+                        // BOLETAS/FACTURAS: Formulario de emisión de nota
+                        \Filament\Forms\Components\Select::make('codigo_tipo_nota')
+                            ->label('Motivo de la Nota de Crédito')
+                            ->options([
+                                '01' => '01 - Anulación de la Operación',
+                            ])
+                            ->default('01')
+                            ->required()
+                            ->disabled()
+                            ->dehydrated()
+                            ->visible(fn ($record) => in_array(
+                                $record->comprobantes()->whereNotIn('tipo', ['nota de credito', 'nota de debito'])->first()?->tipo ?? '',
+                                ['boleta', 'factura']
+                            )),
+
+                        \Filament\Forms\Components\TextInput::make('serie_nota')
+                            ->label('Serie de la Nota de Crédito')
+                            ->required()
+                            ->disabled()
+                            ->dehydrated()
+                            ->visible(fn ($record) => in_array(
+                                $record->comprobantes()->whereNotIn('tipo', ['nota de credito', 'nota de debito'])->first()?->tipo ?? '',
+                                ['boleta', 'factura']
+                            )),
+
+                        \Filament\Forms\Components\TextInput::make('numero_nota')
+                            ->label('Número de la Nota')
+                            ->required()
+                            ->numeric()
+                            ->disabled()
+                            ->dehydrated()
+                            ->visible(fn ($record) => in_array(
+                                $record->comprobantes()->whereNotIn('tipo', ['nota de credito', 'nota de debito'])->first()?->tipo ?? '',
+                                ['boleta', 'factura']
+                            )),
+
+                        \Filament\Forms\Components\Textarea::make('motivo_nota')
+                            ->label('Motivo de la Nota')
+                            ->required()
+                            ->rows(3)
+                            ->placeholder('Describe el motivo de la nota de crédito...')
+                            ->visible(fn ($record) => in_array(
+                                $record->comprobantes()->whereNotIn('tipo', ['nota de credito', 'nota de debito'])->first()?->tipo ?? '',
+                                ['boleta', 'factura']
+                            )),
+
+                        // TICKETS: Formulario simple de anulación
                         \Filament\Forms\Components\Textarea::make('motivo_anulacion')
                             ->label('Motivo de Anulación')
                             ->required()
                             ->rows(3)
-                            ->placeholder('Motivo (requerido para tickets)'),
+                            ->placeholder('Motivo de anulación del ticket...')
+                            ->visible(fn ($record) =>
+                                $record->comprobantes()->whereNotIn('tipo', ['nota de credito', 'nota de debito'])->first()?->tipo === 'ticket'
+                            ),
                     ])
                     ->action(function ($record, array $data) {
-                            $comprobante = $record->comprobantes()
-                                ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
-                                ->first();
-                            $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
+                        $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
 
-                            // Para boletas y facturas: mostrar mensaje informativo
-                            if (in_array($tipoComprobante, ['boleta', 'factura'])) {
-                                Notification::make()
-                                    ->title('Anulación de ' . ucfirst($tipoComprobante))
-                                    ->body('Para anular una ' . $tipoComprobante . ', debe crear una Nota de Crédito desde el módulo correspondiente.')
-                                    ->warning()
-                                    ->send();
-                                return;
-                            }
-
-                            // Para tickets: validar motivo y ejecutar anulación
+                        // Si es ticket, anular directamente
+                        if ($tipoComprobante === 'ticket') {
                             $motivo = trim($data['motivo_anulacion'] ?? '');
                             if (empty($motivo)) {
                                 Notification::make()
@@ -395,26 +587,27 @@ class VentasTable
                             }
 
                             static::anularTicket($record, $motivo);
-                        })
-                    ->requiresConfirmation(function ($record) {
-                        $comprobante = $record->comprobantes()
-                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
-                            ->first();
-                        $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
+                            return;
+                        }
 
-                        // Solo confirmar para tickets (anulación directa)
-                        return !in_array($tipoComprobante, ['boleta', 'factura']);
+                        // Si es boleta/factura, crear nota de crédito
+                        if (in_array($tipoComprobante, ['boleta', 'factura'])) {
+                            static::crearNotaCredito($record, $data);
+                            return;
+                        }
                     })
+                    ->requiresConfirmation()
                     ->modalHeading(function ($record) {
                         $comprobante = $record->comprobantes()
                             ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
                             ->first();
                         $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
 
-                        if (!in_array($tipoComprobante, ['boleta', 'factura'])) {
+                        if ($tipoComprobante === 'ticket') {
                             return 'Anular Ticket';
                         }
-                        return null;
+
+                        return 'Emitir Nota de Crédito';
                     })
                     ->modalDescription(function ($record) {
                         $comprobante = $record->comprobantes()
@@ -422,12 +615,38 @@ class VentasTable
                             ->first();
                         $tipoComprobante = $comprobante ? $comprobante->tipo : 'ticket';
 
-                        if (!in_array($tipoComprobante, ['boleta', 'factura'])) {
+                        if ($tipoComprobante === 'ticket') {
                             return '¿Está seguro de que desea anular este ticket? Esta acción no se puede deshacer.';
                         }
-                        return null;
+
+                        return '¿Está seguro de que desea emitir esta nota de crédito? Se anulará el comprobante original y se restablecerá el inventario.';
                     })
-                    ,
+                    ->modalSubmitActionLabel(fn ($record) =>
+                        $record->comprobantes()->whereNotIn('tipo', ['nota de credito', 'nota de debito'])->first()?->tipo === 'ticket'
+                            ? 'Anular'
+                            : 'Emitir Nota'
+                    ),
+
+                // Placeholder invisible cuando NO hay ninguno de los dos anteriores
+                Action::make('segundo_boton_placeholder')
+                    ->label('Acción')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('gray')
+                    ->disabled()
+                    ->visible(function ($record) {
+                        $comprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->first();
+
+                        $nota = $record->comprobantes()
+                            ->whereIn('tipo', ['nota de credito', 'nota de debito'])
+                            ->where('estado', 'emitido')
+                            ->first();
+
+                        // Mostrar placeholder si NO hay nota Y el comprobante NO está emitido
+                        return $nota === null && !($comprobante && $comprobante->estado === 'emitido');
+                    })
+                    ->extraAttributes(['style' => 'min-width:110px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; padding-left:2px; white-space:nowrap; opacity:0; pointer-events:none; padding:4px 4px; line-height:1;']),
             ])
 
             ->defaultSort('created_at', 'desc')

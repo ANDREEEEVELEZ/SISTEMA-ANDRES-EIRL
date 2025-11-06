@@ -39,6 +39,8 @@ Route::get('/comprobantes/{id}/imprimir', [ComprobanteController::class, 'imprim
     ->name('comprobante.imprimir');
 Route::get('/comprobantes/{id}/ticket', [ComprobanteController::class, 'imprimirTicket'])
     ->name('comprobante.ticket');
+Route::get('/notas/{id}/imprimir', [ComprobanteController::class, 'imprimirNota'])
+    ->name('nota.imprimir');
 
 // Exportar clientes a PDF
 Route::get('/clientes/exportar/pdf', [ClienteExportController::class, 'exportarPdf'])

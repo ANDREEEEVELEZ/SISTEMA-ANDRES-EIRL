@@ -19,7 +19,10 @@ class TotalesCajaWidget extends BaseWidget
             $totalIngresos = 0;
             $totalEgresos = 0;
         } else {
-            $totalVentas = Venta::where('caja_id', $caja->id)->sum('total_venta');
+            // Excluir ventas anuladas del total
+            $totalVentas = Venta::where('caja_id', $caja->id)
+                ->where('estado_venta', '!=', 'anulada')
+                ->sum('total_venta');
             $totalIngresos = MovimientoCaja::where('caja_id', $caja->id)->where('tipo', 'ingreso')->sum('monto');
             $totalEgresos = MovimientoCaja::where('caja_id', $caja->id)->where('tipo', 'egreso')->sum('monto');
         }

@@ -9,7 +9,7 @@ class ComprobanteController extends Controller
 {
     /**
      * Imprimir comprobante de venta
-     * 
+     *
      * @param int $id ID de la venta
      * @return \Illuminate\View\View
      */
@@ -48,7 +48,7 @@ class ComprobanteController extends Controller
 
     /**
      * Imprimir ticket directo (sin comprobante electrónico)
-     * 
+     *
      * @param int $id ID de la venta
      * @return \Illuminate\View\View
      */
@@ -56,4 +56,39 @@ class ComprobanteController extends Controller
     {
         return $this->imprimirComprobante($id);
     }
+
+    /**
+     * Imprimir Nota de Crédito o Débito
+     *
+     * @param int $id ID del comprobante (nota)
+     * @return \Illuminate\View\View
+     */
+    public function imprimirNota($id)
+    {
+        // Buscar el comprobante (nota) directamente
+        $nota = \App\Models\Comprobante::with([
+            'venta.cliente',
+            'venta.detalleVentas.producto',
+            'venta.user',
+            'venta.caja',
+            'serieComprobante'
+        ])->findOrFail($id);
+
+        // Verificar que sea una nota
+        if (!in_array($nota->tipo, ['nota de credito', 'nota de debito'])) {
+            abort(404, 'El comprobante especificado no es una nota.');
+        }
+
+        // Obtener el comprobante original (factura o boleta que se está anulando)
+        $comprobanteOriginal = $nota->venta->comprobantes()
+            ->whereNotIn('tipo', ['nota de credito', 'nota de debito'])
+            ->first();
+
+        // Datos de la empresa
+        $empresa = config('empresa');
+
+        // Renderizar vista de nota de crédito/débito
+        return view('comprobantes.nota-credito', compact('nota', 'comprobanteOriginal', 'empresa'));
+    }
 }
+

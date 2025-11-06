@@ -275,11 +275,71 @@ class ListVentas extends ListRecords
             return;
         }
 
-        $this->ventaEncontrada = Venta::whereHas('comprobantes', function ($query) use ($tipo, $serie, $numero) {
+        $venta = Venta::whereHas('comprobantes', function ($query) use ($tipo, $serie, $numero) {
             $query->where('tipo', $tipo)
                   ->where('serie', $serie)
                   ->where('correlativo', $numero);
         })->with(['comprobantes', 'cliente', 'detalleVentas.producto'])->first();
+
+        // Si no se encuentra la venta, mostrar error y mantener modal abierto (no usar halt aquí)
+        if (!$venta) {
+            $this->ventaEncontrada = null;
+
+            Notification::make()
+                ->title('Comprobante no encontrado')
+                ->body("No se encontró el {$tipo} {$serie}-{$numero} en el sistema.")
+                ->warning()
+                ->send();
+
+            // Mostrar error en inputs para que el usuario corrija sin cerrar el modal
+            $this->addError('serie', "No se encontró el {$tipo} {$serie}-{$numero}.");
+            $this->addError('numero', "No se encontró el {$tipo} {$serie}-{$numero}.");
+
+            $this->dispatch('refresh-form');
+            return;
+        }
+
+        // Validar el estado del comprobante específico
+        $comprobante = $venta->comprobantes->first(function ($c) use ($tipo, $serie, $numero) {
+            return $c->tipo === $tipo && $c->serie === $serie && $c->correlativo == $numero;
+        });
+
+        if ($comprobante && $comprobante->estado === 'anulado') {
+            $this->ventaEncontrada = null;
+
+            Notification::make()
+                ->title('Comprobante ya anulado')
+                ->body("El {$tipo} {$serie}-{$numero} ya está anulado. No se puede volver a anular.")
+                ->danger()
+                ->send();
+
+            $this->addError('serie', "El {$tipo} {$serie}-{$numero} ya está anulado.");
+            $this->addError('numero', "El {$tipo} {$serie}-{$numero} ya está anulado.");
+
+            $this->dispatch('refresh-form');
+            return;
+        }
+
+        // Validar que la venta NO esté ya anulada
+        if ($venta->estado_venta === 'anulada') {
+            $this->ventaEncontrada = null;
+
+            Notification::make()
+                ->title('Comprobante ya anulado')
+                ->body("El {$tipo} {$serie}-{$numero} ya está anulado. No se puede volver a anular.")
+                ->danger()
+                ->send();
+
+            $this->addError('serie', "El {$tipo} {$serie}-{$numero} ya está anulado.");
+            $this->addError('numero', "El {$tipo} {$serie}-{$numero} ya está anulado.");
+
+            $this->dispatch('refresh-form');
+            return;
+        }
+
+        // Si todo está bien, limpiar errores previos y cargar la venta
+        $this->resetErrorBag(['serie', 'numero']);
+        $this->ventaEncontrada = $venta;
 
         // Forzar actualización del formulario
         $this->dispatch('refresh-form');
@@ -293,6 +353,9 @@ class ListVentas extends ListRecords
                 ->body('No se encontró el ticket a anular.')
                 ->danger()
                 ->send();
+
+            // Evitar que el modal se cierre
+            $this->halt();
             return;
         }
 
@@ -355,6 +418,8 @@ class ListVentas extends ListRecords
                 ->body('Error al anular el ticket: ' . $e->getMessage())
                 ->danger()
                 ->send();
+            // Evitar que el modal se cierre en caso de excepción
+            $this->halt();
         }
     }
 
@@ -366,6 +431,9 @@ class ListVentas extends ListRecords
                 ->body('No se encontró el comprobante a anular.')
                 ->danger()
                 ->send();
+
+            // Evitar que el modal se cierre
+            $this->halt();
             return;
         }
 
@@ -394,6 +462,9 @@ class ListVentas extends ListRecords
                     ->body('No se encontró la serie de comprobante configurada para esta nota.')
                     ->danger()
                     ->send();
+
+                // Evitar que el modal se cierre
+                $this->halt();
                 return;
             }
 
@@ -474,6 +545,8 @@ class ListVentas extends ListRecords
                 ->body('Error al crear la nota: ' . $e->getMessage())
                 ->danger()
                 ->send();
+            // Evitar que el modal se cierre en caso de excepción
+            $this->halt();
         }
     }
 

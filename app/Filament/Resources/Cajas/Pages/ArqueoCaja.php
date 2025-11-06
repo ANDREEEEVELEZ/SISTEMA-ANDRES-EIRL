@@ -227,8 +227,12 @@ class ArqueoCaja extends Page implements HasForms
         $fin = now();
 
         // Ventas cobradas en efectivo en el periodo
+
+        // Excluir ventas anuladas para mantener coherencia con el cálculo
+        // usado en el widget de Apertura/Cierre (calcularSaldoEsperado)
         $this->totalVentas = (float) Venta::where('caja_id', $this->caja->id)
             ->where('metodo_pago', 'efectivo')
+            ->where('estado_venta', '!=', 'anulada')
             ->whereDate('fecha_venta', '>=', $inicio->toDateString())
             ->whereDate('fecha_venta', '<=', $fin->toDateString())
             ->sum('total_venta');

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprobante #{{ $comprobante ? $comprobante->serie . '-' . str_pad($comprobante->correlativo, 8, '0', STR_PAD_LEFT) : $venta->id }}</title>
+    <title>{{ strtoupper($nota->tipo) }} #{{ $nota->serie }}-{{ str_pad($nota->correlativo, 8, '0', STR_PAD_LEFT) }}</title>
     <style>
         * {
             margin: 0;
@@ -29,14 +29,6 @@
 
         .center {
             text-align: center;
-        }
-
-        .left {
-            text-align: left;
-        }
-
-        .right {
-            text-align: right;
         }
 
         .bold {
@@ -69,18 +61,11 @@
             border-bottom: 1px dashed #000;
         }
 
-        .anulado {
-            color: #cc0000;
-            font-size: 16px;
-            font-weight: bold;
-            text-align: center;
-            margin-top: 6px;
-        }
-
         .comprobante-tipo h3 {
             font-size: 14px;
             font-weight: bold;
             margin-bottom: 5px;
+            color: #ff6600;
         }
 
         .info-section {
@@ -88,7 +73,6 @@
             font-size: 11px;
         }
 
-        /* Usar grid para alinear etiqueta (columna fija) y valor (columna flexible) */
         .info-row {
             display: grid;
             grid-template-columns: 75px 1fr;
@@ -97,43 +81,38 @@
             margin: 3px 0;
         }
 
-        /* Para filas compactas (ej. método de pago), permitir que la etiqueta se ajuste
-           al contenido y evitar saltos de línea entre etiqueta y valor */
         .info-row--compact {
             grid-template-columns: auto 1fr;
             gap: 8px;
         }
 
-        .info-row--compact > .info-label,
-        .info-row--compact > .value {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Usar cuando necesitamos separar elementos a los extremos (ej. Fecha/Hora) */
-        .info-row.info-row--between {
+        .info-row--between {
             grid-template-columns: 1fr auto;
             gap: 0;
         }
 
-        .info-label,
-        .info-row > span:first-child {
+        .info-label {
             font-weight: bold;
-        }
-
-        /* Row compacta: etiquetas y valores cerca uno del otro */
-        .info-row--compact {
-            gap: 8px;
-        }
-
-        .info-row > .value {
-            font-weight: normal;
         }
 
         .separator {
             border-top: 1px dashed #000;
             margin: 10px 0;
+        }
+
+        .motivo-box {
+            background: #fff5e6;
+            border: 1px solid #ff6600;
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 11px;
+        }
+
+        .motivo-box .label {
+            font-weight: bold;
+            color: #ff6600;
+            display: block;
+            margin-bottom: 4px;
         }
 
         .productos {
@@ -194,6 +173,7 @@
             margin-top: 5px;
             padding-top: 5px;
             border-top: 2px solid #000;
+            color: #ff6600;
         }
 
         .footer {
@@ -230,15 +210,20 @@
                 size: 80mm auto;
                 margin: 0;
             }
+
+            .motivo-box {
+                background: white;
+                border: 1px solid #000;
+            }
         }
 
-        /* Botón de imprimir */
+        /* Botones de acción */
         .print-button {
             position: fixed;
             top: 20px;
             right: 20px;
             padding: 10px 20px;
-            background: #4CAF50;
+            background: #ff6600;
             color: white;
             border: none;
             border-radius: 5px;
@@ -250,7 +235,7 @@
         }
 
         .print-button:hover {
-            background: #45a049;
+            background: #cc5200;
         }
 
         .close-button {
@@ -277,18 +262,14 @@
 <body>
     <!-- Botones de acción (no se imprimen) -->
     <button class="print-button no-print" onclick="window.print()">🖨️ Imprimir</button>
-    <button class="close-button no-print" onclick="cerrarVentana()">✖️ Cerrar</button>
+    <button class="close-button no-print" onclick="window.close()">✖️ Cerrar</button>
 
     <div class="ticket">
         <!-- Encabezado de la empresa -->
         <div class="empresa">
             <h2>{{ $empresa['nombre'] }}</h2>
             <p>RUC: {{ $empresa['ruc'] }}</p>
-            @if(isset($comprobante) && $comprobante->tipo === 'ticket')
-                <p>AV. RAMON CASTILLA NRO 123 CERCADO</p>
-            @else
-                <p>{{ $empresa['direccion'] }}</p>
-            @endif
+            <p>{{ $empresa['direccion'] }}</p>
             <p>Tel: {{ $empresa['telefono'] }}</p>
             @if(isset($empresa['email']))
             <p>{{ $empresa['email'] }}</p>
@@ -297,67 +278,121 @@
 
         <!-- Tipo de comprobante -->
         <div class="comprobante-tipo">
-            @if($comprobante)
-                <h3>
-                    @if($comprobante->tipo === 'boleta')
-                        BOLETA DE VENTA ELECTRÓNICA
-                    @elseif($comprobante->tipo === 'factura')
-                        FACTURA ELECTRÓNICA
-                    @elseif($comprobante->tipo === 'nota_credito')
-                        NOTA DE CRÉDITO ELECTRÓNICA
-                    @else
-                        TICKET DE VENTA
-                    @endif
-                </h3>
-                <p class="bold">{{ $comprobante->serie }}-{{ str_pad($comprobante->correlativo, 8, '0', STR_PAD_LEFT) }}</p>
-                @if($comprobante->estado === 'anulado')
-                    @php
-                        // Si existe una nota (NC/ND) emitida relacionada, la marca de "ANULADO"
-                        // debe mostrarse en la nota y no en el comprobante original.
-                        $notaRelacionada = $venta->comprobantes->first(function ($c) {
-                            return in_array($c->tipo, ['nota de credito', 'nota de debito']) && $c->estado === 'emitido';
-                        });
-                    @endphp
-                    @if(!$notaRelacionada)
-                        <p class="anulado">ANULADO</p>
-                    @endif
+            <h3>
+                @if($nota->tipo === 'nota de credito')
+                    NOTA DE CRÉDITO ELECTRÓNICA
+                @else
+                    NOTA DE DÉBITO ELECTRÓNICA
                 @endif
-            @else
-                <h3>TICKET DE VENTA</h3>
-                <p class="bold">#{{ str_pad($venta->id, 6, '0', STR_PAD_LEFT) }}</p>
-            @endif
+            </h3>
+            <p class="bold">{{ $nota->serie }}-{{ str_pad($nota->correlativo, 8, '0', STR_PAD_LEFT) }}</p>
         </div>
 
-        <!-- Información de la venta -->
+        <!-- Información de la nota -->
         <div class="info-section">
             <div class="info-row info-row--between">
-                <span class="info-label">Fecha: {{ $venta->fecha_venta->format('d/m/Y') }}</span>
-                <span class="info-label">Hora: {{ $venta->hora_venta ? $venta->hora_venta->format('H:i:s') : $venta->created_at->format('H:i:s') }}</span>
+                <span class="info-label">Fecha: {{ \Carbon\Carbon::parse($nota->fecha_emision)->format('d/m/Y') }}</span>
+                <span class="info-label">Hora: {{ \Carbon\Carbon::parse($nota->fecha_emision)->format('H:i:s') }}</span>
             </div>
-            @if($venta->user)
-            <div class="info-row info-row--compact">
-                <span class="info-label">Vendedor:</span>
-                <span class="value">{{ $venta->user->name }}</span>
+        </div>
+
+        <div class="separator"></div>
+
+        <!-- Información del comprobante que se modifica -->
+        <div class="info-section">
+            <p class="bold center" style="margin-bottom: 5px;">COMPROBANTE QUE SE MODIFICA</p>
+            @if($comprobanteOriginal)
+            <div class="info-row">
+                <span class="bold">Tipo:</span>
+                <span class="value">{{ strtoupper($comprobanteOriginal->tipo) }}</span>
+            </div>
+            <div class="info-row">
+                <span class="bold">Número:</span>
+                <span class="value">{{ $comprobanteOriginal->serie }}-{{ str_pad($comprobanteOriginal->correlativo, 8, '0', STR_PAD_LEFT) }}</span>
+            </div>
+            <div class="info-row">
+                <span class="bold">Fecha:</span>
+                <span class="value">{{ \Carbon\Carbon::parse($comprobanteOriginal->fecha_emision)->format('d/m/Y') }}</span>
             </div>
             @endif
         </div>
 
         <div class="separator"></div>
 
+        <!-- Motivo de la nota -->
+        @if($nota->motivo_anulacion || $nota->codigo_tipo_nota)
+        <div class="motivo-box">
+            <span class="label">MOTIVO:</span>
+            @if($nota->codigo_tipo_nota)
+                <p style="margin-bottom: 4px;">
+                    <strong>Tipo {{ $nota->codigo_tipo_nota }}:</strong>
+                    @switch($nota->codigo_tipo_nota)
+                        @case('01')
+                            Anulación de la operación
+                            @break
+                        @case('02')
+                            Anulación por error en el RUC
+                            @break
+                        @case('03')
+                            Corrección por error en la descripción
+                            @break
+                        @case('04')
+                            Descuento global
+                            @break
+                        @case('05')
+                            Descuento por ítem
+                            @break
+                        @case('06')
+                            Devolución total
+                            @break
+                        @case('07')
+                            Devolución por ítem
+                            @break
+                        @case('08')
+                            Bonificación
+                            @break
+                        @case('09')
+                            Disminución en el valor
+                            @break
+                        @case('10')
+                            Otros conceptos
+                            @break
+                        @case('11')
+                            Ajustes de operaciones de exportación
+                            @break
+                        @case('12')
+                            Ajustes afectos al IVAP
+                            @break
+                        @case('13')
+                            Corrección monto neto de operaciones gravadas
+                            @break
+                        @default
+                            Código {{ $nota->codigo_tipo_nota }}
+                    @endswitch
+                </p>
+            @endif
+            @if($nota->motivo_anulacion)
+                <p>{{ $nota->motivo_anulacion }}</p>
+            @endif
+        </div>
+        @endif
+
+        <div class="separator"></div>
+
         <!-- Información del cliente -->
         <div class="info-section">
-            @if($venta->cliente)
+            @if($nota->venta->cliente)
             <div class="info-row">
                 <span class="bold">Cliente:</span>
-                <span class="value">{{ $venta->cliente->nombre_razon }}</span>
+                <span class="value">{{ $nota->venta->cliente->nombre_razon }}</span>
             </div>
             <div class="info-row">
-                <span class="bold">{{ $venta->cliente->tipo_doc }}:</span>
-                <span class="value">{{ $venta->cliente->num_doc }}</span>
+                <span class="bold">{{ $nota->venta->cliente->tipo_doc }}:</span>
+                <span class="value">{{ $nota->venta->cliente->num_doc }}</span>
             </div>
             <div class="info-row">
                 <span class="bold">Dirección:</span>
-                <span class="value">@if($venta->cliente->tipo_doc === 'DNI') - @else {{ $venta->cliente->direccion ?? '-' }} @endif</span>
+                <span class="value">{{ $nota->venta->cliente->direccion ?? '-' }}</span>
             </div>
             @else
             <div class="info-row">
@@ -379,7 +414,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($venta->detalleVentas as $detalle)
+                    @foreach($nota->venta->detalleVentas as $detalle)
                     <tr>
                         <td class="cantidad">{{ number_format($detalle->cantidad_venta, 0) }}</td>
                         <td class="descripcion">
@@ -399,92 +434,40 @@
         <div class="totales">
             <div class="total-row">
                 <span>SUBTOTAL:</span>
-                <span>S/ {{ number_format($venta->subtotal_venta, 2) }}</span>
+                <span>S/ {{ number_format($nota->sub_total, 2) }}</span>
             </div>
             <div class="total-row">
                 <span>IGV (18%):</span>
-                <span>S/ {{ number_format($venta->igv, 2) }}</span>
+                <span>S/ {{ number_format($nota->igv, 2) }}</span>
             </div>
-            @if($venta->descuento_total > 0)
-            <div class="total-row">
-                <span>DESCUENTO:</span>
-                <span>S/ {{ number_format($venta->descuento_total, 2) }}</span>
-            </div>
-            @endif
             <div class="total-row total-final">
-                <span>TOTAL:</span>
-                <span>S/ {{ number_format($venta->total_venta, 2) }}</span>
-            </div>
-        </div>
-
-        <div class="separator"></div>
-        <!-- Información de pago -->
-        <div class="info-section">
-            @if(isset($comprobante) && in_array($comprobante->tipo, ['boleta', 'factura']))
-                <div class="info-row info-row--compact">
-                    <span class="info-label">Forma de pago:</span>
-                    <span class="value">Contado</span>
-                </div>
-            @endif
-            <div class="info-row info-row--compact">
-                <span class="info-label">Método de Pago:</span>
-                <span class="value">
-                    @switch($venta->metodo_pago)
-                        @case('efectivo')
-                            EFECTIVO
-                            @break
-                        @case('tarjeta')
-                            TARJETA
-                            @break
-                        @case('yape')
-                            YAPE
-                            @break
-                        @case('plin')
-                            PLIN
-                            @break
-                        @case('transferencia')
-                            TRANSFERENCIA
-                            @break
-                        @default
-                            {{ strtoupper($venta->metodo_pago) }}
-                    @endswitch
-                    @if($venta->cod_operacion)
-                        &nbsp;&nbsp;|&nbsp;&nbsp;<span class="info-label">Cód. Operación:</span> {{ $venta->cod_operacion }}
-                    @endif
-                </span>
+                <span>TOTAL {{ $nota->tipo === 'nota de credito' ? 'A DEVOLVER' : 'A COBRAR' }}:</span>
+                <span>S/ {{ number_format($nota->total, 2) }}</span>
             </div>
         </div>
 
         <!-- Pie de página -->
         <div class="footer">
-            <p class="bold">¡GRACIAS POR SU COMPRA!</p>
+            <p class="bold">{{ $nota->tipo === 'nota de credito' ? '¡NOTA DE CRÉDITO EMITIDA!' : '¡NOTA DE DÉBITO EMITIDA!' }}</p>
             @if(isset($empresa['web']))
             <p>{{ $empresa['web'] }}</p>
             @endif
             <p style="font-size: 9px; margin-top: 10px;">
                 Representación impresa de comprobante electrónico
             </p>
-            @if($comprobante && $comprobante->hash_sunat)
+            @if($nota->hash_sunat)
             <p style="font-size: 8px; word-break: break-all;">
-                Hash: {{ substr($comprobante->hash_sunat, 0, 30) }}...
+                Hash: {{ substr($nota->hash_sunat, 0, 30) }}...
             </p>
             @endif
         </div>
     </div>
 
     <script>
-        // Función para cerrar la ventana o volver atrás
+        // Cerrar ventana
         function cerrarVentana() {
-            // Redirigir directamente a crear una nueva venta
-            window.location.href = '{{ route("filament.admin.resources.ventas.create") }}';
+            window.close();
         }
-
-        // Auto-imprimir al cargar (opcional, comentado por defecto)
-        // window.onload = function() {
-        //     setTimeout(function() {
-        //         window.print();
-        //     }, 500);
-        // };
 
         // Cerrar ventana después de imprimir (opcional)
         window.onafterprint = function() {

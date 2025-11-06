@@ -14,58 +14,64 @@ class EstadisticasVentasWidget extends BaseWidget
         $mesActual = Carbon::now()->startOfMonth();
         $finMes = Carbon::now()->endOfMonth();
 
-        // Total de ventas del mes
+        // Total de ventas del mes (excluir anuladas)
         $totalVentas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
-            ->where('estado_venta', 'emitida')
+            ->where('estado_venta', '!=', 'anulada')
             ->sum('total_venta');
 
-        // Total de facturas del mes
+        // Total de facturas del mes (excluir anuladas y verificar que comprobante esté emitido)
         $totalFacturas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
-            ->where('estado_venta', 'emitida')
+            ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
-                $query->where('tipo', 'factura');
+                $query->where('tipo', 'factura')
+                    ->where('estado', 'emitido');
             })
             ->sum('total_venta');
 
-        // Total de boletas del mes
+        // Total de boletas del mes (excluir anuladas y verificar que comprobante esté emitido)
         $totalBoletas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
-            ->where('estado_venta', 'emitida')
+            ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
-                $query->where('tipo', 'boleta');
+                $query->where('tipo', 'boleta')
+                    ->where('estado', 'emitido');
             })
             ->sum('total_venta');
 
-        // Total de tickets del mes
+        // Total de tickets del mes (excluir anuladas y verificar que comprobante esté emitido)
         $totalTickets = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
-            ->where('estado_venta', 'emitida')
+            ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
-                $query->where('tipo', 'ticket');
+                $query->where('tipo', 'ticket')
+                    ->where('estado', 'emitido');
             })
             ->sum('total_venta');
 
-        // Cantidad de ventas para mostrar en descripción
+        // Cantidad de ventas para mostrar en descripción (excluir anuladas)
         $cantidadVentas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
-            ->where('estado_venta', 'emitida')
+            ->where('estado_venta', '!=', 'anulada')
             ->count();
 
         $cantidadFacturas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
-            ->where('estado_venta', 'emitida')
+            ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
-                $query->where('tipo', 'factura');
+                $query->where('tipo', 'factura')
+                    ->where('estado', 'emitido');
             })
             ->count();
 
         $cantidadBoletas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
-            ->where('estado_venta', 'emitida')
+            ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
-                $query->where('tipo', 'boleta');
+                $query->where('tipo', 'boleta')
+                    ->where('estado', 'emitido');
             })
             ->count();
 
         $cantidadTickets = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
-            ->where('estado_venta', 'emitida')
+            ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
-                $query->where('tipo', 'ticket');
+                $query->where('tipo', 'ticket')
+                    ->where('estado', 'emitido');
             })
             ->count();
 
