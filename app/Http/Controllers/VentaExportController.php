@@ -14,6 +14,9 @@ class VentaExportController extends Controller
         // Construir query base
         $query = Venta::with(['cliente', 'comprobantes', 'detalleVentas.producto']);
 
+        // NO excluimos ventas anuladas del query principal
+        // Las mostraremos todas y solo las excluiremos de los totales
+
         // Filtrar por tipo de comprobante
         if ($request->tipo_comprobante && $request->tipo_comprobante !== 'todos') {
             $query->whereHas('comprobantes', function ($q) use ($request) {
@@ -59,10 +62,23 @@ class VentaExportController extends Controller
             'estado_comprobante' => $request->estado_comprobante ?? 'todos',
         ];
 
-        // Calcular totales
-        $totalGeneral = $ventas->sum('total_venta');
-        $subtotalGeneral = $ventas->sum('subtotal_venta');
-        $igvGeneral = $ventas->sum('igv');
+        // Calcular totales (EXCLUIR ventas anuladas, no restarlas)
+        // Solo sumar las ventas que NO están anuladas
+        $totalGeneral = 0;
+        $subtotalGeneral = 0;
+        $igvGeneral = 0;
+
+        foreach ($ventas as $venta) {
+            if ($venta->estado_venta !== 'anulada') {
+                $totalGeneral += (float)$venta->total_venta;
+                $subtotalGeneral += (float)$venta->subtotal_venta;
+                $igvGeneral += (float)$venta->igv;
+            }
+        }
+
+        // Contar ventas anuladas para mostrar en el reporte
+        $cantidadAnuladas = $ventas->where('estado_venta', '==', 'anulada')->count();
+        $montoAnulado = $ventas->where('estado_venta', '==', 'anulada')->sum('total_venta');
 
         // Generar PDF
         $pdf = Pdf::loadView('reportes.ventas_export', [
@@ -71,6 +87,8 @@ class VentaExportController extends Controller
             'totalGeneral' => $totalGeneral,
             'subtotalGeneral' => $subtotalGeneral,
             'igvGeneral' => $igvGeneral,
+            'cantidadAnuladas' => $cantidadAnuladas,
+            'montoAnulado' => $montoAnulado,
             'fechaGeneracion' => now(),
         ]);
 

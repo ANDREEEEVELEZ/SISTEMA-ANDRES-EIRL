@@ -241,8 +241,9 @@
                 @foreach($ventas as $index => $venta)
                     @php
                         $comprobante = $venta->comprobantes->whereNotIn('tipo', ['nota de credito', 'nota de debito'])->first();
+                        $esAnulada = ($venta->estado_venta === 'anulada');
                     @endphp
-                    <tr>
+                    <tr @if($esAnulada) style="opacity: 0.6; background-color: #fee2e2 !important;" @endif>
                         <td>{{ $index + 1 }}</td>
                         <td>{{ \Carbon\Carbon::parse($venta->fecha_venta)->format('d/m/Y') }}</td>
                         <td>
@@ -271,9 +272,27 @@
                             <small>{{ $venta->cliente->tipo_doc ?? 'N/A' }}</small><br>
                             {{ $venta->cliente->num_doc ?? 'N/A' }}
                         </td>
-                        <td class="text-right">S/ {{ number_format((float)$venta->subtotal_venta, 2) }}</td>
-                        <td class="text-right">S/ {{ number_format((float)$venta->igv, 2) }}</td>
-                        <td class="text-right"><strong>S/ {{ number_format((float)$venta->total_venta, 2) }}</strong></td>
+                        <td class="text-right">
+                            @if($esAnulada)
+                                <span style="color: #dc2626;">-S/ {{ number_format((float)$venta->subtotal_venta, 2) }}</span>
+                            @else
+                                S/ {{ number_format((float)$venta->subtotal_venta, 2) }}
+                            @endif
+                        </td>
+                        <td class="text-right">
+                            @if($esAnulada)
+                                <span style="color: #dc2626;">-S/ {{ number_format((float)$venta->igv, 2) }}</span>
+                            @else
+                                S/ {{ number_format((float)$venta->igv, 2) }}
+                            @endif
+                        </td>
+                        <td class="text-right">
+                            @if($esAnulada)
+                                <strong style="color: #dc2626;">-S/ {{ number_format((float)$venta->total_venta, 2) }}</strong>
+                            @else
+                                <strong>S/ {{ number_format((float)$venta->total_venta, 2) }}</strong>
+                            @endif
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
@@ -282,7 +301,7 @@
         <div class="totales">
             <div class="totales-grid">
                 <div class="total-item">
-                    <h4> SUBTOTAL GENERAL</h4>
+                    <h4>SUBTOTAL GENERAL</h4>
                     <p>S/ {{ number_format((float)$subtotalGeneral, 2) }}</p>
                 </div>
                 <div class="total-item">
@@ -290,14 +309,23 @@
                     <p>S/ {{ number_format((float)$igvGeneral, 2) }}</p>
                 </div>
                 <div class="total-item">
-                    <h4> TOTAL GENERAL</h4>
+                    <h4>TOTAL GENERAL</h4>
                     <p>S/ {{ number_format((float)$totalGeneral, 2) }}</p>
                 </div>
             </div>
+            @if($cantidadAnuladas > 0)
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); font-size: 9px; text-align: center;">
+                    ℹ️ <strong>Ventas Anuladas:</strong> {{ $cantidadAnuladas }} venta(s) por S/ {{ number_format((float)$montoAnulado, 2) }}
+                    <span style="display: block; margin-top: 3px; opacity: 0.9;">(NO incluidas en el total general - se muestran solo para referencia)</span>
+                </div>
+            @endif
         </div>
 
         <div style="margin-top: 15px; font-size: 8px; color: #475569;">
             <strong>Total de registros:</strong> {{ $ventas->count() }} venta(s)
+            @if($cantidadAnuladas > 0)
+                <span style="color: #dc2626;"> ({{ $cantidadAnuladas }} anulada(s))</span>
+            @endif
         </div>
     @else
         <div class="no-data">
