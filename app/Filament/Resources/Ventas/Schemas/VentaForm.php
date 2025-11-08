@@ -376,7 +376,7 @@ class VentaForm
                                 $set('cliente_inactivo_nombre', null);
 
                                 Notification::make()
-                                    ->title('✅ Cliente Seleccionado')
+                                    ->title('Cliente Seleccionado')
                                     ->success()
                                     ->body("{$cliente->nombre_razon}")
                                     ->send();
@@ -1119,7 +1119,7 @@ class VentaForm
                         'tarjeta' => 'Tarjeta',
                         'yape' => 'Yape',
                         'plin' => 'Plin',
-                        'transferencia' => 'Transferencia Bancaria',
+                      //  'transferencia' => 'Transferencia Bancaria',
                     ])
                     ->required()
                     ->live()

@@ -13,7 +13,14 @@ return [
 
     'nombre' => env('EMPRESA_NOMBRE', 'CHIFLES ANDRES E.I.R.L.'),
     'ruc' => env('EMPRESA_RUC', '20609709406'),
-    'direccion' => env('EMPRESA_DIRECCION', 'AV. RAMON CASTILLA NRO 123 CERCADO '),
+    'razon_social' => env('EMPRESA_RAZON_SOCIAL', 'CHIFLES ANDRES E.I.R.L.'),
+    'nombre_comercial' => env('EMPRESA_NOMBRE_COMERCIAL', 'CHIFLES ANDRES'),
+    'direccion' => env('EMPRESA_DIRECCION', 'AV. RAMON CASTILLA NRO 123 CERCADO'),
+    'ubigeo' => env('EMPRESA_UBIGEO', '200101'), // Código UBIGEO INEI
+    'departamento' => env('EMPRESA_DEPARTAMENTO', 'PIURA'),
+    'provincia' => env('EMPRESA_PROVINCIA', 'PIURA'),
+    'distrito' => env('EMPRESA_DISTRITO', 'PIURA'),
+    'urbanizacion' => env('EMPRESA_URBANIZACION', '-'),
     'telefono' => env('EMPRESA_TELEFONO', '- -'),
    // 'email' => env('EMPRESA_EMAIL', 'ventas@andreseirl.com'),
    // 'web' => env('EMPRESA_WEB', 'www.andreseirl.com'),

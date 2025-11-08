@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Ventas\Pages;
 
 use App\Filament\Resources\Ventas\VentaResource;
+use App\Services\SunatService;
 use Filament\Resources\Pages\Page;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -14,6 +15,7 @@ use App\Models\Venta;
 use App\Models\Comprobante;
 use App\Models\SerieComprobante;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CrearNota extends Page
 {
@@ -114,6 +116,46 @@ class CrearNota extends Page
 
                             // Actualizar correlativo
                             $serie->increment('correlativo_actual');
+
+                            // 🚀 ENVÍO AUTOMÁTICO A SUNAT (Nota de Crédito)
+                            try {
+                                $sunatService = new SunatService();
+                                $resultado = $sunatService->enviarNotaCredito($comprobante);
+
+                                if ($resultado['success']) {
+                                    Log::info("Nota de crédito #{$comprobante->id} enviada a SUNAT exitosamente", [
+                                        'codigo' => $resultado['codigo'] ?? null,
+                                        'mensaje' => $resultado['message'] ?? null,
+                                    ]);
+
+                                    Notification::make()
+                                        ->title(' Nota enviada a SUNAT')
+                                        ->body($resultado['message'] ?? 'Nota aceptada por SUNAT')
+                                        ->success()
+                                        ->send();
+                                } else {
+                                    Log::warning(" Error al enviar nota #{$comprobante->id} a SUNAT", [
+                                        'error' => $resultado['message'] ?? 'Error desconocido',
+                                    ]);
+
+                                    Notification::make()
+                                        ->title('Advertencia SUNAT')
+                                        ->body($resultado['message'] ?? 'No se pudo enviar a SUNAT. Puede reintentar.')
+                                        ->warning()
+                                        ->send();
+                                }
+                            } catch (\Exception $e) {
+                                Log::error("Excepción al enviar nota #{$comprobante->id} a SUNAT", [
+                                    'error' => $e->getMessage(),
+                                    'trace' => $e->getTraceAsString(),
+                                ]);
+
+                                Notification::make()
+                                    ->title('No se pudo enviar a SUNAT')
+                                    ->body('La nota se registró correctamente, pero hubo un error con SUNAT.')
+                                    ->warning()
+                                    ->send();
+                            }
 
                             // Actualizar estado de la venta original
                             $this->venta->update(['estado_venta' => 'anulada']);

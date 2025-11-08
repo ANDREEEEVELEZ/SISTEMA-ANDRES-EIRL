@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Ventas\Pages;
 use App\Filament\Resources\Ventas\VentaResource;
 use App\Filament\Resources\Cajas\CajaResource;
 use App\Services\CajaService;
+use App\Services\SunatService;
 use App\Models\Producto;
 use App\Models\MovimientoInventario;
 use App\Models\Comprobante;
@@ -17,6 +18,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CreateVenta extends CreateRecord
 {
@@ -272,6 +274,68 @@ class CreateVenta extends CreateRecord
                     $serieComprobante->update([
                         'ultimo_numero' => (int) $this->datosComprobante['numero']
                     ]);
+
+                    // ═══════════════════════════════════════════════════════════
+                    // ENVÍO A SUNAT
+                    // ═══════════════════════════════════════════════════════════
+                    if (in_array($comprobante->tipo, ['factura', 'boleta'])) {
+                        try {
+                            $sunatService = new SunatService();
+
+                            // FACTURAS: Envío inmediato (síncrono)
+                            if ($comprobante->tipo === 'factura') {
+                                $resultado = $sunatService->enviarFacturaBoleta($comprobante);
+
+                                if ($resultado['success']) {
+                                    Log::info("Factura #{$comprobante->id} enviada a SUNAT exitosamente", [
+                                        'codigo' => $resultado['codigo'] ?? null,
+                                        'mensaje' => $resultado['message'] ?? null,
+                                    ]);
+
+                                    Notification::make()
+                                        ->title('Factura enviada a SUNAT')
+                                        ->body($resultado['message'] ?? 'Factura aceptada por SUNAT')
+                                        ->success()
+                                        ->send();
+                                } else {
+                                    Log::warning("Error al enviar factura #{$comprobante->id} a SUNAT", [
+                                        'error' => $resultado['message'] ?? 'Error desconocido',
+                                    ]);
+
+                                    Notification::make()
+                                        ->title('Advertencia SUNAT')
+                                        ->body($resultado['message'] ?? 'No se pudo enviar a SUNAT. Puede reintentar desde el listado.')
+                                        ->warning()
+                                        ->send();
+                                }
+                            }
+
+                            // BOLETAS: Guardadas para Resumen Diario (asíncrono)
+                            if ($comprobante->tipo === 'boleta') {
+                                Log::info("Boleta #{$comprobante->id} guardada. Se enviará en Resumen Diario automático a medianoche.");
+
+                                Notification::make()
+                                    ->title('Boleta guardada correctamente')
+                                    ->body('La boleta se enviará a SUNAT en el Resumen Diario automático (medianoche)')
+                                    ->success()
+                                    ->duration(5000)
+                                    ->send();
+                            }
+                        } catch (\Exception $e) {
+                            // Log del error pero NO detener la venta
+                            Log::error(" Excepción al enviar comprobante #{$comprobante->id} a SUNAT", [
+                                'error' => $e->getMessage(),
+                                'trace' => $e->getTraceAsString(),
+                            ]);
+
+                            // Notificación informativa
+                            Notification::make()
+                                ->title(' No se pudo enviar a SUNAT')
+                                ->body('La venta se registró correctamente, pero hubo un error al comunicarse con SUNAT. Puede reintentar más tarde.')
+                                ->warning()
+                                ->send();
+                        }
+                    }
                 }
             }
 

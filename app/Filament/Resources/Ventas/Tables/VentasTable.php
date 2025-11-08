@@ -12,6 +12,8 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Notifications\Notification;
+use App\Services\SunatService;
+use Illuminate\Support\Facades\Log;
 
 class VentasTable
 {
@@ -158,11 +160,73 @@ class VentasTable
                 }
             }
 
-            Notification::make()
-                ->title('Nota de Crédito Creada')
-                ->body("Se creó la Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} para anular {$comprobante->tipo} {$comprobante->serie}-{$comprobante->correlativo}. El inventario ha sido restablecido.")
-                ->success()
-                ->send();
+            // ENVIAR NOTA DE CRÉDITO A SUNAT (solo si el comprobante original ya fue enviado)
+            try {
+                // Verificar si el comprobante original ya fue enviado a SUNAT
+                $yaEnviadoASunat = false;
+
+                if ($comprobante->tipo === 'factura') {
+                    // Facturas se envían inmediatamente, verificar si tiene codigo_sunat
+                    $yaEnviadoASunat = !empty($comprobante->codigo_sunat);
+                } elseif ($comprobante->tipo === 'boleta') {
+                    // Boletas van a resumen, verificar si tiene ticket_sunat Y codigo_sunat
+                    $yaEnviadoASunat = !empty($comprobante->ticket_sunat) && !empty($comprobante->codigo_sunat);
+                }
+
+                if ($yaEnviadoASunat) {
+                    // El comprobante YA está en SUNAT, enviar la nota
+                    $sunatService = new SunatService();
+                    $resultadoEnvio = $sunatService->enviarNotaCredito($nota);
+
+                    if ($resultadoEnvio['success']) {
+                        Notification::make()
+                            ->title(' Nota de Crédito Aceptada por SUNAT')
+                            ->body("Se creó y envió exitosamente la Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} a SUNAT. El inventario ha sido restablecido.")
+                            ->success()
+                            ->duration(10000) // 10 segundos
+                            ->send();
+                    } else {
+                        Notification::make()
+                            ->title(' Nota de Crédito Creada (Error en envío)')
+                            ->body("Se creó la Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} pero falló el envío a SUNAT: {$resultadoEnvio['message']}")
+                            ->warning()
+                            ->duration(12000) // 12 segundos
+                            ->send();
+                    }
+                } else {
+                    // El comprobante NO ha sido enviado a SUNAT todavía
+                    $tipoDoc = strtoupper($comprobante->tipo);
+                    $mensaje = " Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} creada localmente.\n\n";
+
+                    if ($comprobante->tipo === 'boleta') {
+                        $mensaje .= " La boleta {$comprobante->serie}-{$comprobante->correlativo} NO ha sido enviada a SUNAT aún .\n\n";
+                        $mensaje .= " La boleta ANULADA será excluida automáticamente del próximo Resumen Diario.\n\n";
+                       // $mensaje .= " No necesitas hacer nada más. Para SUNAT, esta boleta no existirá.";
+                    } else {
+                        $mensaje .= "El {$tipoDoc} {$comprobante->serie}-{$comprobante->correlativo} no fue enviado a SUNAT.\n\n";
+                        $mensaje .= " La Nota de Crédito está lista. Use 'Reenviar' si necesita enviarla después.";
+                    }
+
+                    Notification::make()
+                        ->title(' Nota de Crédito Creada')
+                        ->body($mensaje)
+                        ->success()
+                        ->duration(12000) // 12 segundos
+                        ->send();
+                }
+            } catch (\Exception $envioException) {
+                Log::error('Error al enviar nota de crédito a SUNAT', [
+                    'nota_id' => $nota->id,
+                    'error' => $envioException->getMessage(),
+                ]);
+
+                Notification::make()
+                    ->title('⚠️ Nota de Crédito Creada (Error en envío)')
+                    ->body("Se creó la Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} pero falló el envío a SUNAT. Use el botón 'Reenviar' para intentar nuevamente.")
+                    ->warning()
+                    ->duration(12000) // 12 segundos
+                    ->send();
+            }
 
         } catch (\Exception $e) {
             Notification::make()
@@ -296,7 +360,7 @@ class VentasTable
                     ->color('success'),
 
                 BadgeColumn::make('metodo_pago')
-                    ->label('Método Pago')
+                    ->label('Pago')
                     ->colors([
                         'success' => 'efectivo',
                         'primary' => 'tarjeta',
@@ -421,7 +485,107 @@ class VentasTable
                     }),
             ])
             ->recordActions([
-                // BOTÓN 1: Imprimir (siempre visible)
+                // BOTÓN 1: Reenviar a SUNAT (solo visible si hay ERROR en el último comprobante)
+                Action::make('reenviar_sunat')
+                    ->label('Reenviar')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->visible(function ($record) {
+                        // Obtener el ÚLTIMO comprobante emitido (puede ser factura, boleta o nota)
+                        $ultimoComprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['ticket']) // Excluir solo tickets
+                            ->where('estado', 'emitido')
+                            ->latest('id')
+                            ->first();
+
+                        // Mostrar SOLO si hay error de envío
+                        return $ultimoComprobante &&
+                               !empty($ultimoComprobante->error_envio);
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Reenviar a SUNAT')
+                    ->modalDescription(function ($record) {
+                        $ultimoComprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['ticket'])
+                            ->where('estado', 'emitido')
+                            ->latest('id')
+                            ->first();
+
+                        if (!$ultimoComprobante) {
+                            return '¿Desea enviar este comprobante a SUNAT?';
+                        }
+
+                        $tipo = strtoupper($ultimoComprobante->tipo);
+                        $serie = $ultimoComprobante->serie;
+                        $correlativo = $ultimoComprobante->correlativo;
+
+                        return " {$tipo} {$serie}-{$correlativo}\n\n¿Desea reintentar el envío a SUNAT?";
+                    })
+                    ->action(function ($record) {
+                        $ultimoComprobante = $record->comprobantes()
+                            ->whereNotIn('tipo', ['ticket'])
+                            ->where('estado', 'emitido')
+                            ->latest('id')
+                            ->first();
+
+                        if (!$ultimoComprobante) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('No se encontró el comprobante')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        try {
+                            $sunatService = new SunatService();
+
+                            // Determinar qué método usar según el tipo
+                            if ($ultimoComprobante->tipo === 'factura' || $ultimoComprobante->tipo === 'boleta') {
+                                $resultado = $sunatService->reenviarComprobante($ultimoComprobante);
+                            } elseif ($ultimoComprobante->tipo === 'nota de credito') {
+                                $resultado = $sunatService->enviarNotaCredito($ultimoComprobante);
+                            } else {
+                                throw new \Exception('Tipo de comprobante no soportado para envío a SUNAT');
+                            }
+
+                            if ($resultado['success']) {
+                                Notification::make()
+                                    ->title('Enviado a SUNAT')
+                                    ->body($resultado['message'] ?? 'Comprobante aceptado por SUNAT')
+                                    ->success()
+                                    ->send();
+
+                                Log::info("Comprobante #{$ultimoComprobante->id} reenviado exitosamente", [
+                                    'tipo' => $ultimoComprobante->tipo,
+                                    'codigo' => $resultado['codigo'] ?? null,
+                                ]);
+                            } else {
+                                Notification::make()
+                                    ->title(' Error de SUNAT')
+                                    ->body($resultado['message'] ?? 'No se pudo enviar a SUNAT')
+                                    ->danger()
+                                    ->send();
+
+                                Log::warning(" Error al reenviar comprobante #{$ultimoComprobante->id}", [
+                                    'error' => $resultado['message'] ?? 'Error desconocido',
+                                ]);
+                            }
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title(' Error')
+                                ->body('Error al comunicarse con SUNAT: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+
+                            Log::error(" Excepción al reenviar comprobante #{$ultimoComprobante->id}", [
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    })
+                    ->extraAttributes(['style' => 'min-width:110px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; padding-left:2px; margin-right:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:4px 4px; line-height:1;']),
+
+                // BOTÓN 2: Imprimir (siempre visible)
                 Action::make('imprimir')
                     ->label('Imprimir')
                     ->icon('heroicon-o-printer')
@@ -430,7 +594,7 @@ class VentasTable
                     ->extraAttributes(['style' => 'min-width:110px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; padding-left:2px; margin-right:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:4px 4px; line-height:1;'])
                     ->openUrlInNewTab(true),
 
-                // BOTÓN 2: Imprimir Nota O Anular/Emitir Nota (uno u otro, siempre 2 botones totales)
+                // BOTÓN 3: Imprimir Nota O Anular/Emitir Nota (uno u otro, siempre 2 botones totales)
                 // Opción A: Imprimir Nota (si existe nota emitida)
                 Action::make('imprimir_nota')
                     ->label('Nota')
