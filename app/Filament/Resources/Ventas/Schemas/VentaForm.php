@@ -114,8 +114,51 @@ class VentaForm
                     ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id')) // Deshabilitado si hay caja anterior o no hay caja
                     //->helperText(fn (callable $get) => !$get('caja_id') ? 'Primero debe seleccionar una caja' : 'Seleccione el tipo de comprobante')
                     ->live()
-                    ->afterStateUpdated(function ($state, $set) {
+                    ->afterStateUpdated(function ($state, $set, $get) {
                         if (!$state) return;
+
+                        if ($state === 'boleta') {
+                            try {
+                                $clienteDefaultId = Cliente::where('num_doc', '00000000')->value('id');
+                                if ($clienteDefaultId) {
+                                    $currentCliente = $get('cliente_id');
+                                    if (empty($currentCliente)) {
+                                        $set('cliente_id', $clienteDefaultId);
+
+                                        // También establecer información legible para el formulario
+                                        $cliente = Cliente::find($clienteDefaultId);
+                                        if ($cliente) {
+                                            $set('cliente_encontrado', [
+                                                'tipo_doc' => $cliente->tipo_doc,
+                                                'num_doc' => $cliente->num_doc,
+                                                'nombre' => $cliente->nombre_razon,
+                                                'direccion' => $cliente->direccion,
+                                            ]);
+                                        }
+                                    }
+                                }
+                            } catch (\Exception $e) {
+                                Log::warning('No se pudo preseleccionar cliente por defecto: ' . $e->getMessage());
+                            }
+                        } elseif ($state === 'factura') {
+                            // Asegurarnos de que el cliente por defecto (DNI 00000000)
+                            // no quede seleccionado para facturas (solo RUC permitidos)
+                            try {
+                                $currentCliente = $get('cliente_id');
+                                if (!empty($currentCliente)) {
+                                    $cliente = Cliente::find($currentCliente);
+                                    if ($cliente && $cliente->num_doc === '00000000') {
+                                        // Limpiar selección para forzar elegir un RUC válido
+                                        $set('cliente_id', null);
+                                        $set('cliente_encontrado', null);
+                                        $set('cliente_inactivo_encontrado', null);
+                                        $set('cliente_inactivo_nombre', null);
+                                    }
+                                }
+                            } catch (\Exception $e) {
+                                Log::warning('Error al limpiar cliente por defecto al seleccionar factura: ' . $e->getMessage());
+                            }
+                        }
 
                         // Buscar la serie correspondiente al tipo seleccionado
                         $serieComprobante = SerieComprobante::where('tipo', $state)->first();
@@ -206,8 +249,9 @@ class VentaForm
                         if ($tipoComprobante === 'factura') {
                             return 'Buscar por RUC o nombre de empresa...';
                         }
-                        return 'Buscar por DNI o nombre...';
+                        return '';
                     })
+                    ->reactive()
                     ->searchable()
                     ->allowHtml()
                     ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id'))

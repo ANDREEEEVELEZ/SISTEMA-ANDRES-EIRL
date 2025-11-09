@@ -15,27 +15,43 @@ class TotalesCajaWidget extends BaseWidget
         $caja = Caja::where('estado', 'abierta')->latest('fecha_apertura')->first();
 
         if (! $caja) {
-            $totalVentas = 0;
+            $totalVentasEfectivo = 0;
+            $totalVentasOtrosMedios = 0;
             $totalIngresos = 0;
             $totalEgresos = 0;
         } else {
-            // Excluir ventas anuladas del total
-            $totalVentas = Venta::where('caja_id', $caja->id)
+            // Excluir ventas anuladas del total y SOLO contar ventas en EFECTIVO
+            $totalVentasEfectivo = Venta::where('caja_id', $caja->id)
+                ->where('metodo_pago', 'efectivo')
                 ->where('estado_venta', '!=', 'anulada')
                 ->sum('total_venta');
+
+            // Ventas por OTROS MEDIOS DE PAGO (yape, plin, transferencia, tarjeta)
+            $totalVentasOtrosMedios = Venta::where('caja_id', $caja->id)
+                ->where('metodo_pago', '!=', 'efectivo')
+                ->where('estado_venta', '!=', 'anulada')
+                ->sum('total_venta');
+
             $totalIngresos = MovimientoCaja::where('caja_id', $caja->id)->where('tipo', 'ingreso')->sum('monto');
             $totalEgresos = MovimientoCaja::where('caja_id', $caja->id)->where('tipo', 'egreso')->sum('monto');
         }
 
         return [
-            Stat::make('Total de Ventas', 'S/ ' . number_format($totalVentas, 2))
+            Stat::make('Total de Ventas (Efectivo)', 'S/ ' . number_format($totalVentasEfectivo, 2))
                 ->description('Caja abierta')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
+
+            Stat::make('Ventas (Otros medios)', 'S/ ' . number_format($totalVentasOtrosMedios, 2))
+                ->description('Yape, Plin, Transferencia, Tarjeta')
+                ->descriptionIcon('heroicon-m-credit-card')
+                ->color('info'),
+
             Stat::make('Total de Ingresos', 'S/ ' . number_format($totalIngresos, 2))
                 ->description('Caja abierta')
                 ->descriptionIcon('heroicon-m-plus')
                 ->color('primary'),
+
             Stat::make('Total de Egresos', 'S/ ' . number_format($totalEgresos, 2))
                 ->description('Caja abierta')
                 ->descriptionIcon('heroicon-m-minus')

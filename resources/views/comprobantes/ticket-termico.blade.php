@@ -448,7 +448,7 @@
                         @default
                             {{ strtoupper($venta->metodo_pago) }}
                     @endswitch
-                    @if($venta->cod_operacion)
+                    @if($venta->cod_operacion && (!isset($comprobante) || (isset($comprobante) && $comprobante->tipo === 'ticket')))
                         &nbsp;&nbsp;|&nbsp;&nbsp;<span class="info-label">Cód. Operación:</span> {{ $venta->cod_operacion }}
                     @endif
                 </span>

@@ -221,7 +221,7 @@ class VentasTable
                 ]);
 
                 Notification::make()
-                    ->title('⚠️ Nota de Crédito Creada (Error en envío)')
+                    ->title(' Nota de Crédito Creada (Error en envío)')
                     ->body("Se creó la Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} pero falló el envío a SUNAT. Use el botón 'Reenviar' para intentar nuevamente.")
                     ->warning()
                     ->duration(12000) // 12 segundos

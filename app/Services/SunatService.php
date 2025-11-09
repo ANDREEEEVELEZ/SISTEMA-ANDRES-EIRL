@@ -727,8 +727,10 @@ class SunatService
                 ->where('estado', 'emitido') // ⚠️ CRÍTICO: Excluir anuladas
                 ->whereDoesntHave('comprobanteRelacionesRelacionado', function ($query) {
                     // Excluir boletas que ya tienen NC creadas (anuladas antes del envío)
-                    $query->whereHas('serieComprobante', function ($q) {
-                        $q->where('codigo_tipo_comprobante', '07'); // Nota de Crédito
+                    $query->whereHas('comprobanteOrigen', function ($q) {
+                        $q->whereHas('serieComprobante', function ($sq) {
+                            $sq->where('codigo_tipo_comprobante', '07'); // Nota de Crédito
+                        });
                     });
                 })
                 ->get();
