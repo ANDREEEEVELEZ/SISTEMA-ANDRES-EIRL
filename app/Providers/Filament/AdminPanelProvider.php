@@ -33,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->passwordReset()
             ->brandLogo(asset('images/AndresEIRL.png'))
             ->brandLogoHeight('120px')
             ->colors([
