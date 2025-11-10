@@ -20,6 +20,33 @@ class EditEmpleado extends EditRecord
     }
 
     /**
+     * Sincronizar datos antes de guardar
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // Sincronizar el correo y nombre en la tabla users
+        if ($this->record->user) {
+            $emailCambiado = $this->record->user->email !== $data['correo_empleado'];
+            
+            $this->record->user->update([
+                'email' => $data['correo_empleado'] ?? $this->record->user->email,
+                'name' => $data['nombres'] . ' ' . $data['apellidos'],
+            ]);
+            
+            // Notificar si el email cambió
+            if ($emailCambiado) {
+                Notification::make()
+                    ->title('Correo actualizado')
+                    ->body('El correo de acceso al sistema ha sido actualizado correctamente.')
+                    ->success()
+                    ->send();
+            }
+        }
+        
+        return $data;
+    }
+
+    /**
      * Después de actualizar el empleado, procesar cambios en la imagen facial
      */
     protected function afterSave(): void

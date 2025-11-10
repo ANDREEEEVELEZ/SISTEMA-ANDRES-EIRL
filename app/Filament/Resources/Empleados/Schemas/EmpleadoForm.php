@@ -52,7 +52,26 @@ class EmpleadoForm
                 TextInput::make('correo_empleado')
                     ->label('Correo Electrónico')
                     ->email()
-                    ->maxLength(100),
+                    ->required()
+                    ->maxLength(100)
+                    ->helperText('Este correo se usará para iniciar sesión en el sistema.')
+                    ->validationAttribute('correo electrónico')
+                    ->rules([
+                        function ($record): \Closure {
+                            return function (string $attribute, $value, \Closure $fail) use ($record) {
+                                // Verificar si el correo ya existe en users, ignorando el usuario actual del empleado
+                                $query = \App\Models\User::where('email', $value);
+                                
+                                if ($record && $record->user_id) {
+                                    $query->where('id', '!=', $record->user_id);
+                                }
+                                
+                                if ($query->exists()) {
+                                    $fail('Este correo electrónico ya está registrado en el sistema.');
+                                }
+                            };
+                        },
+                    ]),
                 
                 TextInput::make('distrito')
                     ->label('Distrito')
