@@ -37,7 +37,19 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(asset('images/AndresEIRL.png'))
             ->brandLogoHeight('120px')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => [
+                    50 => '#fcf1f4',
+                    100 => '#fae8ed',
+                    200 => '#f7d1dd',
+                    300 => '#f2adc2',
+                    400 => '#ea7ea0',
+                    500 => '#de557e',
+                    600 => '#c93862',
+                    700 => '#9b2c4d',
+                    800 => '#822542',
+                    900 => '#6e233a',
+                    950 => '#3f101c',
+                ],
             ])
             ->darkMode(false)
 
