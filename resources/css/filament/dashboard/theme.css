@@ -1,0 +1,276 @@
+/* ====================================================================
+   THEME SIMPLE - Solo cambia color del sidebar a #8a2e4a
+   ==================================================================== */
+
+/* FIX CRÍTICO: Controlar tamaño de SVG que están creciendo sin control */
+/* Global emergency override */
+svg {
+    max-width: 1.5rem !important;
+    max-height: 1.5rem !important;
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+    flex-shrink: 0 !important;
+}
+
+/* Overrides more specific for critical areas */
+body svg,
+html svg,
+* svg {
+    max-width: 1.5rem !important;
+    max-height: 1.5rem !important;
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+}
+
+/* Íconos de Filament - tamaño estándar MUY ESPECÍFICO */
+.fi-icon svg,
+.fi-sidebar-item-icon svg,
+.fi-topbar-item svg,
+.fi-btn svg,
+.fi-badge svg,
+.fi-ta-icon svg,
+.fi-ac-icon svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    max-width: 1.25rem !important;
+    max-height: 1.25rem !important;
+    min-width: 1.25rem !important;
+    min-height: 1.25rem !important;
+}
+
+/* Fix para íconos dentro de botones */
+button svg,
+.fi-btn svg,
+.fi-button svg {
+    width: 1rem !important;
+    height: 1rem !important;
+    max-width: 1rem !important;
+    max-height: 1rem !important;
+}
+
+/* Fix para íconos en tablas y formularios */
+.fi-table svg,
+.fi-form svg,
+.fi-input svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    max-width: 1.25rem !important;
+    max-height: 1.25rem !important;
+}
+
+/* Color del sidebar - azul profesional */
+.fi-sidebar {
+    background-color: #1E4E8C !important; /* azul más formal y oscuro */
+}
+
+.fi-sidebar-item-icon {
+    color: #cfe9ff !important; /* iconos claros que contrastan con el azul */
+}
+
+.fi-sidebar-item-label,
+.fi-sidebar-item a {
+    color: #e6f3ff !important; /* texto por defecto claro pero no puro blanco */
+}
+
+/* Hover: fondo más oscuro y texto del módulo en blanco y negrita para destacar */
+.fi-sidebar-item a:hover {
+    background-color: #153d6b !important; /* hover más oscuro */
+}
+
+.fi-sidebar-item a:hover .fi-sidebar-item-label {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+/* Activo: aún más oscuro */
+.fi-sidebar-item-active a {
+    background-color: #0f2e55 !important; /* estado activo */
+    font-weight: 700 !important;
+}
+
+.fi-sidebar-item-active .fi-sidebar-item-icon,
+.fi-sidebar-item-active .fi-sidebar-item-label {
+    color: #ffffff !important;
+}
+
+.fi-sidebar-group-label,
+.fi-sidebar-group div span {
+    color: white !important;
+}
+
+/* FIX CONTENIDO DISTORSIONADO: Restaurar layout normal */
+.fi-main-ctn,
+.fi-page,
+.fi-simple-page,
+.fi-resource-page {
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+}
+
+/* FIX PARA TABLAS */
+.fi-table {
+    width: 100% !important;
+    table-layout: auto !important;
+}
+
+.fi-table td,
+.fi-table th {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Reducción ligera para contenido de tablas en páginas de recursos (ej. Clientes) */
+.fi-resource-page .fi-table,
+.fi-resource-index .fi-table,
+.fi-resource-page .fi-table td,
+.fi-resource-index .fi-table td,
+.fi-resource-page .fi-table th,
+.fi-resource-index .fi-table th {
+    font-size: 0.82rem !important; /* un poco más pequeño */
+    padding: 0.4rem 0.5rem !important; /* menos padding para filas más compactas */
+}
+
+/* Ajuste para filas y acciones */
+.fi-resource-page .filament-table-row,
+.fi-resource-index .filament-table-row {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+}
+
+/* FIX PARA FORMULARIOS */
+.fi-form-section,
+.fi-fieldset {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* FIX ESPECÍFICO PARA PREVENIR SVG GIGANTES */
+[class*="fi-"] svg {
+    max-width: 1.25rem !important;
+    max-height: 1.25rem !important;
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    flex-shrink: 0 !important;
+}
+
+/* SUPER ESPECÍFICO - Para cualquier SVG en el panel admin */
+.fi-sidebar svg,
+.fi-topbar svg,
+.fi-main svg,
+.fi-header svg,
+.fi-panel svg,
+nav svg,
+aside svg,
+header svg {
+    max-width: 1.25rem !important;
+    max-height: 1.25rem !important;
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    flex-shrink: 0 !important;
+}
+
+/* MEGA FIX - Para texto que puede estar distorsionado */
+.fi-main-ctn * {
+    font-size: inherit !important;
+    line-height: inherit !important;
+}
+
+/* Excepciones para logos o imágenes que SÍ pueden ser grandes */
+.fi-logo svg,
+.fi-brand svg,
+.fi-application-logo svg,
+img {
+    max-width: none !important;
+    max-height: none !important;
+    width: auto !important;
+    height: auto !important;
+}
+
+/* ====================================================================
+   PAGINACIÓN - Números en negro para todas las tablas
+   ==================================================================== */
+.filament-pagination a,
+.filament-pagination button,
+.fi-pagination a,
+.fi-pagination button,
+.pagination a,
+.pagination button,
+.page-link,
+.page-item a {
+    color: #000 !important;
+    background: transparent !important;
+}
+
+/* Asegurar que el número activo también tenga texto negro si se desea */
+.filament-pagination .active a,
+.pagination .active a,
+.page-item.active a {
+    color: #000 !important;
+    font-weight: 700 !important;
+}
+
+/* ====================================================================
+   BOTONES - Color del sidebar con texto blanco
+   ==================================================================== */
+.fi-btn-primary,
+.fi-btn[type="submit"],
+button[type="submit"],
+.filament-button,
+.fi-ac-btn-action {
+    background-color: #1E4E8C !important;
+    color: white !important;
+    border-color: #1E4E8C !important;
+}
+
+.fi-btn-primary:hover,
+.fi-btn[type="submit"]:hover,
+button[type="submit"]:hover,
+.filament-button:hover,
+.fi-ac-btn-action:hover {
+    background-color: #153d6b !important;
+    border-color: #153d6b !important;
+}
+
+/* Texto de botones siempre blanco */
+.fi-btn span,
+button span,
+.filament-button span {
+    color: white !important;
+}
+
+/* ====================================================================
+   TABLAS - Reducir tamaño de fuente
+   ==================================================================== */
+.fi-table td,
+.fi-table th,
+.fi-table tbody,
+.fi-ta-text {
+    font-size: 0.875rem !important; /* Reducido de 1rem */
+    line-height: 1.25rem !important;
+}
+
+/* ====================================================================
+   FIX BARRA BLANCA AL SELECCIONAR MÓDULO
+   ==================================================================== */
+/* Eliminar barra de selección activa que aparece encima */
+.fi-sidebar-item-active::before,
+.fi-sidebar-item-active::after,
+.fi-sidebar-item::before,
+.fi-sidebar-item::after {
+    display: none !important;
+}
+
+/* Transparentar cualquier overlay o barra superior en items activos */
+.fi-sidebar-item-active > *:first-child,
+.fi-sidebar-item > *:first-child {
+    background: transparent !important;
+}
+
+/* Asegurar que no haya bordes o líneas superiores */
+.fi-sidebar-item,
+.fi-sidebar-item-active {
+    border-top: none !important;
+    border-bottom: none !important;
+}

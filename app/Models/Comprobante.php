@@ -15,29 +15,28 @@ class Comprobante extends Model
     protected $table = 'comprobantes';
 
     protected $fillable = [
-        'venta_id',
-        'serie_comprobante_id',
-        'tipo',
-        'codigo_tipo_nota',
-        'serie',
-        'correlativo',
-        'fecha_emision',
-        'sub_total',
-        'igv',
-        'total',
-        'estado',
-        'motivo_anulacion',
-        'hash_sunat',
-        'codigo_sunat',
-        'xml_firmado',
-        // 'cdr_respuesta', // ELIMINADO: solo usamos ruta_cdr (archivo en storage)
-        'ruta_xml',
-        'ruta_cdr',
-        'fecha_envio_sunat',
-        'intentos_envio',
-        'error_envio',
-        'ticket_sunat', // Para Resumen Diario de boletas (respuesta asíncrona)
-    ];
+            'venta_id',
+            'serie_comprobante_id',
+            'tipo',
+            'codigo_tipo_nota',
+            'serie',
+            'correlativo',
+            'fecha_emision',
+            'sub_total',
+            'igv',
+            'total',
+            'estado',
+            'motivo_anulacion',
+            'hash_sunat',
+            'codigo_sunat',
+            'xml_firmado',
+            'ruta_xml',
+            'ruta_cdr',
+            'fecha_envio_sunat',
+            'intentos_envio',
+            'error_envio',
+            'ticket_sunat',
+        ];
 
     protected $casts = [
         'fecha_emision' => 'datetime',
