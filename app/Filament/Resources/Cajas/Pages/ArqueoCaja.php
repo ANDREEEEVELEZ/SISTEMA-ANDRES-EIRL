@@ -361,20 +361,6 @@ class ArqueoCaja extends Page implements HasForms
             ]);
         }
 
-        // Generar PDF y guardarlo en storage/app/public/arqueos (reutilizamos código)
-        $pdf = Pdf::loadView('reportes.arqueo', ['arqueo' => $arqueo->fresh()]);
-
-        $folder = storage_path('app/public/arqueos');
-        if (!is_dir($folder)) {
-            mkdir($folder, 0755, true);
-        }
-
-        $filename = sprintf('arqueo_caja_%d_%s.pdf', $arqueo->caja_id, $arqueo->created_at->format('Ymd_His'));
-        $path = $folder . DIRECTORY_SEPARATOR . $filename;
-        $pdf->save($path);
-
-    // Nota: no guardamos la ruta del PDF en la base de datos por decisión del sistema
-
         // Actualizar estado local y rellenar formulario en modo bloqueado
         $this->arqueo = $arqueo->fresh();
         $this->data['efectivo_contado'] = $this->arqueo->efectivo_contado;
