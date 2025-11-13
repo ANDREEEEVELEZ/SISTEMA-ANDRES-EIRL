@@ -35,6 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->passwordReset()
             ->brandLogo(asset('images/AndresEIRL.png'))
+            ->renderHook('panels::head.end', fn () => '<link rel="stylesheet" href="'.asset('css/admin-theme.css').'">')
             ->brandLogoHeight('120px')
             ->colors([
                 'primary' => [

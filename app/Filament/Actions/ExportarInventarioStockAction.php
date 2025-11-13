@@ -14,7 +14,7 @@ class ExportarInventarioStockAction
     {
         return Action::make('exportar_stock')
             ->label('Exportar Stock')
-            ->icon('heroicon-o-document-arrow-down')
+          ->icon('heroicon-o-arrow-down-tray')
             ->color('success')
             ->form([
                 Select::make('categoria_id')
@@ -22,7 +22,7 @@ class ExportarInventarioStockAction
                     ->options(Categoria::pluck('NombreCategoria', 'id'))
                     ->searchable()
                     ->placeholder('Todas las categorías'),
-                
+
                 Select::make('estado_stock')
                     ->label('Filtrar por Estado de Stock')
                     ->options([
@@ -37,7 +37,7 @@ class ExportarInventarioStockAction
             ->action(function (array $data) {
                 $params = http_build_query(array_filter($data));
                 $url = route('reportes.inventario.stock') . ($params ? '?' . $params : '');
-                
+
                 Notification::make()
                     ->title('Generando reporte...')
                     ->body('El reporte de stock se abrirá en una nueva pestaña.')

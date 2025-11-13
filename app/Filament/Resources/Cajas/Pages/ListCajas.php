@@ -47,7 +47,7 @@ class ListCajas extends ListRecords
         return [
             Action::make('registrarMovimiento')
                 ->label('Registrar movimiento')
-                ->icon('heroicon-o-plus')
+              //  ->icon('heroicon-o-plus')
                 ->color('primary')
                 ->url(CajaResource::getUrl('registrar-movimiento')),
 

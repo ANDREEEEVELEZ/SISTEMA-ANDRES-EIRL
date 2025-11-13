@@ -15,7 +15,7 @@ class ExportarMovimientosInventarioAction
     {
         return Action::make('exportar_movimientos')
             ->label('Exportar Movimientos')
-            ->icon('heroicon-o-document-text')
+           ->icon('heroicon-o-arrow-down-tray')
             ->color('primary')
             ->form([
                 DatePicker::make('fecha_inicio')
@@ -25,7 +25,7 @@ class ExportarMovimientosInventarioAction
                     ->maxDate(now())
                     ->native(false)
                     ->displayFormat('d/m/Y'),
-                
+
                 DatePicker::make('fecha_fin')
                     ->label('Fecha Fin')
                     ->default(now())
@@ -34,7 +34,7 @@ class ExportarMovimientosInventarioAction
                     ->native(false)
                     ->displayFormat('d/m/Y')
                     ->afterOrEqual('fecha_inicio'),
-                
+
                 Select::make('tipo')
                     ->label('Tipo de Movimiento')
                     ->options([
@@ -45,7 +45,7 @@ class ExportarMovimientosInventarioAction
                     ])
                     ->default('todos')
                     ->required(),
-                
+
                 Select::make('producto_id')
                     ->label('Filtrar por Producto')
                     ->options(Producto::orderBy('nombre_producto')->pluck('nombre_producto', 'id'))
@@ -55,7 +55,7 @@ class ExportarMovimientosInventarioAction
             ->action(function (array $data) {
                 $params = http_build_query(array_filter($data));
                 $url = route('reportes.inventario.movimientos') . ($params ? '?' . $params : '');
-                
+
                 Notification::make()
                     ->title('Generando reporte...')
                     ->body('El reporte de movimientos se abrirá en una nueva pestaña.')

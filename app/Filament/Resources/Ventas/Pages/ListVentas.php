@@ -90,7 +90,7 @@ class ListVentas extends ListRecords
             Action::make('anular_comprobante')
                 ->label('Emitir nota/Anular comprobante')
                 ->color('danger')
-                ->icon('heroicon-o-x-circle')
+                //->icon('heroicon-o-x-circle')
                 ->modal()
                 ->modalHeading('Emitir nota /Anular comprobante')
                 ->modalWidth('3xl')

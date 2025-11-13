@@ -1,0 +1,169 @@
+.fi-sidebar {
+                        background-color: #1E4E8C !important;
+                    }
+                    .fi-sidebar-item-icon {
+                        color: #cfe9ff !important;
+                    }
+                    .fi-sidebar-item-label,
+                    .fi-sidebar-item a {
+                        color: #e6f3ff !important;
+                    }
+                    .fi-sidebar-item a:hover {
+                        background-color: #153d6b !important;
+                    }
+                    .fi-sidebar-item a:hover .fi-sidebar-item-label {
+                        color: #ffffff !important;
+                        font-weight: 700 !important;
+                    }
+                    .fi-sidebar-item-active a {
+                        background-color: #0f2e55 !important;
+                        font-weight: 700 !important;
+                    }
+                    .fi-sidebar-item-active .fi-sidebar-item-icon,
+                    .fi-sidebar-item-active .fi-sidebar-item-label {
+                        color: #ffffff !important;
+                    }
+                    .fi-sidebar-group-label,
+                    .fi-sidebar-group div span {
+                        color: white !important;
+                    }
+                    /* Eliminar barra blanca */
+                    .fi-sidebar-item-active::before,
+                    .fi-sidebar-item-active::after,
+                    .fi-sidebar-item::before,
+                    .fi-sidebar-item::after {
+                        display: none !important;
+                    }
+                    .fi-sidebar-item,
+                    .fi-sidebar-item-active {
+                        border-top: none !important;
+                        border-bottom: none !important;
+                    }
+                    /* Botones */
+                    .fi-btn-primary,
+                    .fi-btn[type="submit"],
+                    button[type="submit"] {
+                        background-color: #1E4E8C !important;
+                        color: white !important;
+                        border-color: #1E4E8C !important;
+                    }
+                    .fi-btn-primary:hover,
+                    .fi-btn[type="submit"]:hover,
+                    button[type="submit"]:hover {
+                        background-color: #153d6b !important;
+                    }
+                    /* Tablas compactas */
+                    .fi-ta td,
+                    .fi-ta th {
+                        font-size: 0.875rem !important;
+                        padding: 0.5rem !important;
+                    }
+                    /* Paginación negra */
+                    .fi-pagination a,
+                    .fi-pagination button {
+                        color: #000 !important;
+                    }
+                      .fi-btn-primary,
+                .fi-btn[type="submit"],
+                button[type="submit"],
+                .fi-ac-btn-action {
+                    background-color: #1E4E8C !important;
+                    color: white !important;
+                    border-color: #1E4E8C !important;
+                }
+                .fi-btn-primary:hover,
+                .fi-btn[type="submit"]:hover,
+                button[type="submit"]:hover,
+                .fi-ac-btn-action:hover {
+                    background-color: #153d6b !important;
+                    border-color: #153d6b !important;
+                }
+                .fi-btn-primary svg,
+                .fi-btn[type="submit"] svg,
+                button[type="submit"] svg,
+                .fi-ac-btn-action svg,
+                .fi-btn svg {
+                    color: white !important;
+                    fill: white !important;
+                }
+
+
+                .fi-sidebar-item,
+                .fi-sidebar-item * {
+                    background: transparent !important;
+                    background-color: transparent !important;
+                }
+
+
+                .fi-sidebar-item .fi-sidebar-item-label,
+                .fi-sidebar-item .fi-sidebar-item-icon,
+                .fi-sidebar-item span,
+                .fi-sidebar-item a {
+                    position: relative !important;
+                    z-index: 10 !important;
+                    background: transparent !important;
+                }
+
+
+                .fi-sidebar-item a:hover .fi-sidebar-item-label,
+                .fi-sidebar-item-active .fi-sidebar-item-label {
+                    color: #ffd700 !important; /* dorado legible */
+                    font-weight: 700 !important;
+                }
+
+
+                .fi-sidebar-item [style*="background"] {
+                    background: transparent !important;
+                }
+
+
+                .fi-sidebar-item-active > a,
+                .fi-sidebar-item-active > div {
+
+                    box-shadow: inset 8px 0 0 0 #ffd700 !important;
+                    background-color: rgba(255, 215, 0, 0.12) !important;
+                    padding-left: 0.5rem !important;
+                    border-radius: 4px 0 0 4px !important;
+                }
+
+
+                .fi-sidebar-item-active .fi-sidebar-item-label,
+                .fi-sidebar-item-active .fi-sidebar-item-icon {
+                    color: #ffd700 !important;
+                    font-weight: 700 !important;
+                }
+
+
+                .fi-sidebar-item a:hover {
+                    background-color: rgba(255, 255, 255, 0.04) !important;
+                }
+
+
+                .fi-sidebar-item-active .fi-sidebar-item-label,
+                .fi-sidebar-item-active .fi-sidebar-item-icon,
+                .fi-sidebar-item-active a {
+                    color: #ffffff !important;
+                    z-index: 20 !important;
+                }
+
+
+                .fi-sidebar-item-active::before,
+                .fi-sidebar-item-active::after,
+                .fi-sidebar-item-active [class*="overlay"],
+                .fi-sidebar-item-active [class*="bg-"] {
+                    display: none !important;
+                    background: transparent !important;
+                }
+
+                .fi-sidebar-item-active > a::after {
+                    content: '' !important;
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    right: 0 !important;
+                    bottom: 0 !important;
+                    box-shadow: inset 0 0 12px rgba(255, 215, 0, 0.06) !important;
+                    pointer-events: none !important;
+                }
+
+
