@@ -33,13 +33,7 @@ class EmpleadosTable
                         }
                         return url('/images/default-avatar.png');
                     })
-                    ->size(60)
-                    ->width(60)
-                    ->height(60)
-                    ->extraImgAttributes([
-                        'style' => 'width: 60px !important; height: 60px !important; max-width: 60px !important; max-height: 60px !important; min-width: 60px !important; min-height: 60px !important; object-fit: cover !important; border-radius: 50% !important; display: block !important;',
-                        'class' => 'empleado-foto-tabla'
-                    ])
+                    ->size(50)
                     ->tooltip(fn ($record) => $record->face_descriptors ? 'Rostro registrado' : 'Sin rostro'),
                 
                 IconColumn::make('face_descriptors')

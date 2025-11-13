@@ -12,34 +12,35 @@ class CajaFactory extends Factory
 
     public function definition(): array
     {
+        $fechaApertura = fake()->dateTimeBetween('-30 days', 'now');
+        $estado = fake()->randomElement(['abierta', 'cerrada']);
+        
         return [
             'user_id' => User::factory(),
-            'fecha_apertura' => now(),
-            'saldo_inicial' => $this->faker->randomFloat(2, 100, 1000),
-            'estado' => 'abierta',
-            'observacion' => $this->faker->optional()->sentence(),
+            'fecha_apertura' => $fechaApertura,
+            'fecha_cierre' => $estado === 'cerrada' ? fake()->dateTimeBetween($fechaApertura, 'now') : null,
+            'saldo_inicial' => fake()->randomFloat(2, 100, 1000),
+            'saldo_final' => $estado === 'cerrada' ? fake()->randomFloat(2, 100, 2000) : null,
+            'estado' => $estado,
+            'observacion' => fake()->optional()->sentence(),
         ];
-    }
-
-    public function cerrada(): static
-    {
-        return $this->state(function (array $attributes) {
-            $saldoFinal = $this->faker->randomFloat(2, 500, 2000);
-
-            return [
-                'fecha_cierre' => now(),
-                'saldo_final' => $saldoFinal,
-                'estado' => 'cerrada',
-            ];
-        });
     }
 
     public function abierta(): static
     {
         return $this->state(fn (array $attributes) => [
+            'estado' => 'abierta',
             'fecha_cierre' => null,
             'saldo_final' => null,
-            'estado' => 'abierta',
+        ]);
+    }
+
+    public function cerrada(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'estado' => 'cerrada',
+            'fecha_cierre' => fake()->dateTimeBetween($attributes['fecha_apertura'], 'now'),
+            'saldo_final' => fake()->randomFloat(2, 100, 2000),
         ]);
     }
 }

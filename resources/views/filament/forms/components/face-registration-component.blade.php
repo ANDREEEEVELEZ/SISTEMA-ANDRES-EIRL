@@ -98,7 +98,7 @@
                                 <img 
                                     :src="capturedImage" 
                                     alt="Vista previa"
-                                    style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 4px solid #10b981; box-shadow: 0 10px 25px rgba(0,0,0,0.15);"
+                                    class="w-56 h-56 rounded-full object-cover border-4 border-success-500 shadow-xl"
                                 />
                             </div>
                         </div>
@@ -226,38 +226,6 @@
         </div>
     </div>
 </div>
-
-@push('styles')
-<style>
-    /* ESTILOS DIRECTOS PARA ARREGLAR DIMENSIONES DE ROSTROS */
-    .face-registration-component img[alt*="Vista previa"],
-    img[alt*="Vista previa"],
-    img[alt*="Rostro capturado"],
-    [x-show="capturedImage"] img {
-        width: 200px !important;
-        height: 200px !important;
-        max-width: 200px !important;
-        max-height: 200px !important;
-        min-width: 200px !important;
-        min-height: 200px !important;
-        border-radius: 50% !important;
-        object-fit: cover !important;
-        display: block !important;
-        margin: 0 auto !important;
-    }
-    
-    video[x-ref="video"] {
-        width: 100% !important;
-        height: 500px !important;
-        object-fit: cover !important;
-    }
-    
-    canvas[x-ref="canvas"] {
-        width: 100% !important;
-        height: 500px !important;
-    }
-</style>
-@endpush
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.min.js"></script>

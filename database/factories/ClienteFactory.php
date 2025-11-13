@@ -11,49 +11,69 @@ class ClienteFactory extends Factory
 
     public function definition(): array
     {
-        $tipo_doc = $this->faker->randomElement(['DNI', 'RUC']);
-
-        // Generar el número de documento según el tipo
-        $num_doc = $tipo_doc === 'DNI'
-            ? $this->faker->numerify('########')      // 8 dígitos
-            : $this->faker->numerify('###########');  // 11 dígitos
-
-        // Determinar tipo_cliente automáticamente
-        $tipo_cliente = $tipo_doc === 'RUC' ? 'juridica' : 'natural';
+        $tipoDoc = fake()->randomElement(['DNI', 'RUC']);
+        
+        if ($tipoDoc === 'DNI') {
+            $numDoc = fake()->numerify('########');
+            $tipoCliente = 'natural';
+        } else {
+            // Para RUC, determinamos el tipo por el prefijo
+            $prefijo = fake()->randomElement(['10', '20']);
+            $numDoc = $prefijo . fake()->numerify('#########');
+            $tipoCliente = $prefijo === '10' ? 'natural_con_negocio' : 'juridica';
+        }
 
         return [
-            'estado' => 'activo',
-            'tipo_doc' => $tipo_doc,
-            'num_doc' => $num_doc,
-            'nombre_razon' => $this->faker->company,
-            'telefono' => $this->faker->numerify('9########'),
-            'direccion' => $this->faker->address,
-            'fecha_registro' => now(),
-            'tipo_cliente' => $tipo_cliente,
+            'tipo_doc' => $tipoDoc,
+            'tipo_cliente' => $tipoCliente,
+            'num_doc' => $numDoc,
+            'nombre_razon' => fake()->name(),
+            'fecha_registro' => fake()->date('Y-m-d', 'now'),
+            'estado' => fake()->randomElement(['activo', 'inactivo']),
+            'telefono' => fake()->phoneNumber(),
+            'direccion' => fake()->address(),
         ];
     }
 
-    /**
-     * Estado con tipo_doc = DNI
-     */
-    public function conDNI()
+    public function conDni(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn (array $attributes) => [
             'tipo_doc' => 'DNI',
-            'num_doc' => $this->faker->numerify('########'),
             'tipo_cliente' => 'natural',
+            'num_doc' => fake()->numerify('########'),
         ]);
     }
 
-    /**
-     * Estado con tipo_doc = RUC
-     */
-    public function conRUC()
+    public function conRucNatural(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn (array $attributes) => [
             'tipo_doc' => 'RUC',
-            'num_doc' => $this->faker->numerify('###########'),
-            'tipo_cliente' => 'juridica', // ← corregido según ENUM
+            'tipo_cliente' => 'natural_con_negocio',
+            'num_doc' => '10' . fake()->numerify('#########'),
+        ]);
+    }
+
+    public function conRucJuridico(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'tipo_doc' => 'RUC',
+            'tipo_cliente' => 'juridica',
+            'num_doc' => '20' . fake()->numerify('#########'),
+            'nombre_razon' => fake()->company(),
+        ]);
+    }
+
+    public function activo(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'estado' => 'activo',
+        ]);
+    }
+
+    public function inactivo(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'estado' => 'inactivo',
         ]);
     }
 }
