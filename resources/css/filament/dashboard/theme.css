@@ -82,15 +82,24 @@ button svg,
     font-weight: 700 !important;
 }
 
-/* Activo: aún más oscuro */
-.fi-sidebar-item-active a {
-    background-color: #0f2e55 !important; /* estado activo */
+/* Activo: fondo más contrastante y borde lateral */
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn,
+.fi-sidebar-item.fi-active a {
+    background-color: #0a1f3f !important; /* fondo aún más oscuro para mejor contraste */
     font-weight: 700 !important;
+    border-left: 4px solid #60a5fa !important; /* borde azul claro para destacar */
+    box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.2) !important; /* sutil brillo interno */
 }
 
-.fi-sidebar-item-active .fi-sidebar-item-icon,
-.fi-sidebar-item-active .fi-sidebar-item-label {
+.fi-sidebar-item.fi-active .fi-sidebar-item-icon,
+.fi-sidebar-item.fi-active .fi-sidebar-item-label {
     color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important; /* sombra para mejor legibilidad */
+}
+
+/* Icono activo con color distintivo */
+.fi-sidebar-item.fi-active .fi-sidebar-item-icon {
+    color: #93c5fd !important; /* azul claro para el icono activo */
 }
 
 .fi-sidebar-group-label,
@@ -374,24 +383,39 @@ img[src*="data:image/png"],
    FIX BARRA BLANCA AL SELECCIONAR MÓDULO
    ==================================================================== */
 /* Eliminar barra de selección activa que aparece encima */
-.fi-sidebar-item-active::before,
-.fi-sidebar-item-active::after,
+.fi-sidebar-item.fi-active::before,
+.fi-sidebar-item.fi-active::after,
 .fi-sidebar-item::before,
 .fi-sidebar-item::after {
     display: none !important;
 }
 
-/* Transparentar cualquier overlay o barra superior en items activos */
-.fi-sidebar-item-active > *:first-child,
-.fi-sidebar-item > *:first-child {
-    background: transparent !important;
-}
-
-/* Asegurar que no haya bordes o líneas superiores */
+/* Asegurar que no haya bordes o líneas superiores (excepto borde izquierdo del activo) */
 .fi-sidebar-item,
-.fi-sidebar-item-active {
+.fi-sidebar-item.fi-active {
     border-top: none !important;
     border-bottom: none !important;
+    border-right: none !important;
+}
+
+/* Solo permitir borde izquierdo en elementos activos */
+.fi-sidebar-item:not(.fi-active) .fi-sidebar-item-btn,
+.fi-sidebar-item:not(.fi-active) a {
+    border-left: none !important;
+}
+
+/* Mejorar la transición del estado activo */
+.fi-sidebar-item .fi-sidebar-item-btn,
+.fi-sidebar-item a {
+    transition: all 0.2s ease-in-out !important;
+    border-radius: 0 8px 8px 0 !important; /* esquinas redondeadas solo del lado derecho */
+    margin-right: 8px !important; /* espacio del borde derecho */
+}
+
+/* Estado activo con animación suave */
+.fi-sidebar-item.fi-active .fi-sidebar-item-btn,
+.fi-sidebar-item.fi-active a {
+    transform: translateX(2px) !important; /* ligero desplazamiento para destacar */
 }
 
 /* ====================================================================
