@@ -258,8 +258,9 @@ img[alt*="capturado"],
 }
 
 /* ====================================================================
-   PAGINACIÓN - Números en negro para todas las tablas
+   PROBLEMA 5: PAGINACIÓN - Números en NEGRO para todas las tablas
    ==================================================================== */
+/* Selectores MUY específicos para asegurar que los números sean negros */
 .filament-pagination a,
 .filament-pagination button,
 .fi-pagination a,
@@ -267,17 +268,36 @@ img[alt*="capturado"],
 .pagination a,
 .pagination button,
 .page-link,
-.page-item a {
-    color: #000 !important;
+.page-item a,
+/* Selectores adicionales más específicos */
+nav[aria-label*="pagination"] a,
+nav[aria-label*="Pagination"] a,
+.fi-table-pagination a,
+.fi-ta-pagination a,
+[class*="pagination"] a,
+[class*="pagination"] button,
+[class*="pagination"] span {
+    color: #000000 !important; /* Negro puro para máxima visibilidad */
     background: transparent !important;
+    text-decoration: none !important;
 }
 
-/* Asegurar que el número activo también tenga texto negro si se desea */
+/* Números activos también en negro */
 .filament-pagination .active a,
 .pagination .active a,
-.page-item.active a {
-    color: #000 !important;
+.page-item.active a,
+nav[aria-label*="pagination"] .active a,
+[class*="pagination"] .active a {
+    color: #000000 !important; /* Negro puro */
     font-weight: 700 !important;
+    background: rgba(0, 0, 0, 0.1) !important; /* Fondo gris muy claro para distinguir el activo */
+}
+
+/* REGLA MEGA ESPECÍFICA para sobrescribir cualquier estilo que interfiera */
+.fi-main * [class*="pagination"] *,
+.fi-resource-page * [class*="pagination"] *,
+.fi-table * [class*="pagination"] * {
+    color: #000000 !important;
 }
 
 /* ====================================================================
