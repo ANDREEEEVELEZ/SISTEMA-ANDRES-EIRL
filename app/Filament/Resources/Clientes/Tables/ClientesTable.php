@@ -17,6 +17,7 @@ class ClientesTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('tipo_doc')
                     ->label('Tipo Documento')

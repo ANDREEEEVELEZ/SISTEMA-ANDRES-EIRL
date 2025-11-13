@@ -24,7 +24,7 @@ class EditCliente extends EditRecord
 
             Action::make('inactivar')
                 ->label('Inactivar Cliente')
-                ->icon('heroicon-o-x-circle')
+              //  ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->requiresConfirmation()
                 ->modalHeading('Inactivar Cliente')
@@ -48,7 +48,7 @@ class EditCliente extends EditRecord
             // Acción ACTIVAR - Solo aparece cuando el cliente está INACTIVO
             Action::make('activar')
                 ->label('Activar Cliente')
-                ->icon('heroicon-o-check-circle')
+              //  ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->requiresConfirmation()
                 ->modalHeading('Activar Cliente')

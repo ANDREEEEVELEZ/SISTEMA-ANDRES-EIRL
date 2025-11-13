@@ -4,6 +4,7 @@ namespace App\Services;
 
 use GuzzleHttp\Client;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class ApisNetPeService
 {
@@ -35,8 +36,33 @@ class ApisNetPeService
                 'query' => ['numero' => $numero],
             ]);
 
-            return json_decode($res->getBody()->getContents(), true);
+            $status = $res->getStatusCode();
+            $body = $res->getBody()->getContents();
+
+            // Registrar respuesta para facilitar debugging cuando no se encuentran datos
+            if ($status !== 200) {
+                Log::warning('ApisNetPeService::consultarRuc no 200', [
+                    'numero' => $numero,
+                    'status' => $status,
+                    'body' => $body,
+                ]);
+            } else {
+                // También loguear respuestas vacías o inesperadas
+                if (empty(trim($body))) {
+                    Log::warning('ApisNetPeService::consultarRuc respuesta vacía', [
+                        'numero' => $numero,
+                        'status' => $status,
+                        'body' => $body,
+                    ]);
+                }
+            }
+
+            return json_decode($body, true);
         } catch (Exception $e) {
+            Log::error('ApisNetPeService::consultarRuc excepción', [
+                'numero' => $numero,
+                'error' => $e->getMessage(),
+            ]);
             return ['error' => $e->getMessage()];
         }
     }
@@ -57,8 +83,31 @@ class ApisNetPeService
                 'query' => ['numero' => $numero],
             ]);
 
-            return json_decode($res->getBody()->getContents(), true);
+            $status = $res->getStatusCode();
+            $body = $res->getBody()->getContents();
+
+            if ($status !== 200) {
+                Log::warning('ApisNetPeService::consultarDni no 200', [
+                    'numero' => $numero,
+                    'status' => $status,
+                    'body' => $body,
+                ]);
+            } else {
+                if (empty(trim($body))) {
+                    Log::warning('ApisNetPeService::consultarDni respuesta vacía', [
+                        'numero' => $numero,
+                        'status' => $status,
+                        'body' => $body,
+                    ]);
+                }
+            }
+
+            return json_decode($body, true);
         } catch (Exception $e) {
+            Log::error('ApisNetPeService::consultarDni excepción', [
+                'numero' => $numero,
+                'error' => $e->getMessage(),
+            ]);
             return ['error' => $e->getMessage()];
         }
     }

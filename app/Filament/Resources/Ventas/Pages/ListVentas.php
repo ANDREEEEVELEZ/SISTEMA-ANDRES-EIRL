@@ -11,6 +11,7 @@ use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Support\Exceptions\Halt;
 use Illuminate\Support\Facades\Log;
 
 class ListVentas extends ListRecords
@@ -354,8 +355,7 @@ class ListVentas extends ListRecords
                 ->send();
 
             // Evitar que el modal se cierre
-            $this->halt();
-            return;
+            throw new Halt();
         }
 
         try {
@@ -418,7 +418,7 @@ class ListVentas extends ListRecords
                 ->danger()
                 ->send();
             // Evitar que el modal se cierre en caso de excepción
-            $this->halt();
+            throw new Halt();
         }
     }
 
@@ -432,8 +432,7 @@ class ListVentas extends ListRecords
                 ->send();
 
             // Evitar que el modal se cierre
-            $this->halt();
-            return;
+            throw new Halt();
         }
 
         try {
@@ -463,8 +462,7 @@ class ListVentas extends ListRecords
                     ->send();
 
                 // Evitar que el modal se cierre
-                $this->halt();
-                return;
+                throw new Halt();
             }
 
             $nota = \App\Models\Comprobante::create([
@@ -545,7 +543,7 @@ class ListVentas extends ListRecords
                 ->danger()
                 ->send();
             // Evitar que el modal se cierre en caso de excepción
-            $this->halt();
+            throw new Halt();
         }
     }
 

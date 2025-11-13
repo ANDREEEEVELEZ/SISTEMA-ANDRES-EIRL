@@ -132,27 +132,30 @@ class ClienteForm
                                             return;
                                         }
 
-                                        // Verificar diferentes estructuras de respuesta posibles
-                                        if (isset($response['full_name']) || isset($response['first_name']) || isset($response['nombres'])) {
+                                        // Verificar diferentes estructuras de respuesta posibles (como en VentaForm)
+                                        if (isset($response['full_name']) || isset($response['first_name']) || isset($response['nombres']) || isset($response['nombre_completo']) || isset($response['nombreCompleto'])) {
                                             $data = $response['data'] ?? $response;
 
-                                            // Priorizar full_name si existe (Decolecta API)
-                                            if (isset($data['full_name'])) {
-                                                $nombreCompleto = trim($data['full_name']);
+                                            // Intentar diferentes variaciones de nombres de campos
+                                            $nombres = $data['nombres'] ?? $data['name'] ?? $data['first_name'] ?? $data['primer_nombre'] ?? $data['nombre'] ?? '';
+                                            $apellidoPaterno = $data['apellido_paterno'] ?? $data['apellidoPaterno'] ?? $data['first_last_name'] ?? $data['paternal_surname'] ?? $data['apellidoP'] ?? '';
+                                            $apellidoMaterno = $data['apellido_materno'] ?? $data['apellidoMaterno'] ?? $data['second_last_name'] ?? $data['maternal_surname'] ?? $data['apellidoM'] ?? '';
+
+                                            // Si viene el nombre completo en un solo campo
+                                            $nombreCompletoDirecto = $data['full_name'] ?? $data['nombre_completo'] ?? $data['nombreCompleto'] ?? '';
+
+                                            // Construir nombre completo
+                                            if (!empty($nombreCompletoDirecto)) {
+                                                $nombreCompleto = trim($nombreCompletoDirecto);
                                             } else {
-                                                // Construir nombre desde campos individuales
-                                                $nombreCompleto = trim(
-                                                    ($data['first_name'] ?? $data['nombres'] ?? $data['primer_nombre'] ?? '') . ' ' .
-                                                    ($data['first_last_name'] ?? $data['apellidoPaterno'] ?? $data['apellido_paterno'] ?? '') . ' ' .
-                                                    ($data['second_last_name'] ?? $data['apellidoMaterno'] ?? $data['apellido_materno'] ?? '')
-                                                );
+                                                $nombreCompleto = trim("{$apellidoPaterno} {$apellidoMaterno} {$nombres}");
                                             }
 
-                                            if ($nombreCompleto) {
+                                            if ($nombreCompleto && strlen($nombreCompleto) > 3) {
                                                 $set('nombre_razon', $nombreCompleto);
 
                                                 Notification::make()
-                                                    ->title('✅ Datos encontrados')
+                                                    ->title('Datos encontrados')
                                                     ->body('Información completada: ' . $nombreCompleto)
                                                     ->success()
                                                     ->send();
@@ -210,13 +213,13 @@ class ClienteForm
                                             return;
                                         }
 
-                                        // Verificar diferentes estructuras de respuesta posibles
-                                        if (isset($response['business_name']) || isset($response['razonSocial']) || isset($response['nombre'])) {
+                                        // Verificar diferentes estructuras de respuesta posibles (igual que en VentaForm)
+                                        if (isset($response['razon_social']) || isset($response['razonSocial']) || isset($response['data']['razon_social']) || isset($response['business_name']) || isset($response['nombre'])) {
                                             $data = $response['data'] ?? $response;
 
-                                            // Priorizar business_name si existe (Decolecta API)
-                                            $razonSocial = $data['business_name'] ?? $data['razonSocial'] ?? $data['nombre'] ?? '';
-                                            $direccion = $data['address'] ?? $data['direccion'] ?? '';
+                                            // Priorizar razon_social (como en Ventas), luego business_name
+                                            $razonSocial = $data['razon_social'] ?? $data['razonSocial'] ?? $data['business_name'] ?? $data['nombre'] ?? '';
+                                            $direccion = $data['direccion'] ?? $data['address'] ?? '';
 
                                             if ($razonSocial) {
                                                 $set('nombre_razon', $razonSocial);
@@ -225,7 +228,7 @@ class ClienteForm
                                                 }
 
                                                 Notification::make()
-                                                    ->title('✅ Datos encontrados')
+                                                    ->title('Datos encontrados')
                                                     ->body('Información completada: ' . $razonSocial)
                                                     ->success()
                                                     ->send();
