@@ -72,6 +72,38 @@ button svg,
     color: #e6f3ff !important; /* texto por defecto claro pero no puro blanco */
 }
 
+/* PROBLEMA 3: Aumentar tamaño de fuente de nombres de módulos - ESPECÍFICO SOLO PARA SIDEBAR */
+.fi-sidebar-item .fi-sidebar-item-label {
+    font-size: 0.95rem !important; /* Aumentado de ~0.875rem por defecto */
+    line-height: 1.3 !important; /* Mejor espaciado vertical */
+    font-weight: 500 !important; /* Ligeramente más grueso para mejor legibilidad */
+}
+
+/* PROBLEMA 3 EXTENDIDO: Aumentar tamaño de nombres de módulos DENTRO del contenido */
+/* Breadcrumbs - migas de pan como "Clientes" encerrado */
+.fi-breadcrumbs,
+.fi-breadcrumbs li,
+.fi-breadcrumbs a,
+.fi-breadcrumbs span {
+    font-size: 1rem !important; /* Aumentado desde ~0.875rem */
+    font-weight: 500 !important;
+}
+
+/* Títulos de páginas de recursos */
+.fi-header-heading,
+.fi-resource-page-heading,
+.fi-page-heading {
+    font-size: 1.8rem !important; /* Aumentado para mejor visibilidad */
+    font-weight: 600 !important;
+}
+
+/* Títulos específicos dentro de módulos */
+h1.fi-header-heading,
+h2.fi-resource-page-heading {
+    font-size: 1.6rem !important;
+    line-height: 1.2 !important;
+}
+
 /* Hover: fondo más oscuro y texto del módulo en blanco y negrita para destacar */
 .fi-sidebar-item a:hover {
     background-color: #153d6b !important; /* hover más oscuro */
