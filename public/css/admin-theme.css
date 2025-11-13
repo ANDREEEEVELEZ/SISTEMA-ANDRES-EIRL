@@ -167,3 +167,46 @@
                 }
 
 
+                @media (min-width: 768px) {
+                    .fi-main-sidebar {
+                        position: sticky !important;
+                        top: 7.5rem !important;
+                        align-self: flex-start !important;
+                        height: calc(100vh - 7.5rem) !important;
+                        overflow: auto !important;
+                        z-index: 40 !important;
+                    }
+
+
+                    .fi-main-sidebar .fi-sidebar,
+                    .fi-main-sidebar .fi-sidebar-nav {
+                        height: 100% !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                    }
+                    .fi-main-ctn {
+
+                        will-change: padding-left !important;
+                    }
+                }
+
+                @media (min-width: 768px) {
+                    :root {
+                        --admin-sidebar-width: 16rem;
+                    }
+
+                    .fi-sidebar {
+                        position: fixed !important;
+                        left: 0 !important;
+                        top: 7.5rem !important;
+                        height: calc(100vh - 7.5rem) !important;
+                        width: var(--sidebar-width, var(--admin-sidebar-width)) !important;
+                        z-index: 50 !important;
+                        overflow: auto !important;
+                    }
+                    .fi-main-ctn {
+                        margin-left: calc(var(--sidebar-width, var(--admin-sidebar-width))) !important;
+                    }
+                }
+
+
