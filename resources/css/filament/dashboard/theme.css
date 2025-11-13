@@ -393,3 +393,64 @@ img[src*="data:image/png"],
     border-top: none !important;
     border-bottom: none !important;
 }
+
+/* ====================================================================
+   FIX PROBLEMA 1: AVATAR TOPBAR DEMASIADO GRANDE
+   ==================================================================== */
+/* Controlar específicamente el avatar del usuario en el topbar */
+.fi-topbar .fi-avatar,
+.fi-topbar .fi-dropdown-trigger,
+.fi-user-menu .fi-avatar,
+.fi-user-menu-trigger .fi-avatar,
+.fi-avatar {
+    width: 2.5rem !important;  /* 40px - tamaño normal */
+    height: 2.5rem !important; /* 40px - tamaño normal */
+    max-width: 2.5rem !important;
+    max-height: 2.5rem !important;
+    min-width: 2.5rem !important;
+    min-height: 2.5rem !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    flex-shrink: 0 !important;
+}
+
+/* Contenedor del menú de usuario */
+.fi-topbar .fi-dropdown-trigger,
+.fi-user-menu-trigger {
+    height: auto !important;
+    width: auto !important;
+    padding: 0.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Asegurar que el texto de las iniciales esté centrado */
+.fi-avatar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    line-height: 1 !important;
+    font-weight: 600 !important;
+}
+
+/* SVGs dentro del topbar (iconos de notificaciones, etc) - excepto avatar */
+.fi-topbar svg:not(.fi-avatar svg) {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    max-width: 1.25rem !important;
+    max-height: 1.25rem !important;
+}
+
+/* Excepciones para el avatar - asegurar que NO sea afectado por reglas de SVG */
+.fi-avatar img,
+.fi-topbar .fi-avatar img,
+.fi-user-menu .fi-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    object-fit: cover !important;
+    border-radius: 50% !important;
+}
