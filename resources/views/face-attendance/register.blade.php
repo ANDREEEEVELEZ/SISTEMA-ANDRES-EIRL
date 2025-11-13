@@ -498,7 +498,7 @@
                 document.getElementById('confirmationSection').style.display = 'block';
                 
                 document.getElementById('capturedImage').innerHTML = `
-                    <img src="${imageData}" alt="Rostro capturado" class="img-thumbnail" style="max-width: 200px; border-radius: 15px;">
+                    <img src="${imageData}" alt="Rostro capturado" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: cover; border-radius: 50%; border: 4px solid #28a745; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
                 `;
                 
                 document.getElementById('confirmationContent').innerHTML = `

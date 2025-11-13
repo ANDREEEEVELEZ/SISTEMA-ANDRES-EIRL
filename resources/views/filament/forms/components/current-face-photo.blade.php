@@ -4,6 +4,64 @@
     $isCreating = $record === null; // Si no hay record, estamos creando
 @endphp
 
+<style>
+/* ESTILOS SÚPER ESPECÍFICOS PARA FOTO ACTUAL EN EDICIÓN */
+/* Usando selectores múltiples para capturar la imagen */
+.fi-form img[alt*="Rostro de"],
+.fi-form img[src*="empleados_rostros"],
+.fi-fieldset img[alt*="Rostro de"],
+.fi-fieldset img[src*="empleados_rostros"],
+div[style*="grid-template-columns"] img[alt*="Rostro de"],
+div[style*="width: 180px"] img,
+div[style*="padding: 8px"] img,
+img[alt^="Rostro de"],
+img[style*="164px"] {
+    width: 164px !important;
+    height: 164px !important;
+    max-width: 164px !important;
+    max-height: 164px !important;
+    min-width: 164px !important;
+    min-height: 164px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    display: block !important;
+    flex: none !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+}
+
+/* Contenedores para mantener estructura */
+div[style*="width: 180px !important; height: 180px !important"],
+div[style*="width: 180px; height: 180px"],
+div[style*="padding: 8px"] {
+    width: 180px !important;
+    height: 180px !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Tarjeta contenedora principal */
+div[style*="width: 280px"],
+div[style*="grid-template-columns: auto 1fr"] {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+/* Override global para SVGs dentro de esta área específica */
+div[style*="width: 280px"] svg {
+    width: 16px !important;
+    height: 16px !important;
+    max-width: 16px !important;
+    max-height: 16px !important;
+}
+</style>
+
 {{-- Si estamos creando, solo mostrar el botón --}}
 @if($isCreating)
     <div style="display: flex; flex-direction: column; gap: 0.75rem; max-width: 280px;">
@@ -36,11 +94,11 @@
                 </h3>
                 
                 {{-- Contenedor de la foto --}}
-                <div style="width: 180px; height: 180px; margin: 0 auto; border-radius: 50%; background: white; padding: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); position: relative;">
+                <div style="width: 180px !important; height: 180px !important; margin: 0 auto; border-radius: 50%; background: white; padding: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); position: relative; overflow: hidden !important; flex: none !important;">
                     <img 
                         src="{{ asset('storage/' . $photoPath) }}" 
                         alt="Rostro de {{ $record->nombres }}"
-                        style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;"
+                        style="width: 164px !important; height: 164px !important; max-width: 164px !important; max-height: 164px !important; min-width: 164px !important; min-height: 164px !important; border-radius: 50% !important; object-fit: cover !important; display: block !important; position: relative !important; flex: none !important;"
                     />
                     {{-- Icono de verificación --}}
                     <div style="position: absolute; bottom: 8px; right: 8px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; padding: 6px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4); border: 3px solid white;">

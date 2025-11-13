@@ -188,6 +188,34 @@ img {
     height: auto !important;
 }
 
+/* EXCEPCIONES ESPECÍFICAS PARA IMÁGENES DE EMPLEADOS */
+/* Imágenes en tablas de empleados */
+.fi-table img,
+.fi-ta-image img,
+.fi-img-preview img,
+/* Imágenes en formularios de empleados */
+.fi-form img,
+.face-registration-component img,
+/* Imágenes en modales de captura facial */
+.modal img,
+video,
+canvas,
+/* Imágenes capturadas y previsualizaciones */
+img[alt*="Rostro"],
+img[alt*="Vista previa"],
+img[alt*="capturado"],
+/* Cualquier imagen dentro de componentes relacionados con rostros */
+[x-data*="faceRegistration"] img,
+[class*="face-"] img {
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    min-width: auto !important;
+    min-height: auto !important;
+    object-fit: cover !important;
+}
+
 /* ====================================================================
    PAGINACIÓN - Números en negro para todas las tablas
    ==================================================================== */
@@ -249,6 +277,97 @@ button span,
 .fi-ta-text {
     font-size: 0.875rem !important; /* Reducido de 1rem */
     line-height: 1.25rem !important;
+}
+
+/* ====================================================================
+   ESTILOS ESPECÍFICOS PARA COMPONENTES DE ROSTROS - SÚPER AGRESIVOS
+   ==================================================================== */
+/* TABLA DE EMPLEADOS - IMÁGENES FORZADAS A 60PX */
+.fi-table img,
+.fi-ta-image img,
+.empleado-foto-tabla,
+.fi-table td img,
+.fi-table .fi-img img,
+table img[src*="empleados_rostros"],
+table img[src*="storage"],
+.filament-table img {
+    width: 60px !important;
+    height: 60px !important;
+    max-width: 60px !important;
+    max-height: 60px !important;
+    min-width: 60px !important;
+    min-height: 60px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    display: block !important;
+    flex: none !important;
+}
+
+/* VISTA PREVIA EN MODALES - FORZADA A 200PX */
+.face-registration-component img,
+img[alt*="Vista previa"],
+img[alt*="Rostro capturado"],
+img[alt*="capturado"],
+#capturedImage img,
+.modal img[src^="data:image"],
+[x-show="capturedImage"] img {
+    width: 200px !important;
+    height: 200px !important;
+    max-width: 200px !important;
+    max-height: 200px !important;
+    min-width: 200px !important;
+    min-height: 200px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    display: block !important;
+    margin: 0 auto !important;
+}
+
+/* VISTA DE EDICIÓN - FOTO ACTUAL - MÁS ESPECÍFICO */
+.fi-form img[src*="empleados_rostros"],
+.fi-form img[alt*="Rostro de"],
+.fi-fieldset img[src*="empleados_rostros"],
+.fi-fieldset img[alt*="Rostro de"],
+div[style*="grid-template-columns"] img[alt*="Rostro de"],
+div[style*="180px"] img[src*="storage"],
+.fi-section img[alt*="Rostro de"] {
+    width: 164px !important;
+    height: 164px !important;
+    max-width: 164px !important;
+    max-height: 164px !important;
+    min-width: 164px !important;
+    min-height: 164px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    display: block !important;
+    flex: none !important;
+    position: relative !important;
+}
+
+/* Contenedores de la tarjeta para evitar desbordamiento */
+div[style*="width: 180px; height: 180px"],
+div[style*="grid-template-columns: auto 1fr"] {
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+}
+
+/* VIDEO Y CANVAS EN MODALES DE CÁMARA */
+video[x-ref="video"],
+canvas[x-ref="canvas"],
+.modal video,
+.modal canvas {
+    width: 100% !important;
+    height: 500px !important;
+    max-height: 500px !important;
+    object-fit: cover !important;
+}
+
+/* MEGA OVERRIDE PARA CUALQUIER IMAGEN PROBLEMÁTICA */
+img[src*="data:image/jpeg"],
+img[src*="data:image/png"],
+.img-thumbnail {
+    max-width: none !important;
+    max-height: none !important;
 }
 
 /* ====================================================================
