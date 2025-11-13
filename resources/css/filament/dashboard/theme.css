@@ -310,6 +310,71 @@ button span,
 }
 
 /* ====================================================================
+   PROBLEMA 4: MEJORAR CONTRASTE DE ICONOS EN BOTONES
+   ==================================================================== */
+/* Iconos en botones primarios - color blanco puro para máximo contraste POR DEFECTO */
+.fi-btn-primary svg,
+.fi-btn[type="submit"] svg,
+button[type="submit"] svg,
+.filament-button svg,
+.fi-ac-btn-action svg,
+/* Selectores más específicos para asegurar que funcione */
+.fi-btn-primary .fi-icon svg,
+.fi-btn[type="submit"] .fi-icon svg,
+button[type="submit"] .fi-icon svg,
+.filament-button .fi-icon svg,
+.fi-ac-btn-action .fi-icon svg {
+    color: #ffffff !important; /* Blanco puro para máximo contraste */
+    fill: #ffffff !important; /* Asegurar que el fill también sea blanco */
+    stroke: #ffffff !important; /* Para iconos que usan stroke */
+    opacity: 1 !important; /* Asegurar opacidad completa */
+    filter: brightness(1) contrast(1) !important; /* Asegurar brillo máximo */
+}
+
+/* Iconos en botones secundarios/neutros - gris oscuro para contraste */
+.fi-btn:not(.fi-btn-primary) svg,
+.fi-btn-secondary svg,
+button:not([type="submit"]) svg {
+    color: #374151 !important; /* Gris oscuro para contraste en fondos claros */
+    fill: #374151 !important;
+    stroke: #374151 !important;
+    opacity: 1 !important;
+}
+
+/* Iconos en estados hover - mantener alta visibilidad */
+.fi-btn-primary:hover svg,
+.fi-btn[type="submit"]:hover svg,
+button[type="submit"]:hover svg,
+.filament-button:hover svg,
+.fi-ac-btn-action:hover svg {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+    opacity: 1 !important;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1)) brightness(1) contrast(1) !important; /* Sutil sombra para mejor definición */
+}
+
+/* REGLA MEGA ESPECÍFICA - Para sobrescribir cualquier otro estilo que interfiera */
+.fi-btn-primary *,
+.fi-btn[type="submit"] *,
+button[type="submit"] *,
+.filament-button *,
+.fi-ac-btn-action * {
+    color: inherit !important;
+}
+
+/* Asegurar que los iconos en botones azules SIEMPRE sean blancos */
+[class*="fi-btn"]:not(.fi-btn-secondary) svg,
+[class*="filament-button"] svg,
+button[style*="background"][style*="1E4E8C"] svg,
+button[style*="background"][style*="blue"] svg {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+    opacity: 1 !important;
+}
+
+/* ====================================================================
    TABLAS - Reducir tamaño de fuente
    ==================================================================== */
 .fi-table td,
