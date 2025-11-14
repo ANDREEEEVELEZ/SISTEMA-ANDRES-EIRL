@@ -21,7 +21,7 @@ class EmpleadoForm
                     ->required()
                     ->maxLength(100)
                     ->placeholder('Ingrese solo letras')
-                    ->regex('/^[a-zA-ZÀ-ÿ\u00f1\u00d1\s]+$/')
+                    ->regex('/^[a-zA-ZÀ-ÿñÑ\s]+$/u')
                     ->validationMessages([
                         'regex' => 'Los nombres solo pueden contener letras y espacios.',
                     ])
@@ -35,7 +35,7 @@ class EmpleadoForm
                     ->required()
                     ->maxLength(100)
                     ->placeholder('Ingrese solo letras')
-                    ->regex('/^[a-zA-ZÀ-ÿ\u00f1\u00d1\s]+$/')
+                    ->regex('/^[a-zA-ZÀ-ÿñÑ\s]+$/u')
                     ->validationMessages([
                         'regex' => 'Los apellidos solo pueden contener letras y espacios.',
                     ])
