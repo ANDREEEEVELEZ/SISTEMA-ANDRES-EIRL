@@ -19,41 +19,86 @@ class EmpleadoForm
                 TextInput::make('nombres')
                     ->label('Nombres')
                     ->required()
-                    ->maxLength(100),
+                    ->maxLength(100)
+                    ->placeholder('Ingrese solo letras')
+                    ->regex('/^[a-zA-ZÀ-ÿ\u00f1\u00d1\s]+$/')
+                    ->validationMessages([
+                        'regex' => 'Los nombres solo pueden contener letras y espacios.',
+                    ])
+                    ->extraAttributes([
+                        'oninput' => 'this.value = this.value.replace(/[^a-zA-ZÀ-ÿ\u00f1\u00d1\s]/g, "")',
+                    ]),
                 
                 TextInput::make('apellidos')
                     ->label('Apellidos')
                     ->required()
-                    ->maxLength(100),
+                    ->maxLength(100)
+                    ->placeholder('Ingrese solo letras')
+                    ->regex('/^[a-zA-ZÀ-ÿ\u00f1\u00d1\s]+$/')
+                    ->validationMessages([
+                        'regex' => 'Los apellidos solo pueden contener letras y espacios.',
+                    ])
+                    ->extraAttributes([
+                        'oninput' => 'this.value = this.value.replace(/[^a-zA-ZÀ-ÿ\u00f1\u00d1\s]/g, "")',
+                    ]),
                 
                 TextInput::make('dni')
                     ->label('DNI')
                     ->required()
                     ->unique(ignoreRecord: true)
-                    ->maxLength(15)
-                    ->regex('/^[0-9]+$/')
+                    ->maxLength(8)
+                    ->minLength(8)
+                    ->length(8)
+                    ->placeholder('Ingrese 8 dígitos')
+                    ->regex('/^[0-9]{8}$/')
+                    ->validationMessages([
+                        'regex' => 'El DNI debe contener exactamente 8 dígitos numéricos.',
+                        'min' => 'El DNI debe tener exactamente 8 dígitos.',
+                        'max' => 'El DNI debe tener exactamente 8 dígitos.',
+                    ])
+                    ->extraAttributes([
+                        'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").substring(0, 8)',
+                        'onkeypress' => 'return event.charCode >= 48 && event.charCode <= 57',
+                        'inputmode' => 'numeric',
+                        'pattern' => '[0-9]{8}',
+                    ])
                     ->helperText('Solo números. Este campo es único en el sistema.'),
                 
                 TextInput::make('telefono')
                     ->label('Teléfono')
                     ->tel()
-                    ->maxLength(20),
+                    ->maxLength(9)
+                    ->placeholder('Ingrese máximo 9 dígitos')
+                    ->regex('/^[0-9]{1,9}$/')
+                    ->validationMessages([
+                        'regex' => 'El teléfono debe contener solo números (máximo 9 dígitos).',
+                        'max' => 'El teléfono no puede tener más de 9 dígitos.',
+                    ])
+                    ->extraAttributes([
+                        'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").substring(0, 9)',
+                        'onkeypress' => 'return event.charCode >= 48 && event.charCode <= 57',
+                        'inputmode' => 'numeric',
+                        'pattern' => '[0-9]{1,9}',
+                    ]),
                 
                 TextInput::make('direccion')
                     ->label('Dirección')
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->placeholder('Ingrese la dirección completa'),
                 
                 DatePicker::make('fecha_nacimiento')
                     ->label('Fecha de Nacimiento')
                     ->required()
                     ->native(false)
-                    ->displayFormat('d/m/Y'),
+                    ->displayFormat('d/m/Y')
+                    ->placeholder('Seleccione fecha de nacimiento'),
                 
                 TextInput::make('correo_empleado')
                     ->label('Correo Electrónico')
                     ->email()
                     ->required()
                     ->maxLength(100)
+                    ->placeholder('ejemplo@correo.com')
                     ->helperText('Este correo se usará para iniciar sesión en el sistema.')
                     ->validationAttribute('correo electrónico')
                     ->rules([
@@ -75,7 +120,8 @@ class EmpleadoForm
                 
                 TextInput::make('distrito')
                     ->label('Distrito')
-                    ->maxLength(50),
+                    ->maxLength(50)
+                    ->placeholder('Ingrese el distrito'),
                 
                 DatePicker::make('fecha_incorporacion')
                     ->label('Fecha de Incorporación')
@@ -93,12 +139,12 @@ class EmpleadoForm
                 ViewField::make('foto_actual')
                     ->label('Foto Facial Actual')
                     ->view('filament.forms.components.current-face-photo')
-                    ->visible(fn () => Auth::user()->hasRole('super_admin')),
+                    ->visible(true), // Temporalmente visible para todos
                 
                 ViewField::make('face_registration')
                     ->label('')
                     ->view('filament.forms.components.face-registration-component')
-                    ->visible(fn () => Auth::user()->hasRole('super_admin')),
+                    ->visible(true), // Temporalmente visible para todos
                 
                 Hidden::make('face_descriptors'),
                 Hidden::make('foto_facial_path'),
