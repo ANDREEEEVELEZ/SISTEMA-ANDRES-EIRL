@@ -57,6 +57,11 @@ class ClienteForm
                     ->validationMessages([
                         'regex' => 'El documento debe contener solo números.',
                     ])
+                    ->extraAttributes([
+                        'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").substring(0, this.getAttribute("maxlength"))',
+                        'onkeypress' => 'return event.charCode >= 48 && event.charCode <= 57',
+                        'inputmode' => 'numeric',
+                    ])
                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                         // Auto-determinar tipo_cliente basado en el RUC
                         if ($get('tipo_doc') === 'RUC' && strlen($state) >= 2) {
