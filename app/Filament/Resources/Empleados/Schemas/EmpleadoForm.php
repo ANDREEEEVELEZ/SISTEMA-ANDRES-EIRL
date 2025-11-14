@@ -26,7 +26,8 @@ class EmpleadoForm
                         'regex' => 'Los nombres solo pueden contener letras y espacios.',
                     ])
                     ->extraAttributes([
-                        'oninput' => 'this.value = this.value.replace(/[^a-zA-ZÀ-ÿ\u00f1\u00d1\s]/g, "")',
+                        'oninput' => 'this.value = this.value.replace(/[^a-zA-ZÀ-ÿÑñáéíóúÁÉÍÓÚüÜ\s]/g, "")',
+                        'onkeypress' => 'return (event.charCode >= 65 && event.charCode <= 90) || (event.charCode >= 97 && event.charCode <= 122) || event.charCode === 32 || event.charCode >= 192',
                     ]),
                 
                 TextInput::make('apellidos')
@@ -39,7 +40,8 @@ class EmpleadoForm
                         'regex' => 'Los apellidos solo pueden contener letras y espacios.',
                     ])
                     ->extraAttributes([
-                        'oninput' => 'this.value = this.value.replace(/[^a-zA-ZÀ-ÿ\u00f1\u00d1\s]/g, "")',
+                        'oninput' => 'this.value = this.value.replace(/[^a-zA-ZÀ-ÿÑñáéíóúÁÉÍÓÚüÜ\s]/g, "")',
+                        'onkeypress' => 'return (event.charCode >= 65 && event.charCode <= 90) || (event.charCode >= 97 && event.charCode <= 122) || event.charCode === 32 || event.charCode >= 192',
                     ]),
                 
                 TextInput::make('dni')
@@ -61,8 +63,7 @@ class EmpleadoForm
                         'onkeypress' => 'return event.charCode >= 48 && event.charCode <= 57',
                         'inputmode' => 'numeric',
                         'pattern' => '[0-9]{8}',
-                    ])
-                    ->helperText('Solo números. Este campo es único en el sistema.'),
+                    ]),
                 
                 TextInput::make('telefono')
                     ->label('Teléfono')
@@ -99,7 +100,6 @@ class EmpleadoForm
                     ->required()
                     ->maxLength(100)
                     ->placeholder('ejemplo@correo.com')
-                    ->helperText('Este correo se usará para iniciar sesión en el sistema.')
                     ->validationAttribute('correo electrónico')
                     ->rules([
                         function ($record): \Closure {
