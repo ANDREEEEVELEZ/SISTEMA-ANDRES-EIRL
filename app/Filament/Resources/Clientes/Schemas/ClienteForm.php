@@ -300,7 +300,9 @@ class ClienteForm
                         'max' => 'El teléfono debe tener exactamente 9 dígitos.',
                     ])
                     ->extraAttributes([
-                        'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").slice(0, 9)',
+                        'oninput' => 'this.value = this.value.replace(/[^0-9]/g, "").substring(0, 9)',
+                        'onkeypress' => 'return event.charCode >= 48 && event.charCode <= 57',
+                        'onpaste' => 'return false',
                         'inputmode' => 'numeric',
                         'pattern' => '[0-9]{9}',
                     ]),
