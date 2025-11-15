@@ -53,6 +53,23 @@ class Arqueo extends Model
     }
 
     /**
+     * Calcula dinámicamente las ventas por otros medios de pago (no efectivo)
+     */
+    public function getTotalVentasOtrosMediosAttribute(): float
+    {
+        if (!$this->caja_id || !$this->fecha_inicio || !$this->fecha_fin) {
+            return 0.0;
+        }
+
+        return (float) Venta::where('caja_id', $this->caja_id)
+            ->where('metodo_pago', '!=', 'efectivo')
+            ->where('estado_venta', '!=', 'anulada')
+            ->whereDate('fecha_venta', '>=', $this->fecha_inicio->toDateString())
+            ->whereDate('fecha_venta', '<=', $this->fecha_fin->toDateString())
+            ->sum('total_venta');
+    }
+
+    /**
      * Obtener el número secuencial del arqueo (no el ID)
      * Cuenta cuántos arqueos existen con ID menor o igual a este
      */

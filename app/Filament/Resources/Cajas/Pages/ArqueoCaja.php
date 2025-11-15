@@ -23,6 +23,8 @@ class ArqueoCaja extends Page implements HasForms
 {
     use InteractsWithForms;
 
+
+
     protected static string $resource = CajaResource::class;
 
     protected string $view = 'filament.resources.cajas.pages.arqueo-caja';
@@ -32,6 +34,7 @@ class ArqueoCaja extends Page implements HasForms
     public ?Caja $caja = null;
     public ?Arqueo $arqueo = null;
     public ?float $totalVentas = 0.0;
+    public ?float $totalVentasOtrosMedios = 0.0;
     public ?float $totalIngresos = 0.0;
     public ?float $totalEgresos = 0.0;
     public ?float $saldoTeorico = 0.0;
@@ -114,76 +117,124 @@ class ArqueoCaja extends Page implements HasForms
     protected function getFormSchema(): array
     {
         return [
-            Placeholder::make('caja_info')
-                ->label('Caja')
+            // Header: Información de la Caja
+            Placeholder::make('header_caja')
+                ->label(new \Illuminate\Support\HtmlString('<span style="font-size: 1.125rem; font-weight: 600; font-family: \'Segoe UI\', system-ui, sans-serif; color: #1e293b;">Información de Caja</span>'))
                 ->content(fn () => new \Illuminate\Support\HtmlString(
-                    sprintf('<div class="text-sm">Caja #%d — <strong>Abierta:</strong> %s</div><div class="text-sm">Saldo Inicial: <strong>S/ %s</strong></div>',
-                        $this->caja->numero_secuencial,
-                        $this->caja->fecha_apertura?->format('d/m/Y H:i') ?? '-',
-                        number_format((float) ($this->caja->saldo_inicial ?? 0), 2)
-                    )
+                    '<div style="background: #1e40af; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+                            <div style="background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 0.375rem;">
+                                <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.25rem;">Caja</div>
+                                <div style="color: white; font-size: 1.125rem; font-weight: bold;">Caja #' . $this->caja->numero_secuencial . '</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 0.375rem;">
+                                <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.25rem;">Apertura</div>
+                                <div style="color: white; font-size: 0.875rem; font-weight: 600;">' . ($this->caja->fecha_apertura?->format('d/m/Y H:i') ?? '-') . '</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 0.375rem;">
+                                <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.25rem;">Saldo Inicial</div>
+                                <div style="color: white; font-size: 1.125rem; font-weight: bold;">S/ ' . number_format((float) ($this->caja->saldo_inicial ?? 0), 2) . '</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 0.375rem;">
+                                <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.25rem;">Cierre</div>
+                                <div style="color: white; font-size: 0.875rem; font-weight: 600;">' . now()->format('d/m/Y H:i') . '</div>
+                            </div>
+                        </div>
+                    </div>'
                 )),
 
-            Placeholder::make('periodo')
-                ->label('Periodo')
+            // Movimientos del Día
+            Placeholder::make('movimientos')
+                ->label(new \Illuminate\Support\HtmlString('<span style="font-size: 1.125rem; font-weight: 600; font-family: \'Segoe UI\', system-ui, sans-serif; color: #1e293b;">Movimientos</span>'))
                 ->content(fn () => new \Illuminate\Support\HtmlString(
-                    sprintf('<div class="text-sm"><strong>Inicio:</strong> %s</div><div class="text-sm"><strong>Fin:</strong> %s</div>',
-                        $this->caja->fecha_apertura?->format('d/m/Y H:i') ?? '-',
-                        now()->format('d/m/Y H:i')
-                    )
+                    '<div style="margin-bottom: 1rem;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+                            <div style="background: #2563eb; padding: 1rem; border-radius: 0.5rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <div style="color: rgba(255,255,255,0.9); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Ventas (Efectivo)</div>
+                                <div style="color: white; font-size: 1.5rem; font-weight: bold;">S/ ' . number_format($this->totalVentas, 2) . '</div>
+                            </div>
+                            <div style="background: #1d4ed8; padding: 1rem; border-radius: 0.5rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <div style="color: rgba(255,255,255,0.9); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Ingresos</div>
+                                <div style="color: white; font-size: 1.5rem; font-weight: bold;">S/ ' . number_format($this->totalIngresos, 2) . '</div>
+                            </div>
+                            <div style="background: #1e40af; padding: 1rem; border-radius: 0.5rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <div style="color: rgba(255,255,255,0.9); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Egresos</div>
+                                <div style="color: white; font-size: 1.5rem; font-weight: bold;">S/ ' . number_format($this->totalEgresos, 2) . '</div>
+                            </div>
+                        </div>
+                    </div>'
                 )),
 
-            // Nota: mostramos saldo teórico una sola vez (resumen), no duplicar en el formulario
+            // Saldo Teórico
+            Placeholder::make('saldo_teorico')
+                ->label(new \Illuminate\Support\HtmlString('<span style="font-size: 1.125rem; font-weight: 600; font-family: \'Segoe UI\', system-ui, sans-serif; color: #1e293b;">Saldo Teórico</span>'))
+                ->content(fn () => new \Illuminate\Support\HtmlString(
+                    '<div style="background: #3b82f6; padding: 1.25rem; border-radius: 0.5rem; text-align: center; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="color: white; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; opacity: 0.95;">Saldo Teórico Esperado</div>
+                        <div style="color: white; font-size: 2rem; font-weight: bold; margin-bottom: 0.25rem;">S/ ' . number_format($this->saldoTeorico, 2) . '</div>
+                        <div style="color: rgba(255,255,255,0.85); font-size: 0.7rem;">Saldo Inicial + Ventas (Efectivo) + Ingresos - Egresos</div>
+                    </div>'
+                )),
 
-            Placeholder::make('total_ventas')
-                ->label('Total ventas (efectivo)')
-                ->content(fn () => new \Illuminate\Support\HtmlString('<div class="text-lg font-semibold">S/ ' . number_format($this->totalVentas, 2) . '</div>')),
-
-            Placeholder::make('total_ingresos')
-                ->label('Total ingresos')
-                ->content(fn () => new \Illuminate\Support\HtmlString('<div class="text-lg font-semibold">S/ ' . number_format($this->totalIngresos, 2) . '</div>')),
-
-            Placeholder::make('total_egresos')
-                ->label('Total egresos')
-                ->content(fn () => new \Illuminate\Support\HtmlString('<div class="text-lg font-semibold">S/ ' . number_format($this->totalEgresos, 2) . '</div>')),
-
+            // Input y Resultado
             TextInput::make('efectivo_contado')
-                ->label('Efectivo contado (S/)')
+                ->label(new \Illuminate\Support\HtmlString('<span style="font-size: 1.125rem; font-weight: 600; font-family: \'Segoe UI\', system-ui, sans-serif; color: #1e293b;">Efectivo Contado</span>'))
                 ->numeric()
                 ->step('0.01')
                 ->prefix('S/')
+                ->placeholder('0.00')
                 ->reactive()
-                // No necesitamos re-escribir el estado manualmente en afterStateUpdated;
-                // dejar que Filament maneje el binding evita perder dígitos en el input.
-                ->disabled(fn () => isset($this->arqueo) && $this->arqueo->estado === EstadoArqueo::CONFIRMADO),
-
-            Placeholder::make('saldo_teorico_block')
-                ->label('Saldo teórico')
-                ->content(fn () => new \Illuminate\Support\HtmlString('<div class="text-xl font-semibold">S/ ' . number_format($this->saldoTeorico, 2) . '</div>')),
-
-            Textarea::make('observacion')
-                ->label('Observación')
-                ->rows(3)
-                ->maxLength(500)
-                ->disabled(fn () => isset($this->arqueo) && $this->arqueo->estado === EstadoArqueo::CONFIRMADO),
+                ->columnSpan(1)
+                ->disabled(fn () => isset($this->arqueo) && $this->arqueo->estado === EstadoArqueo::CONFIRMADO)
+                ->helperText('Ingrese el monto total de efectivo físico contado en caja'),
 
             Placeholder::make('resultado')
-                ->label('Resultado')
+                ->label(new \Illuminate\Support\HtmlString('<span style="font-size: 1.125rem; font-weight: 600; font-family: \'Segoe UI\', system-ui, sans-serif; color: #1e293b;">Resultado del Arqueo</span>'))
                 ->content(function () {
                     $efectivo = isset($this->data['efectivo_contado']) && $this->data['efectivo_contado'] !== '' ? (float) $this->data['efectivo_contado'] : null;
+
+                    // Usar las mismas medidas y tipografías que el bloque `saldo_teorico`
                     if (is_null($efectivo)) {
-                        return new \Illuminate\Support\HtmlString('<div class="text-sm text-gray-500">Ingrese el efectivo contado para ver la diferencia.</div>');
+                        return new \Illuminate\Support\HtmlString(
+                            '<div style="background: #e5e7eb; padding: 1.25rem; border-radius: 0.5rem; text-align: center; border: 2px dashed #9ca3af; margin-top: 1rem; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">'
+                            . '<div style="color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; opacity: 0.95;">Esperando conteo...</div>'
+                            . '<div style="color: #9ca3af; font-size: 0.7rem;">Ingrese el efectivo para ver el resultado</div>'
+                            . '</div>'
+                        );
                     }
 
                     $diferencia = round($efectivo - $this->saldoTeorico, 2);
-                    $clase = $diferencia === 0 ? 'text-green-600' : ($diferencia > 0 ? 'text-blue-600' : 'text-red-600');
 
-                    return new \Illuminate\Support\HtmlString(sprintf('<div class="text-sm">Diferencia</div><div class="text-xl font-semibold %s">S/ %s</div><div class="text-xs text-gray-500 mt-1">%s</div>',
-                        $clase,
-                        number_format($diferencia, 2),
-                        $diferencia === 0 ? 'Cuadrado (no hay diferencia)' : ($diferencia > 0 ? 'Sobrante' : 'Faltante')
-                    ));
+                    if ($diferencia === 0.0) {
+                        $bgColor = '#10b981';
+                        $estado = 'CUADRADO';
+                        $mensaje = 'No hay diferencia - Arqueo correcto';
+                    } elseif ($diferencia > 0) {
+                        $bgColor = '#3b82f6';
+                        $estado = 'SOBRANTE';
+                        $mensaje = 'Hay dinero de más en caja';
+                    } else {
+                        $bgColor = '#ef4444';
+                        $estado = 'FALTANTE';
+                        $mensaje = 'Falta dinero en caja';
+                    }
+
+                    return new \Illuminate\Support\HtmlString(
+                        '<div style="background: ' . $bgColor . '; padding: 1.25rem; border-radius: 0.5rem; text-align: center; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">'
+                        . '<div style="color: white; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; opacity: 0.95;">' . $estado . '</div>'
+                        . '<div style="color: white; font-size: 2rem; font-weight: bold; margin-bottom: 0.25rem;">S/ ' . number_format($diferencia, 2) . '</div>'
+                        . '<div style="color: rgba(255,255,255,0.85); font-size: 0.7rem;">' . $mensaje . '</div>'
+                        . '</div>'
+                    );
                 }),
+
+            // Observaciones
+            Textarea::make('observacion')
+                ->label(new \Illuminate\Support\HtmlString('<span style="font-size: 1.125rem; font-weight: 600; font-family: \'Segoe UI\', system-ui, sans-serif; color: #1e293b;">Observaciones</span>'))
+                ->rows(3)
+                ->maxLength(500)
+                ->placeholder('Agregue cualquier observación o nota relevante sobre este arqueo...')
+                ->disabled(fn () => isset($this->arqueo) && $this->arqueo->estado === EstadoArqueo::CONFIRMADO),
         ];
     }
 
@@ -232,6 +283,14 @@ class ArqueoCaja extends Page implements HasForms
         // usado en el widget de Apertura/Cierre (calcularSaldoEsperado)
         $this->totalVentas = (float) Venta::where('caja_id', $this->caja->id)
             ->where('metodo_pago', 'efectivo')
+            ->where('estado_venta', '!=', 'anulada')
+            ->whereDate('fecha_venta', '>=', $inicio->toDateString())
+            ->whereDate('fecha_venta', '<=', $fin->toDateString())
+            ->sum('total_venta');
+
+        // Ventas por otros medios de pago (tarjeta, yape, transferencia, etc.)
+        $this->totalVentasOtrosMedios = (float) Venta::where('caja_id', $this->caja->id)
+            ->where('metodo_pago', '!=', 'efectivo')
             ->where('estado_venta', '!=', 'anulada')
             ->whereDate('fecha_venta', '>=', $inicio->toDateString())
             ->whereDate('fecha_venta', '<=', $fin->toDateString())
@@ -311,6 +370,7 @@ class ArqueoCaja extends Page implements HasForms
 
     /**
      * Confirma el arqueo: crea (o actualiza) el arqueo y lo marca como 'confirmado' en el campo estado.
+     * Además, cierra automáticamente la caja con el monto del efectivo contado y copia la observación del arqueo.
      */
     public function confirmar(): void
     {
@@ -367,12 +427,37 @@ class ArqueoCaja extends Page implements HasForms
         $this->data['observacion'] = $this->arqueo->observacion;
         $this->form->fill($this->data);
 
+        // ===== CERRAR LA CAJA AUTOMÁTICAMENTE =====
+        // Calcular diferencia entre el efectivo contado y el saldo teórico
+        $diferenciaCaja = $efectivo - $this->saldoTeorico;
+
+        // Concatenar observaciones: apertura del arqueo con observación del cierre
+        $observacionFinal = $this->caja->observacion ?: '';
+        $observacionArqueo = $state['observacion'] ?? '';
+
+        if ($observacionArqueo) {
+            $observacionFinal = $observacionFinal
+                ? $observacionFinal . ' / ' . $observacionArqueo
+                : $observacionArqueo;
+        }
+
+        // Cerrar la caja con el monto del efectivo contado
+        $this->caja->update([
+            'fecha_cierre' => now(),
+            'saldo_final' => $efectivo, // El saldo final es el efectivo contado del arqueo
+            'diferencia' => $diferenciaCaja,
+            'observacion' => $observacionFinal ?: null,
+            'estado' => 'cerrada',
+        ]);
+
         Notification::make()
-            ->title('Arqueo confirmado')
-            ->body('El arqueo ha sido confirmado y ahora puede cerrar la caja.')
+            ->title('Arqueo confirmado y Caja cerrada')
+            ->body('El arqueo ha sido confirmado y la caja se ha cerrado automáticamente con S/ ' . number_format($efectivo, 2))
             ->success()
             ->send();
 
+        // Redirigir a la lista de arqueos tras confirmar
         $this->redirect(CajaResource::getUrl('arqueos'));
     }
+
 }

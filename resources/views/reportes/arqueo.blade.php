@@ -67,6 +67,29 @@
     </div>
 
     <div class="section">
+        <strong>RESUMEN DE RECAUDACIÓN DEL DÍA</strong>
+        <table style="margin-top: 6px;">
+            <tr>
+                <th>Concepto</th>
+                <th>Monto</th>
+            </tr>
+            <tr>
+                <td>Efectivo físico contado</td>
+                <td class="right">S/ {{ number_format($arqueo->efectivo_contado ?? 0,2) }}</td>
+            </tr>
+            <tr>
+                <td>Ventas por otros medios de pago <small>(tarjeta, yape, transferencia, etc.)</small></td>
+                <td class="right">S/ {{ number_format($arqueo->total_ventas_otros_medios, 2) }}</td>
+            </tr>
+            <tr style="background-color: #f3f4f6; font-weight: bold;">
+                <td>TOTAL RECAUDADO EN EL DÍA</td>
+                <td class="right big">S/ {{ number_format(($arqueo->efectivo_contado ?? 0) + $arqueo->total_ventas_otros_medios, 2) }}</td>
+            </tr>
+        </table>
+        <small style="font-style: italic; color: #666;">* Las ventas por otros medios de pago no se cuentan en el saldo físico de efectivo, pero sí forman parte del total recaudado del día.</small>
+    </div>
+
+    <div class="section">
         <strong>Observación:</strong>
         <div>{{ $arqueo->observacion ?? '—' }}</div>
     </div>

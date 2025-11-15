@@ -92,7 +92,7 @@
             <form wire:submit="cerrarCaja" class="w-full flex flex-col items-center" style="gap: 1rem;">
                 <div class="w-full flex flex-col items-center">
                     <!-- Input Saldo Final -->
-                    <div class="flex justify-center" style="margin-bottom: 1rem;">
+                    <div class="flex justify-center" style="margin-bottom: 1.5rem;">
                         <div class="fi-input-wrp rounded-lg shadow-sm ring-1 transition duration-75 bg-white dark:bg-white/5 ring-gray-950/10 dark:ring-white/20" style="width: 200px; display: flex; flex-direction: column; align-items: center; padding-top: 0.5rem; padding-bottom: 0.5rem;">
                             <div class="w-full text-center mb-1">
                                 <span class="text-sm font-medium leading-6 text-gray-950 dark:text-white">
@@ -112,28 +112,6 @@
                         </div>
                     </div>
 
-                    <!-- Saldo Esperado -->
-                    <div class="flex justify-center" style="margin-bottom: 1.25rem;">
-                        <div class="rounded-lg bg-info-50 p-2 dark:bg-info-400/10 text-center" style="width: 200px;">
-                            <div class="text-sm font-medium text-info-600 dark:text-info-400">
-                                Saldo Esperado: S/ {{ number_format($this->calcularSaldoEsperado(), 2) }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Campo Observación Cierre -->
-                    <div class="flex justify-center" style="margin-top: 1rem;">
-                        <div class="w-full" style="max-width: 220px;">
-                            <textarea
-                                wire:model="observacionCierre"
-                                rows="2"
-                                placeholder="Observación cierre (opcional)"
-                                class="fi-input block w-full rounded-lg shadow-sm transition duration-75 focus:border-primary-500 focus:ring-1 focus:ring-inset focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 sm:text-xs ring-1 ring-gray-950/10 dark:ring-white/20"
-                                style="resize: none; padding: 0.5rem; border: 1px solid rgb(209 213 219);"
-                            ></textarea>
-                        </div>
-                    </div>
-
                     <!-- Botón Cerrar Caja -->
                     <div class="flex justify-center" style="margin-bottom: 0.75rem; margin-top: 1rem;">
                         @php
@@ -150,7 +128,7 @@
                     @unless($this->arqueoConfirmado())
                         <div class="flex flex-col items-center" style="gap: 1rem;">
                             <div class="text-xs text-center text-yellow-700 dark:text-yellow-300" style="width: 200px; line-height: 1.4;">
-                                Generar reporte de arqueo antes de cerrar caja
+                                Confirma el arqueo para cerrar caja
                             </div>
                             <a href="{{ \App\Filament\Resources\Cajas\CajaResource::getUrl('arqueo-caja') }}"
                                class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg gap-1.5 px-3 py-1.5 text-xs inline-grid shadow-sm bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500/50"
