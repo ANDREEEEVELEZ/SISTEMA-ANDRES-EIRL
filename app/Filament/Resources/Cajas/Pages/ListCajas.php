@@ -80,7 +80,7 @@ class ListCajas extends ListRecords
                         ->placeholder('Todas las cajas')
                         ->reactive()
                         ->visible(fn ($get) => (bool) $get('seleccionar_caja'))
-                        ->searchable()
+                        //->searchable()
                         ->afterStateUpdated(function ($state, callable $set) {
                             // Cuando se selecciona una caja, auto-llenar rango de fechas con la apertura/cierre de la caja
                             if ($state) {
