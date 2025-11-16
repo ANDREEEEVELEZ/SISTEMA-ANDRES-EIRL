@@ -2,8 +2,6 @@
 
 namespace App\Filament\Resources\Categorias\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -15,6 +13,9 @@ class CategoriasTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->selectCurrentPageOnly()
+            ->deselectAllRecordsWhenFiltered(false)
+            ->checkIfRecordIsSelectableUsing(fn (): bool => false)
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -62,11 +63,8 @@ class CategoriasTable
             ->recordActions([
                 EditAction::make(),
             ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ])
+            // No se permiten acciones de eliminación masiva por políticas de seguridad
+            ->toolbarActions([])
             ->defaultSort('id', 'desc');
     }
 }

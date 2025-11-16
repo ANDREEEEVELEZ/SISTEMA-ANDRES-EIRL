@@ -2,8 +2,6 @@
 
 namespace App\Filament\Resources\Productos\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
@@ -18,6 +16,9 @@ class ProductosTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->selectCurrentPageOnly()
+            ->deselectAllRecordsWhenFiltered(false)
+            ->checkIfRecordIsSelectableUsing(fn (): bool => false)
             ->columns([
                 TextColumn::make('nombre_producto')
                     ->label('Producto')
@@ -208,11 +209,8 @@ class ProductosTable
                 ViewAction::make(),
                 EditAction::make(),
             ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ])
+            // No se permiten acciones de eliminación masiva por políticas de seguridad
+            ->toolbarActions([])
             ->defaultSort('nombre_producto', 'asc');
     }
 }

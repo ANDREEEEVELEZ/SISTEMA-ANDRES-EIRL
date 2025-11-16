@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Productos\Pages;
 
 use App\Filament\Resources\Productos\ProductoResource;
-use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditProducto extends EditRecord
@@ -13,7 +12,7 @@ class EditProducto extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            // No se permiten acciones de eliminación por políticas de seguridad
         ];
     }
 }

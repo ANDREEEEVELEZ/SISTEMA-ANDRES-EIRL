@@ -45,7 +45,7 @@ class EditCategoria extends EditRecord
                     ->send();
                 $this->refreshFormData(['productos']);
             });
-        $actions[] = Actions\DeleteAction::make();
+        // No se permite eliminación por políticas de seguridad
         return $actions;
     }
 }
