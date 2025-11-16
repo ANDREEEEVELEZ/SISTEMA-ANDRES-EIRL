@@ -210,3 +210,44 @@
                 }
 
 
+                .fi-dropdown-list-item a[href*="logout"],
+                .fi-dropdown-list-item button[formaction*="logout"],
+                .fi-dropdown-list-item form[action*="logout"] button,
+                .fi-user-menu .fi-dropdown-list-item a[href*="logout"],
+                .fi-user-menu .fi-dropdown-list-item button {
+                    color: #ffffff !important;
+                }
+
+                .fi-dropdown-list-item a[href*="logout"] span,
+                .fi-dropdown-list-item button[formaction*="logout"] span,
+                .fi-dropdown-list-item form[action*="logout"] button span,
+                .fi-dropdown-list-item a[href*="logout"] .fi-dropdown-list-item-label,
+                .fi-dropdown-list-item button[formaction*="logout"] .fi-dropdown-list-item-label,
+                .fi-dropdown-list-item form[action*="logout"] button .fi-dropdown-list-item-label {
+                    color: #ffffff !important;
+                }
+
+                .fi-dropdown-list-item a[href*="logout"] svg,
+                .fi-dropdown-list-item button[formaction*="logout"] svg,
+                .fi-dropdown-list-item form[action*="logout"] button svg,
+                .fi-dropdown-list-item a[href*="logout"] .fi-icon,
+                .fi-dropdown-list-item button[formaction*="logout"] .fi-icon,
+                .fi-dropdown-list-item form[action*="logout"] button .fi-icon {
+                    color: #ffffff !important;
+                    fill: #ffffff !important;
+                }
+
+
+                .fi-user-menu .fi-dropdown-panel .fi-dropdown-list-item,
+                [x-ref="panel"] .fi-dropdown-list-item {
+                    color: inherit;
+                }
+
+                .fi-user-menu .fi-dropdown-panel .fi-dropdown-list-item:last-child,
+                .fi-user-menu .fi-dropdown-panel .fi-dropdown-list-item:last-child *,
+                [x-ref="panel"] .fi-dropdown-list-item:last-child,
+                [x-ref="panel"] .fi-dropdown-list-item:last-child * {
+                    color: #ffffff !important;
+                }
+
+

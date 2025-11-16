@@ -30,6 +30,9 @@ class CajasTable
                     ->sortable(),
                 TextColumn::make('estado'),
                 TextColumn::make('observacion')
+                    ->formatStateUsing(fn($state) => $state ? (strlen($state) > 60 ? substr($state, 0, 60) . '...' : $state) : '')
+                    ->tooltip(fn ($record) => $record->observacion)
+                    ->extraAttributes(['style' => 'max-width:200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'])
                     ->searchable(),
                     /*
                 TextColumn::make('created_at')
