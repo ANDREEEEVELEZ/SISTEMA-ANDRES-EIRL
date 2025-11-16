@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\Inventario;
 
 use App\Filament\Resources\Inventario\Pages\CreateInventario;
-use App\Filament\Resources\Inventario\Pages\EditInventario;
 use App\Filament\Resources\Inventario\Pages\ListInventario;
+use App\Filament\Resources\Inventario\Pages\ViewInventario;
 use App\Filament\Resources\Inventario\Schemas\InventarioForm;
 use App\Filament\Resources\Inventario\Tables\InventarioTable;
 use App\Models\MovimientoInventario;
@@ -74,7 +74,8 @@ class InventarioResource extends Resource
         return [
             'index' => ListInventario::route('/'),
             'create' => CreateInventario::route('/create'),
-            'edit' => EditInventario::route('/{record}/edit'),
+            'view' => ViewInventario::route('/{record}'),
+            // 'edit' => EditInventario::route('/{record}/edit'), // Deshabilitado: solo visualización
         ];
     }
 }

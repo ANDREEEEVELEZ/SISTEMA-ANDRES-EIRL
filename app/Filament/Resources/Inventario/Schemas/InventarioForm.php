@@ -10,6 +10,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Radio;
+use Filament\Resources\Pages\CreateRecord;
 use Filament\Schemas\Schema;
 
 class InventarioForm
@@ -28,11 +29,29 @@ class InventarioForm
                 // No se muestra en el formulario por seguridad
                 
                 Select::make('tipo')
-                    ->options([
-                        'entrada' => 'Entrada',
-                        'salida' => 'Salida',
-                        'ajuste' => 'Ajuste',
-                    ])
+                    ->options(function ($livewire) {
+                        // En modo creación: solo Entrada y Ajuste
+                        // En modo visualización: mostrar todos los tipos incluyendo Salida
+                        if ($livewire instanceof \Filament\Resources\Pages\CreateRecord) {
+                            return [
+                                'entrada' => 'Entrada',
+                                'ajuste' => 'Ajuste',
+                            ];
+                        }
+                        
+                        // Para visualización, mostrar todos los tipos
+                        return [
+                            'entrada' => 'Entrada',
+                            'salida' => 'Salida',
+                            'ajuste' => 'Ajuste',
+                        ];
+                    })
+                    ->helperText(function ($livewire) {
+                        if ($livewire instanceof \Filament\Resources\Pages\CreateRecord) {
+                            return 'Las salidas se registran automáticamente desde las ventas';
+                        }
+                        return null;
+                    })
                     ->required()
                     ->live()
                     ->label('Tipo de Movimiento'),

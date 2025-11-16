@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Inventario\Tables;
 
-use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -115,7 +115,7 @@ class InventarioTable
                 SelectFilter::make('tipo')
                     ->options([
                         'entrada' => 'Entrada',
-                        'salida' => 'Salida',
+                        'salida' => 'Salida (Automática)',
                         'ajuste' => 'Ajuste',
                     ])
                     ->label('Tipo de Movimiento'),
@@ -136,7 +136,8 @@ class InventarioTable
                     ->label('Producto'),
             ])
             ->recordActions([
-                EditAction::make(),
+                \Filament\Actions\ViewAction::make()
+                    ->label('Ver Detalles'),
             ])
             // No se permiten acciones de eliminación masiva por políticas de seguridad
             ->toolbarActions([])
