@@ -38,8 +38,10 @@ class MovimientosCajaTable extends TableWidget
 
                 TextColumn::make('descripcion')
                     ->label('Descripción')
-                    ->wrap()
-                    ->searchable(),
+                    ->formatStateUsing(fn($state) => $state ? (strlen($state) > 50 ? substr($state, 0, 50) . '...' : $state) : '')
+                    ->tooltip(fn ($record) => $record->descripcion)
+                    ->extraAttributes(['style' => 'max-width:160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'])
+                    ->size('sm'),
 
                 TextColumn::make('created_at')
                     ->label('Fecha/Hora')
