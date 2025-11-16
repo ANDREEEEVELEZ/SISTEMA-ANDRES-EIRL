@@ -2,8 +2,6 @@
 
 namespace App\Filament\Resources\Inventario\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -15,6 +13,9 @@ class InventarioTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->selectCurrentPageOnly()
+            ->deselectAllRecordsWhenFiltered(false)
+            ->checkIfRecordIsSelectableUsing(fn (): bool => false)
             ->columns([
                 TextColumn::make('producto.nombre_producto')
                     ->searchable()
@@ -137,11 +138,8 @@ class InventarioTable
             ->recordActions([
                 EditAction::make(),
             ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ])
+            // No se permiten acciones de eliminación masiva por políticas de seguridad
+            ->toolbarActions([])
             ->defaultSort('fecha_movimiento', 'desc');
     }
 }

@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Inventario\Pages;
 
 use App\Filament\Resources\Inventario\InventarioResource;
 use App\Models\Producto;
-use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\DB;
@@ -32,11 +31,7 @@ class EditInventario extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make()
-                ->before(function () {
-                    // Antes de eliminar, revertir el movimiento en el stock
-                    $this->revertirMovimiento($this->record);
-                }),
+            // No se permiten acciones de eliminación por políticas de seguridad
         ];
     }
 
