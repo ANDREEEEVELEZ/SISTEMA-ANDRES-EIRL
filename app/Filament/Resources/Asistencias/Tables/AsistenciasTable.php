@@ -13,6 +13,9 @@ class AsistenciasTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->selectCurrentPageOnly()
+            ->deselectAllRecordsWhenFiltered(false)
+            ->checkIfRecordIsSelectableUsing(fn (): bool => false)
             ->columns([
                 TextColumn::make('empleado.nombre_completo')
                     ->label('Empleado')
@@ -73,9 +76,7 @@ class AsistenciasTable
                 EditAction::make(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                // Sin acciones de eliminación masiva
             ])
             ->defaultSort('fecha', 'desc');
     }

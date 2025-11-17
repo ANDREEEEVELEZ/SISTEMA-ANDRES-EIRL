@@ -10,6 +10,7 @@ use App\Filament\Resources\Inventario\Widgets\InventarioResumenWidget;
 use App\Filament\Resources\Inventario\Widgets\MovimientosStatsWidget;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Auth;
 
 class ListInventario extends ListRecords
 {
@@ -17,12 +18,20 @@ class ListInventario extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [
-            ExportarInventarioStockAction::make(),
-            ExportarMovimientosInventarioAction::make(),
-            ExportarReporteCompletoAction::make(),
+        $actions = [
             CreateAction::make(),
         ];
+
+        // Solo super_admin puede ver las opciones de exportación
+        if (Auth::user() && Auth::user()->hasRole('super_admin')) {
+            array_unshift($actions, 
+                ExportarInventarioStockAction::make(),
+                ExportarMovimientosInventarioAction::make(),
+                ExportarReporteCompletoAction::make()
+            );
+        }
+
+        return $actions;
     }
 
     protected function getHeaderWidgets(): array

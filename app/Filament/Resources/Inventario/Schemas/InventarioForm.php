@@ -12,6 +12,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Radio;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Auth;
 
 class InventarioForm
 {
@@ -30,13 +31,22 @@ class InventarioForm
                 
                 Select::make('tipo')
                     ->options(function ($livewire) {
-                        // En modo creación: solo Entrada y Ajuste
-                        // En modo visualización: mostrar todos los tipos incluyendo Salida
+                        $user = Auth::user();
+                        
+                        // En modo creación: verificar rol del usuario
                         if ($livewire instanceof \Filament\Resources\Pages\CreateRecord) {
-                            return [
-                                'entrada' => 'Entrada',
-                                'ajuste' => 'Ajuste',
-                            ];
+                            // Solo super_admin puede registrar entrada y ajuste
+                            if ($user && $user->hasRole('super_admin')) {
+                                return [
+                                    'entrada' => 'Entrada',
+                                    'ajuste' => 'Ajuste',
+                                ];
+                            } else {
+                                // Vendedores solo pueden hacer ajustes
+                                return [
+                                    'ajuste' => 'Ajuste',
+                                ];
+                            }
                         }
                         
                         // Para visualización, mostrar todos los tipos
@@ -47,8 +57,14 @@ class InventarioForm
                         ];
                     })
                     ->helperText(function ($livewire) {
+                        $user = Auth::user();
+                        
                         if ($livewire instanceof \Filament\Resources\Pages\CreateRecord) {
-                            return 'Las salidas se registran automáticamente desde las ventas';
+                            if ($user && $user->hasRole('super_admin')) {
+                                return 'Las salidas se registran automáticamente desde las ventas';
+                            } else {
+                                return 'Como vendedor, solo puede realizar ajustes de inventario';
+                            }
                         }
                         return null;
                     })

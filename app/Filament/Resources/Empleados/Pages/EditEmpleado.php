@@ -28,6 +28,16 @@ class EditEmpleado extends EditRecord
         if ($this->record->user && $this->record->user->roles->isNotEmpty()) {
             $data['rol'] = $this->record->user->roles->first()->name;
         }
+
+        // Convertir fecha de nacimiento de Y-m-d a d/m/Y para mostrar en el formulario
+        if (!empty($data['fecha_nacimiento'])) {
+            try {
+                $fechaNacimiento = \Carbon\Carbon::parse($data['fecha_nacimiento']);
+                $data['fecha_nacimiento'] = $fechaNacimiento->format('d/m/Y');
+            } catch (\Exception $e) {
+                // Si no se puede convertir, mantener el valor original
+            }
+        }
         
         return $data;
     }
@@ -37,6 +47,28 @@ class EditEmpleado extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        // Convertir fecha de nacimiento del formato dd/mm/yyyy a yyyy-mm-dd
+        if (!empty($data['fecha_nacimiento'])) {
+            try {
+                $fechaNacimiento = \Carbon\Carbon::createFromFormat('d/m/Y', $data['fecha_nacimiento']);
+                $data['fecha_nacimiento'] = $fechaNacimiento->format('Y-m-d');
+            } catch (\Exception $e) {
+                // Si no se puede convertir, mantener el valor original
+            }
+        }
+
+        // Convertir fecha de incorporación del formato d/m/Y a Y-m-d si está en formato de fecha
+        if (!empty($data['fecha_incorporacion']) && is_string($data['fecha_incorporacion'])) {
+            try {
+                if (strpos($data['fecha_incorporacion'], '/') !== false) {
+                    $fechaIncorporacion = \Carbon\Carbon::createFromFormat('d/m/Y', $data['fecha_incorporacion']);
+                    $data['fecha_incorporacion'] = $fechaIncorporacion->format('Y-m-d');
+                }
+            } catch (\Exception $e) {
+                // Si no se puede convertir, mantener el valor original
+            }
+        }
+
         // Sincronizar el correo, nombre y rol en la tabla users
         if ($this->record->user) {
             $emailCambiado = $this->record->user->email !== $data['correo_empleado'];

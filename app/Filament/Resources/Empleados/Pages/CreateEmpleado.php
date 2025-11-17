@@ -20,6 +20,30 @@ class CreateEmpleado extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        // Convertir fecha de nacimiento del formato dd/mm/yyyy a yyyy-mm-dd
+        if (!empty($data['fecha_nacimiento'])) {
+            try {
+                $fechaNacimiento = \Carbon\Carbon::createFromFormat('d/m/Y', $data['fecha_nacimiento']);
+                $data['fecha_nacimiento'] = $fechaNacimiento->format('Y-m-d');
+            } catch (\Exception $e) {
+                // Si no se puede convertir, mantener el valor original
+                \Log::warning('Error al convertir fecha de nacimiento: ' . $e->getMessage());
+            }
+        }
+
+        // Convertir fecha de incorporación del formato d/m/Y a Y-m-d si está en formato de fecha
+        if (!empty($data['fecha_incorporacion']) && is_string($data['fecha_incorporacion'])) {
+            try {
+                if (strpos($data['fecha_incorporacion'], '/') !== false) {
+                    $fechaIncorporacion = \Carbon\Carbon::createFromFormat('d/m/Y', $data['fecha_incorporacion']);
+                    $data['fecha_incorporacion'] = $fechaIncorporacion->format('Y-m-d');
+                }
+            } catch (\Exception $e) {
+                // Si no se puede convertir, mantener el valor original
+                \Log::warning('Error al convertir fecha de incorporación: ' . $e->getMessage());
+            }
+        }
+
         // Crear automáticamente un usuario para el empleado
         $user = User::create([
             'name' => $data['nombres'] . ' ' . $data['apellidos'],

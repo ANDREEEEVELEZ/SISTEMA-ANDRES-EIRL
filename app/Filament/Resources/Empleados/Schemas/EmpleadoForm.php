@@ -90,12 +90,41 @@ class EmpleadoForm
                     ->maxLength(255)
                     ->placeholder('Ingrese la dirección completa'),
                 
-                DatePicker::make('fecha_nacimiento')
+                TextInput::make('fecha_nacimiento')
                     ->label('Fecha de Nacimiento')
                     ->required()
-                    ->native(false)
-                    ->displayFormat('d/m/Y')
-                    ->placeholder('Seleccione fecha de nacimiento'),
+                    ->placeholder('dd/mm/aaaa')
+                    ->mask('99/99/9999')
+                    ->helperText('Formato: dd/mm/aaaa')
+                    ->rules([
+                        'regex:/^\d{2}\/\d{2}\/\d{4}$/',
+                        function (string $attribute, $value, \Closure $fail) {
+                            if ($value) {
+                                $parts = explode('/', $value);
+                                if (count($parts) === 3) {
+                                    $day = (int) $parts[0];
+                                    $month = (int) $parts[1];
+                                    $year = (int) $parts[2];
+                                    
+                                    if (!checkdate($month, $day, $year)) {
+                                        $fail('La fecha de nacimiento no es válida.');
+                                    }
+                                    
+                                    $birthDate = \Carbon\Carbon::createFromFormat('d/m/Y', $value);
+                                    if ($birthDate->isFuture()) {
+                                        $fail('La fecha de nacimiento no puede ser en el futuro.');
+                                    }
+                                    
+                                    if ($birthDate->diffInYears(now()) > 100) {
+                                        $fail('La fecha de nacimiento parece incorrecta.');
+                                    }
+                                }
+                            }
+                        },
+                    ])
+                    ->validationMessages([
+                        'regex' => 'El formato de fecha debe ser dd/mm/aaaa.',
+                    ]),
                 
                 TextInput::make('correo_empleado')
                     ->label('Correo Electrónico')
@@ -136,7 +165,8 @@ class EmpleadoForm
                 TextInput::make('estado_empleado')
                     ->label('Estado')
                     ->required()
-                    ->default('activo'),
+                    ->default('activo')
+                    ->visible(fn ($livewire) => !($livewire instanceof \Filament\Resources\Pages\CreateRecord)),
 
                 \Filament\Forms\Components\Select::make('rol')
                     ->label('Rol del Empleado')
@@ -144,9 +174,8 @@ class EmpleadoForm
                         return \Spatie\Permission\Models\Role::all()->pluck('name', 'name');
                     })
                     ->required()
-                    ->default('vendedor')
                     ->searchable()
-                    ->helperText('Seleccione el rol que tendrá el empleado en el sistema')
+                    ->helperText('Seleccione obligatoriamente el rol que tendrá el empleado en el sistema')
                     ->placeholder('Seleccionar rol'),
                 
                 // === REGISTRO FACIAL (Solo Super Admin) ===
