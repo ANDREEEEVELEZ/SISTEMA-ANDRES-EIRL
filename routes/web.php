@@ -11,7 +11,10 @@ use App\Http\Controllers\VentaExportController;
 
 Route::get('/', function () {
     return view('welcome');
+    
 });
+Route::get('/marcar-asistencia', [FaceRecognitionController::class, 'attendancePage'])
+    ->name('attendance.mark');
 
 // Rutas para manejo de fotos de asistencia
 Route::post('/asistencia/guardar-foto', [AsistenciaFotoController::class, 'guardarFoto'])->name('asistencia.guardar-foto');
