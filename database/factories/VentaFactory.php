@@ -28,7 +28,7 @@ class VentaFactory extends Factory
             'descuento_total' => $descuento,
             'total_venta' => $total,
             'fecha_venta' => fake()->date('Y-m-d', 'now'),
-            'hora_venta' => fake()->time('H:i'),
+            'hora_venta' => fake()->time('H:i:s'),
             'estado_venta' => fake()->randomElement(['emitida', 'anulada', 'rechazada']),
             'metodo_pago' => fake()->randomElement(['efectivo', 'tarjeta', 'yape', 'plin', 'transferencia']),
             'cod_operacion' => fake()->optional(0.3)->numerify('OP-########'),

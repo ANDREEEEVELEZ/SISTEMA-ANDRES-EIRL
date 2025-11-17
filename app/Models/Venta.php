@@ -35,7 +35,7 @@ class Venta extends Model
         'descuento_total' => 'decimal:2',
         'total_venta' => 'decimal:2',
         'fecha_venta' => 'date',
-        'hora_venta' => 'datetime:H:i',
+        'hora_venta' => 'datetime:H:i:s',
     ];
 
     /**

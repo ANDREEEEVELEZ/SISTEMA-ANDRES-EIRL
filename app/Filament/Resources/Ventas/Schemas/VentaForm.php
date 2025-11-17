@@ -204,9 +204,9 @@ class VentaForm
 
                 TimePicker::make('hora_venta')
                     ->label('Hora de Venta')
-                    ->default(now()->format('H:i'))
+                    ->default(now()->format('H:i:s'))
                     ->required()
-                    ->seconds(false)
+                    ->seconds(true)
                     ->disabled() // Bloqueado - se asigna automáticamente
                     ->dehydrated()
                     ->columnSpan(1),

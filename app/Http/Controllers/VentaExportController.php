@@ -6,6 +6,7 @@ use App\Models\Venta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 
 class VentaExportController extends Controller
 {
@@ -13,6 +14,12 @@ class VentaExportController extends Controller
     {
         // Construir query base
         $query = Venta::with(['cliente', 'comprobantes', 'detalleVentas.producto']);
+
+        // Si el usuario NO es super_admin, limitar la exportación a sus propias ventas
+        $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
+        if (! $esSuperAdmin) {
+            $query->where('user_id', Auth::id());
+        }
 
         // NO excluimos ventas anuladas del query principal
         // Las mostraremos todas y solo las excluiremos de los totales

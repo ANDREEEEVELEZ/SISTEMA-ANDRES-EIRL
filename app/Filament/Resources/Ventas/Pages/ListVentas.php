@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Exceptions\Halt;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class ListVentas extends ListRecords
 {
@@ -299,6 +300,25 @@ class ListVentas extends ListRecords
             return;
         }
 
+        // Verificar que el usuario tiene permisos sobre esta venta (propietario) a menos que sea super_admin
+        $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
+        if (! $esSuperAdmin && $venta->user_id !== Auth::id()) {
+            $this->ventaEncontrada = null;
+
+            Notification::make()
+                ->title('Acceso denegado')
+                ->danger()
+                ->body('No tienes permisos para anular o emitir notas sobre comprobantes de otros usuarios.')
+                ->send();
+
+            // Mostrar error en inputs para que el usuario corrija sin cerrar el modal
+            $this->addError('serie', "No tienes permisos para acceder al {$tipo} {$serie}-{$numero}.");
+            $this->addError('numero', "No tienes permisos para acceder al {$tipo} {$serie}-{$numero}.");
+
+            $this->dispatch('refresh-form');
+            return;
+        }
+
         // Validar el estado del comprobante específico
         $comprobante = $venta->comprobantes->first(function ($c) use ($tipo, $serie, $numero) {
             return $c->tipo === $tipo && $c->serie === $serie && $c->correlativo == $numero;
@@ -355,6 +375,18 @@ class ListVentas extends ListRecords
                 ->send();
 
             // Evitar que el modal se cierre
+            throw new Halt();
+        }
+
+        // Verificar permisos: solo el propietario o super_admin puede anular
+        $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
+        if (! $esSuperAdmin && $this->ventaEncontrada->user_id !== Auth::id()) {
+            Notification::make()
+                ->title('Acceso denegado')
+                ->danger()
+                ->body('No tienes permisos para anular este ticket.')
+                ->send();
+
             throw new Halt();
         }
 
@@ -422,6 +454,22 @@ class ListVentas extends ListRecords
         }
     }
 
+    /**
+     * Limitar los registros visibles según el rol del usuario.
+     * - `super_admin` ve todo.
+     * - otros roles (p.ej. vendedor) solo ven sus propias ventas (`user_id`).
+     */
+    protected function getTableQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = Venta::query();
+
+        if (! Auth::check() || ! Auth::user()->hasRole('super_admin')) {
+            $query->where('user_id', Auth::id());
+        }
+
+        return $query;
+    }
+
     public function crearNotaModal(array $data): void
     {
         if (!$this->ventaEncontrada) {
@@ -432,6 +480,18 @@ class ListVentas extends ListRecords
                 ->send();
 
             // Evitar que el modal se cierre
+            throw new Halt();
+        }
+
+        // Verificar permisos: solo el propietario o super_admin puede emitir nota
+        $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
+        if (! $esSuperAdmin && $this->ventaEncontrada->user_id !== Auth::id()) {
+            Notification::make()
+                ->title('Acceso denegado')
+                ->danger()
+                ->body('No tienes permisos para emitir notas sobre este comprobante.')
+                ->send();
+
             throw new Halt();
         }
 

@@ -6,6 +6,7 @@ use App\Models\Venta;
 use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Auth;
 
 class EstadisticasVentasWidget extends BaseWidget
 {
@@ -14,66 +15,109 @@ class EstadisticasVentasWidget extends BaseWidget
         $mesActual = Carbon::now()->startOfMonth();
         $finMes = Carbon::now()->endOfMonth();
 
+        // Determinar si el usuario es super_admin (ve todo) o debe limitarse a sus ventas
+        $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
+
         // Total de ventas del mes (excluir anuladas)
-        $totalVentas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
-            ->where('estado_venta', '!=', 'anulada')
-            ->sum('total_venta');
+        $queryTotal = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
+            ->where('estado_venta', '!=', 'anulada');
+
+        if (! $esSuperAdmin) {
+            $queryTotal->where('user_id', Auth::id());
+        }
+
+        $totalVentas = $queryTotal->sum('total_venta');
 
         // Total de facturas del mes (excluir anuladas y verificar que comprobante esté emitido)
-        $totalFacturas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
+        $queryFacturas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
             ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
                 $query->where('tipo', 'factura')
                     ->where('estado', 'emitido');
-            })
-            ->sum('total_venta');
+            });
+
+        if (! $esSuperAdmin) {
+            $queryFacturas->where('user_id', Auth::id());
+        }
+
+        $totalFacturas = $queryFacturas->sum('total_venta');
 
         // Total de boletas del mes (excluir anuladas y verificar que comprobante esté emitido)
-        $totalBoletas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
+        $queryBoletas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
             ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
                 $query->where('tipo', 'boleta')
                     ->where('estado', 'emitido');
-            })
-            ->sum('total_venta');
+            });
+
+        if (! $esSuperAdmin) {
+            $queryBoletas->where('user_id', Auth::id());
+        }
+
+        $totalBoletas = $queryBoletas->sum('total_venta');
 
         // Total de tickets del mes (excluir anuladas y verificar que comprobante esté emitido)
-        $totalTickets = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
+        $queryTickets = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
             ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
                 $query->where('tipo', 'ticket')
                     ->where('estado', 'emitido');
-            })
-            ->sum('total_venta');
+            });
+
+        if (! $esSuperAdmin) {
+            $queryTickets->where('user_id', Auth::id());
+        }
+
+        $totalTickets = $queryTickets->sum('total_venta');
 
         // Cantidad de ventas para mostrar en descripción (excluir anuladas)
-        $cantidadVentas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
-            ->where('estado_venta', '!=', 'anulada')
-            ->count();
+        $queryCantidad = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
+            ->where('estado_venta', '!=', 'anulada');
 
-        $cantidadFacturas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
+        if (! $esSuperAdmin) {
+            $queryCantidad->where('user_id', Auth::id());
+        }
+
+        $cantidadVentas = $queryCantidad->count();
+
+        $queryCantidadFacturas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
             ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
                 $query->where('tipo', 'factura')
                     ->where('estado', 'emitido');
-            })
-            ->count();
+            });
 
-        $cantidadBoletas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
+        if (! $esSuperAdmin) {
+            $queryCantidadFacturas->where('user_id', Auth::id());
+        }
+
+        $cantidadFacturas = $queryCantidadFacturas->count();
+
+        $queryCantidadBoletas = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
             ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
                 $query->where('tipo', 'boleta')
                     ->where('estado', 'emitido');
-            })
-            ->count();
+            });
 
-        $cantidadTickets = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
+        if (! $esSuperAdmin) {
+            $queryCantidadBoletas->where('user_id', Auth::id());
+        }
+
+        $cantidadBoletas = $queryCantidadBoletas->count();
+
+        $queryCantidadTickets = Venta::whereBetween('fecha_venta', [$mesActual, $finMes])
             ->where('estado_venta', '!=', 'anulada')
             ->whereHas('comprobantes', function ($query) {
                 $query->where('tipo', 'ticket')
                     ->where('estado', 'emitido');
-            })
-            ->count();
+            });
+
+        if (! $esSuperAdmin) {
+            $queryCantidadTickets->where('user_id', Auth::id());
+        }
+
+        $cantidadTickets = $queryCantidadTickets->count();
 
         return [
             Stat::make('Total de Ventas', 'S/ ' . number_format($totalVentas, 2))

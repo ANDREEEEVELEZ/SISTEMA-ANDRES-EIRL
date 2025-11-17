@@ -216,6 +216,8 @@ class CreateVenta extends CreateRecord
     {
         $data['user_id'] = Auth::id();
         $data['fecha_venta'] = $data['fecha_emision'] ?? now();
+        // Guardar la hora con segundos para reflejar el instante exacto del registro
+        $data['hora_venta'] = now()->format('H:i:s');
 
         // Guardar temporalmente los datos del comprobante para usarlos después
         $this->datosComprobante = [

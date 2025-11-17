@@ -161,9 +161,15 @@ class AperturaCierreWidget extends Widget
         }
 
         // Obtiene la última caja abierta (la más reciente) desde la base de datos
-        return Caja::where('estado', 'abierta')
-            ->orderByDesc('fecha_apertura')
-            ->first();
+        // Si el usuario NO es super_admin, limitar a sus propias cajas
+        $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
+
+        $query = Caja::where('estado', 'abierta')->orderByDesc('fecha_apertura');
+        if (! $esSuperAdmin) {
+            $query->where('user_id', \Illuminate\Support\Facades\Auth::id());
+        }
+
+        return $query->first();
     }
 
     public function calcularSaldoEsperado(): float

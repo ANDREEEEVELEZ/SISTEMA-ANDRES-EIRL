@@ -7,12 +7,21 @@ use App\Models\Venta;
 use App\Models\MovimientoCaja;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Auth;
 
 class TotalesCajaWidget extends BaseWidget
 {
     protected function getStats(): array
     {
-        $caja = Caja::where('estado', 'abierta')->latest('fecha_apertura')->first();
+
+        $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
+
+        $cajaQuery = Caja::where('estado', 'abierta')->orderBy('fecha_apertura', 'desc');
+        if (! $esSuperAdmin) {
+            $cajaQuery->where('user_id', Auth::id());
+        }
+
+        $caja = $cajaQuery->first();
 
         if (! $caja) {
             $totalVentasEfectivo = 0;

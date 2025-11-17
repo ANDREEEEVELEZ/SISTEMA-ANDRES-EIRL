@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Caja;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class CajaService
 {
@@ -12,7 +13,15 @@ class CajaService
      */
     public static function tieneCajaAbiertaDiaAnterior(): bool
     {
-        $cajaAbierta = Caja::where('estado', 'abierta')->first();
+
+        $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
+
+        $query = Caja::where('estado', 'abierta')->orderByDesc('fecha_apertura');
+        if (! $esSuperAdmin) {
+            $query->where('user_id', Auth::id());
+        }
+
+        $cajaAbierta = $query->first();
 
         if (!$cajaAbierta) {
             return false;
@@ -30,7 +39,14 @@ class CajaService
      */
     public static function getCajaAbiertaDiaAnterior(): ?Caja
     {
-        $cajaAbierta = Caja::where('estado', 'abierta')->first();
+        $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
+
+        $query = Caja::where('estado', 'abierta')->orderByDesc('fecha_apertura');
+        if (! $esSuperAdmin) {
+            $query->where('user_id', Auth::id());
+        }
+
+        $cajaAbierta = $query->first();
 
         if (!$cajaAbierta) {
             return null;
@@ -48,7 +64,14 @@ class CajaService
      */
     public static function tieneCajaAbiertaHoy(): bool
     {
-        $cajaAbierta = Caja::where('estado', 'abierta')->first();
+        $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
+
+        $query = Caja::where('estado', 'abierta')->orderByDesc('fecha_apertura');
+        if (! $esSuperAdmin) {
+            $query->where('user_id', Auth::id());
+        }
+
+        $cajaAbierta = $query->first();
 
         if (!$cajaAbierta) {
             return false;
