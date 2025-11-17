@@ -78,6 +78,6 @@ class AsistenciasTable
             ->toolbarActions([
                 // Sin acciones de eliminación masiva
             ])
-            ->defaultSort('fecha', 'desc');
+            ->defaultSort('created_at', 'desc');
     }
 }

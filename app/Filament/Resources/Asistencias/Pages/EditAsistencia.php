@@ -13,7 +13,7 @@ class EditAsistencia extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            // Sin acciones de eliminación por políticas de seguridad
         ];
     }
 }

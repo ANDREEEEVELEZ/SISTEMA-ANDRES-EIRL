@@ -207,6 +207,6 @@ class ProductosTable
             ])
             // No se permiten acciones de eliminación masiva por políticas de seguridad
             ->toolbarActions([])
-            ->defaultSort('nombre_producto', 'asc');
+            ->defaultSort('created_at', 'desc');
     }
 }

@@ -291,6 +291,7 @@ class EmpleadosTable
 
                     DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }
