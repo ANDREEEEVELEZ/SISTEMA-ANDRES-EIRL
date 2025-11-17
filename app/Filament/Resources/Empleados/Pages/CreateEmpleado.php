@@ -27,8 +27,13 @@ class CreateEmpleado extends CreateRecord
             'password' => Hash::make($data['dni']), // Contraseña inicial es el DNI
         ]);
 
-        // Asignar automáticamente el rol de vendedor
-        $user->assignRole('vendedor');
+        // Asignar el rol seleccionado en el formulario
+        if (!empty($data['rol'])) {
+            $user->assignRole($data['rol']);
+        } else {
+            // Fallback al rol de vendedor si no se especifica
+            $user->assignRole('vendedor');
+        }
 
         // Asignar el user_id al empleado
         $data['user_id'] = $user->id;

@@ -4,10 +4,12 @@ namespace App\Filament\Resources\Empleados\Schemas;
 
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ViewField;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
+use Spatie\Permission\Models\Role;
 
 class EmpleadoForm
 {
@@ -135,6 +137,17 @@ class EmpleadoForm
                     ->label('Estado')
                     ->required()
                     ->default('activo'),
+
+                \Filament\Forms\Components\Select::make('rol')
+                    ->label('Rol del Empleado')
+                    ->options(function () {
+                        return \Spatie\Permission\Models\Role::all()->pluck('name', 'name');
+                    })
+                    ->required()
+                    ->default('vendedor')
+                    ->searchable()
+                    ->helperText('Seleccione el rol que tendrá el empleado en el sistema')
+                    ->placeholder('Seleccionar rol'),
                 
                 // === REGISTRO FACIAL (Solo Super Admin) ===
                 ViewField::make('foto_actual')

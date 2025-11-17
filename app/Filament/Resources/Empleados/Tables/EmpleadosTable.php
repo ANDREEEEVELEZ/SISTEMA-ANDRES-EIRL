@@ -49,6 +49,31 @@ class EmpleadosTable
                     ->label('Usuario')
                     ->sortable()
                     ->searchable(),
+                
+                TextColumn::make('user.roles.name')
+                    ->label('Rol')
+                    ->badge()
+                    ->color(function ($state) {
+                        return match($state) {
+                            'super_admin' => 'danger',
+                            'admin' => 'warning', 
+                            'vendedor' => 'success',
+                            'cajero' => 'info',
+                            default => 'gray'
+                        };
+                    })
+                    ->formatStateUsing(function ($state) {
+                        return match($state) {
+                            'super_admin' => 'Super Admin',
+                            'admin' => 'Administrador',
+                            'vendedor' => 'Vendedor',
+                            'cajero' => 'Cajero',
+                            default => ucfirst($state ?? 'Sin rol')
+                        };
+                    })
+                    ->sortable()
+                    ->searchable(),
+                
                 TextColumn::make('nombres')
                     ->label('Nombres')
                     ->searchable(),
@@ -95,6 +120,32 @@ class EmpleadosTable
                         'inactivo' => 'Inactivos',
                     ])
                     ->placeholder('Todos los estados'),
+                
+                // Filtro por Rol
+                SelectFilter::make('rol')
+                    ->label('Rol')
+                    ->options(function () {
+                        return \Spatie\Permission\Models\Role::all()->pluck('name', 'name')
+                            ->mapWithKeys(function ($name) {
+                                return [$name => match($name) {
+                                    'super_admin' => 'Super Admin',
+                                    'admin' => 'Administrador',
+                                    'vendedor' => 'Vendedor',
+                                    'cajero' => 'Cajero',
+                                    default => ucfirst($name)
+                                }];
+                            });
+                    })
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['value'],
+                            fn (Builder $query, $role): Builder => $query->whereHas(
+                                'user.roles',
+                                fn (Builder $query): Builder => $query->where('name', $role)
+                            )
+                        );
+                    })
+                    ->placeholder('Todos los roles'),
 
                 // Filtro por Rango de Fechas de Incorporación
                 Filter::make('fecha_incorporacion')
