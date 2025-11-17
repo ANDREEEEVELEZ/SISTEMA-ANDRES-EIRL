@@ -23,6 +23,8 @@ return [
         'string' => 'El campo :attribute debe tener :size caracteres.',
     ],
 
+    'unique' => 'El campo :attribute ya ha sido tomado.',
+
     /*
     |--------------------------------------------------------------------------
     | Custom Validation Language Lines
@@ -39,6 +41,10 @@ return [
             'max' => 'El número de documento no debe tener más de :max dígitos.',
             'min' => 'El número de documento debe tener al menos :min dígitos.',
             'between' => 'El número de documento debe tener entre :min y :max dígitos.',
+            'unique' => 'El número de documento ya está registrado.',
+        ],
+        'dni' => [
+            'unique' => 'El DNI ya está registrado.',
         ],
         'telefono' => [
             'size' => 'El teléfono debe tener exactamente :size dígitos.',
@@ -58,6 +64,7 @@ return [
 
     'attributes' => [
         'num_doc' => 'número de documento',
+        'dni' => 'DNI',
         'telefono' => 'teléfono',
         'tipo_doc' => 'tipo de documento',
         'tipo_cliente' => 'tipo de cliente',

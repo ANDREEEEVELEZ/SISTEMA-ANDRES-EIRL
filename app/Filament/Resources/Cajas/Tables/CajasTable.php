@@ -69,7 +69,7 @@ class CajasTable
                     ->label('Rango de fechas'),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->label('Ver detalle')->icon('heroicon-s-eye'),
             ])
             ->toolbarActions([
 

@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 
 class VentasTable
 {
-    protected static function anularTicket($record, $observacion = null): void
+    public static function anularTicket($record, $observacion = null): void
     {
         $record->update([
             'estado_venta' => 'anulada'
@@ -162,15 +162,12 @@ class VentasTable
 
             // ENVIAR NOTA DE CRÉDITO A SUNAT (solo si el comprobante original ya fue enviado)
             try {
-                // Verificar si el comprobante original ya fue enviado a SUNAT
-                $yaEnviadoASunat = false;
+                // Verificar si el comprobante original tiene XML/CDR guardados (fue enviado)
+                $yaEnviadoASunat = !empty($comprobante->ruta_xml) || !empty($comprobante->ruta_cdr) || !empty($comprobante->codigo_sunat);
 
-                if ($comprobante->tipo === 'factura') {
-                    // Facturas se envían inmediatamente, verificar si tiene codigo_sunat
-                    $yaEnviadoASunat = !empty($comprobante->codigo_sunat);
-                } elseif ($comprobante->tipo === 'boleta') {
-                    // Boletas van a resumen, verificar si tiene ticket_sunat Y codigo_sunat
-                    $yaEnviadoASunat = !empty($comprobante->ticket_sunat) && !empty($comprobante->codigo_sunat);
+                // Validación adicional para boletas (requieren ticket_sunat)
+                if ($comprobante->tipo === 'boleta') {
+                    $yaEnviadoASunat = $yaEnviadoASunat && !empty($comprobante->ticket_sunat);
                 }
 
                 if ($yaEnviadoASunat) {

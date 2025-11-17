@@ -22,7 +22,8 @@ class VentaResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-cart';
 
-    protected static ?string $recordTitleAttribute = 'total_venta';
+
+    protected static ?string $recordTitleAttribute = 'comprobante_nombre';
 
     public static function form(Schema $schema): Schema
     {

@@ -9,8 +9,15 @@
         .header { text-align: center; margin-bottom: 10px; }
         .caja { margin-bottom: 18px; page-break-inside: avoid; }
         .section-title { font-weight: bold; margin-top: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 6px; table-layout: fixed; }
         th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+        /* Column widths for movimientos table to avoid pushing monto fuera de view */
+        table thead tr th:nth-child(1), table tbody tr td:nth-child(1) { width: 18%; }
+        table thead tr th:nth-child(2), table tbody tr td:nth-child(2) { width: 12%; }
+        table thead tr th:nth-child(3), table tbody tr td:nth-child(3) { width: 55%; }
+        table thead tr th:nth-child(4), table tbody tr td:nth-child(4) { width: 15%; }
+        /* Allow long descriptions to wrap to multiple lines */
+        td { white-space: normal; word-wrap: break-word; word-break: break-word; }
         th { background: #f4f4f4; }
     </style>
 </head>

@@ -17,6 +17,7 @@ use App\Models\Caja;
 use App\Models\Venta;
 use App\Models\MovimientoCaja;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 
 class ListCajas extends ListRecords
@@ -59,6 +60,7 @@ class ListCajas extends ListRecords
 
             Action::make('exportarInformacion')
                 ->label('Exportar información')
+                ->visible(fn () => Auth::check() && Auth::user()->hasRole('super_admin'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('primary')
                 ->modalHeading('Exportar información de cajas')

@@ -79,23 +79,7 @@ class VentaForm
                             }
                         }
                     })
-                    ->helperText(function () {
-                        // Verificar si hay caja del día anterior abierta
-                        if (self::shouldDisableFields()) {
-                            $cajaAnterior = CajaService::getCajaAbiertaDiaAnterior();
-                            return "Hay una caja abierta desde el {$cajaAnterior->fecha_apertura->format('d/m/Y H:i')}. Debe ir al módulo de Caja para cerrarla (con reporte de arqueo) antes de continuar.";
-                        }
-
-                        $cajaAbierta = \App\Models\Caja::where('estado', 'abierta')
-                            ->where('user_id', Auth::id())
-                            ->first();
-
-                        if ($cajaAbierta) {
-                            return "Caja activa del {$cajaAbierta->fecha_apertura->format('d/m/Y H:i')}";
-                        } else {
-                            return " No hay caja abierta. Debe ir al módulo de Caja para abrir una nueva.";
-                        }
-                    })
+                    
                     ->columnSpan(1),
 
                 // === DATOS GENERALES ===

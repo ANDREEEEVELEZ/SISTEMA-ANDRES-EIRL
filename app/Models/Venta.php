@@ -77,4 +77,19 @@ class Venta extends Model
     {
         return $this->hasMany(Comprobante::class, 'venta_id');
     }
+
+
+    public function getComprobanteNombreAttribute(): ?string
+    {
+        $comprobante = $this->comprobantes()->first();
+
+        if (! $comprobante) {
+            return null;
+        }
+
+        $serie = $comprobante->serie ?? '';
+        $correlativo = isset($comprobante->correlativo) ? str_pad($comprobante->correlativo, 6, '0', STR_PAD_LEFT) : '';
+
+        return trim($serie . ($serie && $correlativo ? '-' . $correlativo : $correlativo));
+    }
 }

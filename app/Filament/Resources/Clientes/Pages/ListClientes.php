@@ -6,6 +6,7 @@ use App\Filament\Resources\Clientes\ClienteResource;
 use App\Filament\Resources\Clientes\Widgets\EstadisticasClientesWidget;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Auth;
 
 class ListClientes extends ListRecords
 {
@@ -19,6 +20,7 @@ class ListClientes extends ListRecords
 
             \Filament\Actions\Action::make('exportarClientes')
                 ->label('Exportar clientes')
+                ->visible(fn () => Auth::check() && Auth::user()->hasRole('super_admin'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('primary')
                 ->modalHeading('Exportar clientes a PDF')
