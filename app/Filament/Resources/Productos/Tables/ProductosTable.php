@@ -83,8 +83,7 @@ class ProductosTable
                     ->label('Stock Mínimo')
                     ->numeric()
                     ->sortable()
-                    ->alignCenter()
-                    ->toggleable(),
+                    ->alignCenter(),
                 
                 TextColumn::make('preciosProductos')
                     ->label('Precios')
@@ -124,7 +123,6 @@ class ProductosTable
                     ->label('Descripción')
                     ->searchable()
                     ->limit(50)
-                    ->toggleable(isToggledHiddenByDefault: true)
                     ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         if (strlen($state) <= 50) {
@@ -136,14 +134,12 @@ class ProductosTable
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime('d/m/Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
                 
                 TextColumn::make('updated_at')
                     ->label('Actualizado')
                     ->dateTime('d/m/Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('categoria_id')

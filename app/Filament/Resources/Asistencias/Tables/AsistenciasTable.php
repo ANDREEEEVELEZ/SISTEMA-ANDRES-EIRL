@@ -51,24 +51,20 @@ class AsistenciasTable
                         'facial' => 'Facial',
                         'manual_dni' => 'Manual',
                         default => $state,
-                    })
-                    ->toggleable(),
+                    }),
                 TextColumn::make('observacion')
                     ->label('Observación')
                     ->searchable()
-                    ->limit(30)
-                    ->toggleable(),
+                    ->limit(30),
                 TextColumn::make('razon_manual')
                     ->label('Motivo Registro Manual')
                     ->searchable()
                     ->limit(30)
-                    ->toggleable()
                     ->placeholder('N/A'),
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime('d/m/Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
             ])
             ->filters([
                 //

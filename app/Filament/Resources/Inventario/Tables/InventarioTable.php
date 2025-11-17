@@ -46,7 +46,6 @@ class InventarioTable
                         'relativo' => 'Relativo',
                         default => '-',
                     })
-                    ->toggleable(isToggledHiddenByDefault: false)
                     ->label('Método'),
                 
                 TextColumn::make('motivo_ajuste')
@@ -67,7 +66,6 @@ class InventarioTable
                         'otro' => 'Otro',
                         default => '-',
                     })
-                    ->toggleable(isToggledHiddenByDefault: false)
                     ->label('Motivo Ajuste'),
                 
                 TextColumn::make('cantidad_movimiento')
@@ -102,13 +100,11 @@ class InventarioTable
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true)
                     ->label('Creado'),
                 
                 TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true)
                     ->label('Actualizado'),
             ])
             ->filters([
