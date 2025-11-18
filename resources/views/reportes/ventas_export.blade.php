@@ -222,6 +222,76 @@
         </div>
     </div>
 
+    <!-- Estadísticas resumen (debajo de filtros aplicados) -->
+    <table style="width:100%; border-collapse:collapse; margin-top:10px; margin-bottom:10px;">
+        <tr>
+            <td style="width:25%; padding:6px; vertical-align:top;">
+                <div style="background:#ffffff; border:1px solid #e2e8f0; padding:8px; border-radius:6px;">
+                    <div style="font-size:9px; color:#475569;">Total de Ventas</div>
+                    <div style="font-size:16px; font-weight:700; margin-top:6px;">S/ {{ number_format((float)($totalVentas ?? 0), 2) }}</div>
+                    <div style="font-size:10px; color:#64748b; margin-top:4px;">{{ ($cantidadVentas ?? 0) }} ventas {{ (!empty($filtros['fecha_inicio']) || !empty($filtros['fecha_fin'])) ? 'en el rango de fecha' : 'hoy (' . now()->format('d/m/Y') . ')' }}</div>
+                </div>
+            </td>
+
+            <td style="width:25%; padding:6px; vertical-align:top;">
+                <div style="background:#ffffff; border:1px solid #e2e8f0; padding:8px; border-radius:6px;">
+                    <div style="font-size:9px; color:#475569;">Total Facturas</div>
+                    <div style="font-size:16px; font-weight:700; margin-top:6px;">S/ {{ number_format((float)($totalFacturas ?? 0), 2) }}</div>
+                    <div style="font-size:10px; color:#64748b; margin-top:4px;">{{ ($cantidadFacturas ?? 0) }} facturas emitidas {{ (!empty($filtros['fecha_inicio']) || !empty($filtros['fecha_fin'])) ? 'en el rango de fecha' : 'hoy (' . now()->format('d/m/Y') . ')' }}</div>
+                </div>
+            </td>
+
+            <td style="width:25%; padding:6px; vertical-align:top;">
+                <div style="background:#ffffff; border:1px solid #e2e8f0; padding:8px; border-radius:6px;">
+                    <div style="font-size:9px; color:#475569;">Total Boletas</div>
+                    <div style="font-size:16px; font-weight:700; margin-top:6px;">S/ {{ number_format((float)($totalBoletas ?? 0), 2) }}</div>
+                    <div style="font-size:10px; color:#64748b; margin-top:4px;">{{ ($cantidadBoletas ?? 0) }} boletas emitidas {{ (!empty($filtros['fecha_inicio']) || !empty($filtros['fecha_fin'])) ? 'en el rango de fecha' : 'hoy (' . now()->format('d/m/Y') . ')' }}</div>
+                </div>
+            </td>
+
+            <td style="width:25%; padding:6px; vertical-align:top;">
+                <div style="background:#ffffff; border:1px solid #e2e8f0; padding:8px; border-radius:6px;">
+                    <div style="font-size:9px; color:#475569;">Total Tickets</div>
+                    <div style="font-size:16px; font-weight:700; margin-top:6px;">S/ {{ number_format((float)($totalTickets ?? 0), 2) }}</div>
+                    <div style="font-size:10px; color:#64748b; margin-top:4px;">{{ ($cantidadTickets ?? 0) }} tickets emitidos {{ (!empty($filtros['fecha_inicio']) || !empty($filtros['fecha_fin'])) ? 'en el rango de fecha' : 'hoy (' . now()->format('d/m/Y') . ')' }}</div>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td style="width:25%; padding:6px; vertical-align:top;">
+                <div style="background:#fff6f6; border:1px solid #fee2e2; padding:8px; border-radius:6px;">
+                    <div style="font-size:9px; color:#b91c1c;">Total Ventas Anuladas</div>
+                    <div style="font-size:16px; font-weight:700; margin-top:6px; color:#b91c1c;">S/ {{ number_format((float)($totalVentasAnuladas ?? 0), 2) }}</div>
+                    <div style="font-size:10px; color:#7f1d1d; margin-top:4px;">{{ ($cantidadVentasAnuladas ?? 0) }} ventas anuladas</div>
+                </div>
+            </td>
+
+            <td style="width:25%; padding:6px; vertical-align:top;">
+                <div style="background:#fff6f6; border:1px solid #fee2e2; padding:8px; border-radius:6px;">
+                    <div style="font-size:9px; color:#b91c1c;">Facturas Anuladas</div>
+                    <div style="font-size:16px; font-weight:700; margin-top:6px; color:#b91c1c;">S/ {{ number_format((float)($totalFacturasAnuladas ?? 0), 2) }}</div>
+                    <div style="font-size:10px; color:#7f1d1d; margin-top:4px;">{{ ($cantidadFacturasAnuladas ?? 0) }} facturas anuladas</div>
+                </div>
+            </td>
+
+            <td style="width:25%; padding:6px; vertical-align:top;">
+                <div style="background:#fff6f6; border:1px solid #fee2e2; padding:8px; border-radius:6px;">
+                    <div style="font-size:9px; color:#b91c1c;">Boletas Anuladas</div>
+                    <div style="font-size:16px; font-weight:700; margin-top:6px; color:#b91c1c;">S/ {{ number_format((float)($totalBoletasAnuladas ?? 0), 2) }}</div>
+                    <div style="font-size:10px; color:#7f1d1d; margin-top:4px;">{{ ($cantidadBoletasAnuladas ?? 0) }} boletas anuladas</div>
+                </div>
+            </td>
+
+            <td style="width:25%; padding:6px; vertical-align:top;">
+                <div style="background:#fff6f6; border:1px solid #fee2e2; padding:8px; border-radius:6px;">
+                    <div style="font-size:9px; color:#b91c1c;">Tickets Anulados</div>
+                    <div style="font-size:16px; font-weight:700; margin-top:6px; color:#b91c1c;">S/ {{ number_format((float)($totalTicketsAnuladas ?? 0), 2) }}</div>
+                    <div style="font-size:10px; color:#7f1d1d; margin-top:4px;">{{ ($cantidadTicketsAnuladas ?? 0) }} tickets anulados</div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
     @if($ventas->count() > 0)
         <table>
             <thead>
@@ -315,7 +385,7 @@
             </div>
             @if($cantidadAnuladas > 0)
                 <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); font-size: 9px; text-align: center;">
-                    ℹ️ <strong>Ventas Anuladas:</strong> {{ $cantidadAnuladas }} venta(s) por S/ {{ number_format((float)$montoAnulado, 2) }}
+                     <strong>Ventas Anuladas:</strong> {{ $cantidadAnuladas }} venta(s) por S/ {{ number_format((float)$montoAnulado, 2) }}
                     <span style="display: block; margin-top: 3px; opacity: 0.9;">(NO incluidas en el total general - se muestran solo para referencia)</span>
                 </div>
             @endif

@@ -100,7 +100,7 @@ class PruebaEnvioSunat extends Command
             } elseif ($comprobante->tipo === 'nota de credito') {
                 $resultado = $sunatService->enviarNotaCredito($comprobante);
             } else {
-                $this->error("❌ Tipo de comprobante no soportado: {$comprobante->tipo}");
+                $this->error("Tipo de comprobante no soportado: {$comprobante->tipo}");
                 return Command::FAILURE;
             }
 

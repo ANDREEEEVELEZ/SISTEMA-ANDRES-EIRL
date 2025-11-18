@@ -12,26 +12,20 @@ class VentaExportController extends Controller
 {
     public function export(Request $request)
     {
-        // Construir query base
+
         $query = Venta::with(['cliente', 'comprobantes', 'detalleVentas.producto']);
 
-        // Si el usuario NO es super_admin, limitar la exportación a sus propias ventas
         $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
         if (! $esSuperAdmin) {
             $query->where('user_id', Auth::id());
         }
 
-        // NO excluimos ventas anuladas del query principal
-        // Las mostraremos todas y solo las excluiremos de los totales
-
-        // Filtrar por tipo de comprobante
         if ($request->tipo_comprobante && $request->tipo_comprobante !== 'todos') {
             $query->whereHas('comprobantes', function ($q) use ($request) {
                 $q->where('tipo', $request->tipo_comprobante);
             });
         }
 
-        // Filtrar por rango de fechas
         if ($request->fecha_inicio && $request->fecha_fin) {
             $query->whereBetween('fecha_venta', [
                 $request->fecha_inicio,
@@ -39,7 +33,6 @@ class VentaExportController extends Controller
             ]);
         }
 
-        // Filtrar por tipo de cliente (DNI/RUC)
         if ($request->tipo_cliente && $request->tipo_cliente !== 'todos') {
             $query->whereHas('cliente', function ($q) use ($request) {
                 if ($request->tipo_cliente === 'dni') {
@@ -87,6 +80,70 @@ class VentaExportController extends Controller
         $cantidadAnuladas = $ventas->where('estado_venta', '==', 'anulada')->count();
         $montoAnulado = $ventas->where('estado_venta', '==', 'anulada')->sum('total_venta');
 
+        // Preparar estadísticas tipo widget (respetando filtros aplicados)
+        $ventasNoAnuladas = $ventas->filter(function ($v) {
+            return ($v->estado_venta ?? '') !== 'anulada';
+        });
+
+        $cantidadVentas = $ventasNoAnuladas->count();
+        $totalVentas = $ventasNoAnuladas->sum(function ($v) { return (float)$v->total_venta; });
+
+        $ventasFacturas = $ventasNoAnuladas->filter(function ($v) {
+            return $v->comprobantes->contains(function ($c) {
+                return ($c->tipo ?? '') === 'factura' && ($c->estado ?? '') === 'emitido';
+            });
+        });
+        $cantidadFacturas = $ventasFacturas->count();
+        $totalFacturas = $ventasFacturas->sum(function ($v) { return (float)$v->total_venta; });
+
+        $ventasBoletas = $ventasNoAnuladas->filter(function ($v) {
+            return $v->comprobantes->contains(function ($c) {
+                return ($c->tipo ?? '') === 'boleta' && ($c->estado ?? '') === 'emitido';
+            });
+        });
+        $cantidadBoletas = $ventasBoletas->count();
+        $totalBoletas = $ventasBoletas->sum(function ($v) { return (float)$v->total_venta; });
+
+        $ventasTickets = $ventasNoAnuladas->filter(function ($v) {
+            return $v->comprobantes->contains(function ($c) {
+                return ($c->tipo ?? '') === 'ticket' && ($c->estado ?? '') === 'emitido';
+            });
+        });
+        $cantidadTickets = $ventasTickets->count();
+        $totalTickets = $ventasTickets->sum(function ($v) { return (float)$v->total_venta; });
+
+        // Estadísticas de ventas anuladas (por tipo)
+        $ventasAnuladas = $ventas->filter(function ($v) {
+            return ($v->estado_venta ?? '') === 'anulada';
+        });
+
+        $cantidadVentasAnuladas = $ventasAnuladas->count();
+        $totalVentasAnuladas = $ventasAnuladas->sum(function ($v) { return (float)$v->total_venta; });
+
+        $ventasFacturasAnuladas = $ventasAnuladas->filter(function ($v) {
+            return $v->comprobantes->contains(function ($c) {
+                return ($c->tipo ?? '') === 'factura';
+            });
+        });
+        $cantidadFacturasAnuladas = $ventasFacturasAnuladas->count();
+        $totalFacturasAnuladas = $ventasFacturasAnuladas->sum(function ($v) { return (float)$v->total_venta; });
+
+        $ventasBoletasAnuladas = $ventasAnuladas->filter(function ($v) {
+            return $v->comprobantes->contains(function ($c) {
+                return ($c->tipo ?? '') === 'boleta';
+            });
+        });
+        $cantidadBoletasAnuladas = $ventasBoletasAnuladas->count();
+        $totalBoletasAnuladas = $ventasBoletasAnuladas->sum(function ($v) { return (float)$v->total_venta; });
+
+        $ventasTicketsAnuladas = $ventasAnuladas->filter(function ($v) {
+            return $v->comprobantes->contains(function ($c) {
+                return ($c->tipo ?? '') === 'ticket';
+            });
+        });
+        $cantidadTicketsAnuladas = $ventasTicketsAnuladas->count();
+        $totalTicketsAnuladas = $ventasTicketsAnuladas->sum(function ($v) { return (float)$v->total_venta; });
+
         // Generar PDF
         $pdf = Pdf::loadView('reportes.ventas_export', [
             'ventas' => $ventas,
@@ -97,6 +154,24 @@ class VentaExportController extends Controller
             'cantidadAnuladas' => $cantidadAnuladas,
             'montoAnulado' => $montoAnulado,
             'fechaGeneracion' => now(),
+            // Stats para mostrar en reporte (similares a los widgets)
+            'totalVentas' => $totalVentas,
+            'cantidadVentas' => $cantidadVentas,
+            'totalFacturas' => $totalFacturas,
+            'cantidadFacturas' => $cantidadFacturas,
+            'totalBoletas' => $totalBoletas,
+            'cantidadBoletas' => $cantidadBoletas,
+            'totalTickets' => $totalTickets,
+            'cantidadTickets' => $cantidadTickets,
+            // Stats anuladas por tipo
+            'cantidadVentasAnuladas' => $cantidadVentasAnuladas ?? 0,
+            'totalVentasAnuladas' => $totalVentasAnuladas ?? 0,
+            'cantidadFacturasAnuladas' => $cantidadFacturasAnuladas ?? 0,
+            'totalFacturasAnuladas' => $totalFacturasAnuladas ?? 0,
+            'cantidadBoletasAnuladas' => $cantidadBoletasAnuladas ?? 0,
+            'totalBoletasAnuladas' => $totalBoletasAnuladas ?? 0,
+            'cantidadTicketsAnuladas' => $cantidadTicketsAnuladas ?? 0,
+            'totalTicketsAnuladas' => $totalTicketsAnuladas ?? 0,
         ]);
 
         $pdf->setPaper('a4', 'landscape');

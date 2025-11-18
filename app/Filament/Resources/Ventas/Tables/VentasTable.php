@@ -444,8 +444,8 @@ class VentasTable
                         'boleta' => 'Boleta',
                         'factura' => 'Factura',
                         'ticket' => 'Ticket',
-                        'nota_credito' => 'Nota de Crédito',
-                        'nota_debito' => 'Nota de débito',
+                       'nota_credito' => 'Nota de Crédito',
+                       // 'nota_debito' => 'Nota de débito',
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         if (!isset($data['value']) || $data['value'] === null) {
