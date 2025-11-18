@@ -79,7 +79,7 @@ class VentaForm
                             }
                         }
                     })
-                    
+
                     ->columnSpan(1),
 
                 // === DATOS GENERALES ===
@@ -204,9 +204,9 @@ class VentaForm
 
                 TimePicker::make('hora_venta')
                     ->label('Hora de Venta')
-                    ->default(now()->format('H:i'))
+                    ->default(now()->format('H:i:s'))
                     ->required()
-                    ->seconds(false)
+                    ->seconds(true)
                     ->disabled() // Bloqueado - se asigna automáticamente
                     ->dehydrated()
                     ->columnSpan(1),
@@ -231,7 +231,7 @@ class VentaForm
                     ->placeholder(function (callable $get) {
                         $tipoComprobante = $get('tipo_comprobante');
                         if ($tipoComprobante === 'factura') {
-                            return 'Buscar por RUC o nombre de empresa...';
+                            return 'Buscar por RUC ';
                         }
                         return '';
                     })
@@ -245,7 +245,7 @@ class VentaForm
                         Action::make('reactivarCliente')
                             ->label('✓ Reactivar Cliente')
                             ->color('success')
-                            ->icon('heroicon-o-arrow-path')
+                          //  ->icon('heroicon-o-arrow-path')
                             ->visible(fn (callable $get) => !empty($get('cliente_inactivo_encontrado')))
                             ->action(function ($set, $get) {
                                 $clienteInactivo = $get('cliente_inactivo_encontrado');
@@ -316,7 +316,7 @@ class VentaForm
                         ->get();
 
                         $resultados = $activos->mapWithKeys(function ($cliente) {
-                            $label = "<div class='flex flex-col'><span class='font-semibold text-gray-900'>{$cliente->nombre_razon}</span><span class='text-xs text-gray-500'>{$cliente->tipo_doc}: {$cliente->num_doc}</span></div>";
+                            $label = "{$cliente->nombre_razon} - {$cliente->tipo_doc}: {$cliente->num_doc}";
                             return [$cliente->id => $label];
                         })->toArray();
 
@@ -336,7 +336,7 @@ class VentaForm
                         ->get();
 
                         foreach ($inactivos as $cliente) {
-                            $label = "<div class='flex flex-col'><span class='font-semibold text-red-700'>{$cliente->nombre_razon} <span class=\'text-red-600 font-normal text-sm\'>(INACTIVO)</span></span><span class='text-xs text-gray-500'>{$cliente->tipo_doc}: {$cliente->num_doc}</span></div>";
+                            $label = "{$cliente->nombre_razon} - {$cliente->tipo_doc}: {$cliente->num_doc} (INACTIVO)";
                             $resultados[$cliente->id] = $label;
                         }
 

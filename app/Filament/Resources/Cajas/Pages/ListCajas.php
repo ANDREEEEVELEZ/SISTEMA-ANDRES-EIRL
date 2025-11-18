@@ -40,7 +40,14 @@ class ListCajas extends ListRecords
     protected function getTableQuery(): \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation|null
     {
         // Usar query Eloquent del modelo para asegurar el tipo correcto y forzar el orden por fecha
-        return Caja::query()->orderBy('fecha_apertura', 'desc');
+        $query = Caja::query()->orderBy('fecha_apertura', 'desc');
+
+        // Si el usuario NO es super_admin, limitar a cajas del propio usuario
+        if (! Auth::check() || ! Auth::user()->hasRole('super_admin')) {
+            $query->where('user_id', Auth::id());
+        }
+
+        return $query;
     }
 
     protected function getHeaderActions(): array
