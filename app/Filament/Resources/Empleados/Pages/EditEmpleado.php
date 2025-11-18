@@ -43,6 +43,29 @@ class EditEmpleado extends EditRecord
     }
 
     /**
+     * Validar datos antes de guardar
+     */
+    protected function getFormRules(): array
+    {
+        $rules = parent::getFormRules();
+        
+        // Agregar validación personalizada para correo
+        $rules['correo_empleado'][] = function (string $attribute, $value, \Closure $fail) {
+            $query = \App\Models\User::where('email', $value);
+            
+            if ($this->record && $this->record->user_id) {
+                $query->where('id', '!=', $this->record->user_id);
+            }
+            
+            if ($query->exists()) {
+                $fail('Este correo electrónico ya está registrado en el sistema.');
+            }
+        };
+        
+        return $rules;
+    }
+
+    /**
      * Sincronizar datos antes de guardar
      */
     protected function mutateFormDataBeforeSave(array $data): array

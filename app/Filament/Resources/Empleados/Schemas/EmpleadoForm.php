@@ -98,29 +98,9 @@ class EmpleadoForm
                     ->helperText('Formato: dd/mm/aaaa')
                     ->rules([
                         'regex:/^\d{2}\/\d{2}\/\d{4}$/',
-                        function (string $attribute, $value, \Closure $fail) {
-                            if ($value) {
-                                $parts = explode('/', $value);
-                                if (count($parts) === 3) {
-                                    $day = (int) $parts[0];
-                                    $month = (int) $parts[1];
-                                    $year = (int) $parts[2];
-                                    
-                                    if (!checkdate($month, $day, $year)) {
-                                        $fail('La fecha de nacimiento no es válida.');
-                                    }
-                                    
-                                    $birthDate = \Carbon\Carbon::createFromFormat('d/m/Y', $value);
-                                    if ($birthDate->isFuture()) {
-                                        $fail('La fecha de nacimiento no puede ser en el futuro.');
-                                    }
-                                    
-                                    if ($birthDate->diffInYears(now()) > 100) {
-                                        $fail('La fecha de nacimiento parece incorrecta.');
-                                    }
-                                }
-                            }
-                        },
+                        'date_format:d/m/Y',
+                        'before:today',
+                        'after:' . now()->subYears(100)->format('d/m/Y'),
                     ])
                     ->validationMessages([
                         'regex' => 'El formato de fecha debe ser dd/mm/aaaa.',
@@ -132,23 +112,7 @@ class EmpleadoForm
                     ->required()
                     ->maxLength(100)
                     ->placeholder('ejemplo@correo.com')
-                    ->validationAttribute('correo electrónico')
-                    ->rules([
-                        function ($record): \Closure {
-                            return function (string $attribute, $value, \Closure $fail) use ($record) {
-                                // Verificar si el correo ya existe en users, ignorando el usuario actual del empleado
-                                $query = \App\Models\User::where('email', $value);
-                                
-                                if ($record && $record->user_id) {
-                                    $query->where('id', '!=', $record->user_id);
-                                }
-                                
-                                if ($query->exists()) {
-                                    $fail('Este correo electrónico ya está registrado en el sistema.');
-                                }
-                            };
-                        },
-                    ]),
+                    ->validationAttribute('correo electrónico'),
                 
                 TextInput::make('distrito')
                     ->label('Distrito')
@@ -166,13 +130,11 @@ class EmpleadoForm
                     ->label('Estado')
                     ->required()
                     ->default('activo')
-                    ->visible(fn ($livewire) => !($livewire instanceof \Filament\Resources\Pages\CreateRecord)),
+                    ->hiddenOn('create'),
 
                 \Filament\Forms\Components\Select::make('rol')
                     ->label('Rol del Empleado')
-                    ->options(function () {
-                        return \Spatie\Permission\Models\Role::all()->pluck('name', 'name');
-                    })
+                    ->options(\Spatie\Permission\Models\Role::all()->pluck('name', 'name'))
                     ->required()
                     ->searchable()
                     ->helperText('Seleccione obligatoriamente el rol que tendrá el empleado en el sistema')

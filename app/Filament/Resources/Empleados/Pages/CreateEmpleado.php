@@ -16,6 +16,23 @@ class CreateEmpleado extends CreateRecord
     protected static string $resource = EmpleadoResource::class;
 
     /**
+     * Validar datos antes de crear
+     */
+    protected function getFormRules(): array
+    {
+        $rules = parent::getFormRules();
+        
+        // Agregar validación personalizada para correo
+        $rules['correo_empleado'][] = function (string $attribute, $value, \Closure $fail) {
+            if (\App\Models\User::where('email', $value)->exists()) {
+                $fail('Este correo electrónico ya está registrado en el sistema.');
+            }
+        };
+        
+        return $rules;
+    }
+
+    /**
      * Mutate los datos antes de crear el registro
      */
     protected function mutateFormDataBeforeCreate(array $data): array
