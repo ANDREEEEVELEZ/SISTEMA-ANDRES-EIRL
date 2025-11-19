@@ -26,6 +26,12 @@ class CreateInventario extends CreateRecord
         // Asignar el ID del usuario autenticado automáticamente
         $data['user_id'] = Auth::id();
         
+        // Forzar tipo = 'ajuste' para usuarios que no sean super_admin (evita que un select deshabilitado no envíe el valor)
+        $user = Auth::user();
+        if (! ($user && $user->hasRole('super_admin'))) {
+            $data['tipo'] = 'ajuste';
+        }
+        
         return $data;
     }
 

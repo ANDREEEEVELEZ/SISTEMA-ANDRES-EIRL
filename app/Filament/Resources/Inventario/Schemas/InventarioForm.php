@@ -69,6 +69,20 @@ class InventarioForm
                         return null;
                     })
                     ->required()
+                    ->default(function ($livewire) {
+                        $user = Auth::user();
+                        if ($livewire instanceof CreateRecord) {
+                            if ($user && $user->hasRole('super_admin')) {
+                                return null;
+                            }
+                            return 'ajuste';
+                        }
+                        return null;
+                    })
+                    ->disabled(function ($livewire) {
+                        $user = Auth::user();
+                        return ($livewire instanceof CreateRecord) && (! $user || ! $user->hasRole('super_admin'));
+                    })
                     ->live()
                     ->label('Tipo de Movimiento'),
                 

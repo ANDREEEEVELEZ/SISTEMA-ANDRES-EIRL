@@ -178,6 +178,7 @@ class VentaExportController extends Controller
 
         $filename = 'ventas_' . date('Y-m-d_His') . '.pdf';
 
-        return $pdf->stream($filename);
+
+        return $pdf->download($filename);
     }
 }
