@@ -11,9 +11,9 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install intl zip pdo pdo_mysql soap
 
 # -----------------------------
-# 2. Instalar Node.js 18 LTS para Vite
+# 2. Instalar Node.js 20 LTS (requerido por Vite 7)
 # -----------------------------
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
 # -----------------------------
