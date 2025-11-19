@@ -21,21 +21,25 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
-
-
-
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+        // Detecta automáticamente si el entorno es HTTP (local) o HTTPS (Railway)
+        $asset = request()->isSecure()
+            ? fn($path) => secure_asset($path)
+            : fn($path) => asset($path);
+
         return $panel
             ->default()
             ->id('admin')
             ->path('admin')
             ->login()
             ->passwordReset()
-            ->brandLogo(asset('images/AndresEIRL.png'))
-            ->renderHook('panels::head.end', fn () => '<link rel="stylesheet" href="'.asset('css/admin-theme.css').'">')
+            // Marca y theme del panel
+            ->brandLogo($asset('images/AndresEIRL.png'))
+            // Admin theme CSS (se carga en local y producción sin error)
+            ->renderHook('panels::head.end', fn () => '<link rel="stylesheet" href="'.$asset('css/admin-theme.css').'">')
             ->brandLogoHeight('120px')
             ->colors([
                 'primary' => [
@@ -53,16 +57,15 @@ class AdminPanelProvider extends PanelProvider
                 ],
             ])
             ->darkMode(false)
-
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
-           ->pages([
+            ->pages([
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 //AccountWidget::class,
-               // FilamentInfoWidget::class,
+                //FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
