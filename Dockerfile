@@ -1,29 +1,57 @@
 FROM php:8.3-fpm
 
-# Instalar dependencias del sistema necesarias para XML, SOAP y ZIP
+# -----------------------------
+# 1. Instalar dependencias del sistema
+# -----------------------------
 RUN apt-get update && apt-get install -y \
-    git unzip libicu-dev libzip-dev libpng-dev libjpeg-dev libfreetype6-dev \
+    git unzip curl \
+    libicu-dev libzip-dev libpng-dev libjpeg-dev libfreetype6-dev \
     libxml2-dev \
     && docker-php-ext-configure intl \
     && docker-php-ext-install intl zip pdo pdo_mysql soap
 
-# Instalar Composer
+# -----------------------------
+# 2. Instalar Node.js 18 LTS para Vite
+# -----------------------------
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
+
+# -----------------------------
+# 3. Instalar Composer
+# -----------------------------
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+# -----------------------------
+# 4. Workspace
+# -----------------------------
 WORKDIR /var/www/html
 
-# Copiar archivos al contenedor
+# -----------------------------
+# 5. Copiar archivos del proyecto
+# -----------------------------
 COPY . .
 
-# Instalar dependencias PHP
+# -----------------------------
+# 6. Instalar dependencias PHP
+# -----------------------------
 RUN composer install --no-dev --optimize-autoloader
 
-# Instalar dependencias JS y compilar Vite
+# -----------------------------
+# 7. Instalar dependencias JS y compilar Vite
+# -----------------------------
 RUN npm install && npm run build
 
-# Permisos
+# -----------------------------
+# 8. Permisos
+# -----------------------------
 RUN chown -R www-data:www-data storage bootstrap/cache
 
+# -----------------------------
+# 9. Exponer puerto
+# -----------------------------
 EXPOSE 8080
 
+# -----------------------------
+# 10. Comando de inicio
+# -----------------------------
 CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8080
