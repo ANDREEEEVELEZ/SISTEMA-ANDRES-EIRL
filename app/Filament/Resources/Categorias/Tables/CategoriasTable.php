@@ -17,10 +17,7 @@ class CategoriasTable
             ->deselectAllRecordsWhenFiltered(false)
             ->checkIfRecordIsSelectableUsing(fn (): bool => false)
             ->columns([
-                TextColumn::make('id')
-                    ->label('ID')
-                    ->sortable()
-                    ->searchable(),
+
                 TextColumn::make('NombreCategoria')
                     ->label('Nombre de la Categoría')
                     ->searchable()

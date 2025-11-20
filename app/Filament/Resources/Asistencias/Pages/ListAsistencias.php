@@ -42,13 +42,28 @@ class ListAsistencias extends ListRecords
     protected function getTableQuery(): ?\Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getTableQuery();
-        
-        // Si hay un empleado seleccionado, filtrar por ese empleado
+
+        $user = Auth::user();
+
+        // Si se seleccionó explícitamente un empleado en la UI, respetarlo
         if ($this->empleadoSeleccionado) {
-            $query->where('empleado_id', $this->empleadoSeleccionado);
+            return $query->where('empleado_id', $this->empleadoSeleccionado);
         }
-        
-        return $query;
+
+        // Super admin ve todo
+        if ($user && $user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        // Para otros usuarios: filtrar asistencias cuyo empleado esté vinculado al user actual
+        if ($user) {
+            return $query->whereHas('empleado', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+
+        // Si no hay usuario (caso raro), devolver query vacía
+        return \App\Models\Asistencia::query()->whereNull('id');
     }
 
     protected function getHeaderActions(): array

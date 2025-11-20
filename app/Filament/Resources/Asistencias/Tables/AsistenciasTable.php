@@ -6,7 +6,10 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class AsistenciasTable
 {
@@ -70,7 +73,64 @@ class AsistenciasTable
                     ->sortable(),
             ])
             ->filters([
-                //
+                \Filament\Tables\Filters\Filter::make('rango_fecha')
+                    ->form([
+                        \Filament\Forms\Components\DatePicker::make('fecha_inicio')
+                            ->label('Desde')
+                            ->native(false)
+                            ->displayFormat('d/m/Y'),
+                        \Filament\Forms\Components\DatePicker::make('fecha_fin')
+                            ->label('Hasta')
+                            ->native(false)
+                            ->displayFormat('d/m/Y'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        try {
+                            if (! empty($data['fecha_inicio'])) {
+                                $fInicio = $data['fecha_inicio'];
+                                if (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $fInicio)) {
+                                    $fInicio = \Carbon\Carbon::createFromFormat('d/m/Y', $fInicio)->format('Y-m-d');
+                                } else {
+                                    $fInicio = \Carbon\Carbon::parse($fInicio)->format('Y-m-d');
+                                }
+                                $query->whereDate('fecha', '>=', $fInicio);
+                            }
+                            if (! empty($data['fecha_fin'])) {
+                                $fFin = $data['fecha_fin'];
+                                if (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $fFin)) {
+                                    $fFin = \Carbon\Carbon::createFromFormat('d/m/Y', $fFin)->format('Y-m-d');
+                                } else {
+                                    $fFin = \Carbon\Carbon::parse($fFin)->format('Y-m-d');
+                                }
+                                $query->whereDate('fecha', '<=', $fFin);
+                            }
+                        } catch (\Exception $e) {
+                            // En caso de parseo fallido, no aplicar filtro para evitar ocultar datos
+                        }
+                        return $query;
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (empty($data['fecha_inicio']) && empty($data['fecha_fin'])) {
+                            return null;
+                        }
+                        $inicio = $data['fecha_inicio'] ? (\Carbon\Carbon::parse($data['fecha_inicio'])->format('d/m/Y')) : '—';
+                        $fin = $data['fecha_fin'] ? (\Carbon\Carbon::parse($data['fecha_fin'])->format('d/m/Y')) : '—';
+                        return sprintf('Desde %s hasta %s', $inicio, $fin);
+                    }),
+
+                SelectFilter::make('estado')
+                    ->label('Estado')
+                    ->options([
+                        'presente' => 'Trabajado',
+                        'tardanza' => 'Tardanza',
+                        'ausente' => 'Ausencia',
+                    ])
+                    ->query(function (Builder $query, $value) {
+                        if (empty($value)) {
+                            return $query;
+                        }
+                        return $query->where('estado', $value);
+                    }),
             ])
             ->recordActions([
                 EditAction::make(),

@@ -36,9 +36,6 @@ class ProductosRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('nombre_producto')
             ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('nombre_producto')
                     ->label('Nombre del Producto')
                     ->searchable()
@@ -73,44 +70,7 @@ class ProductosRelationManager extends RelationManager
             ->actions([
                 //
             ])
-            ->bulkActions([
-                BulkActionGroup::make([
-                    \Filament\Actions\BulkAction::make('mover_seleccionados')
-                        ->label('Mover a Otra Categoría')
-                        ->icon('heroicon-o-arrows-right-left')
-                        ->color('warning')
-                        ->requiresConfirmation()
-                        ->modalHeading('Mover Productos')
-                        ->modalDescription('¿Está seguro de que desea mover los productos seleccionados a otra categoría?')
-                        ->form([
-                            Forms\Components\Select::make('nueva_categoria_id')
-                                ->label('Categoría Destino')
-                                ->options(fn () => Categoria::where('estado', true)
-                                    ->where('id', '!=', $this->ownerRecord->id)
-                                    ->pluck('NombreCategoria', 'id'))
-                                ->required()
-                                ->searchable()
-                                ->native(false)
-                                ->helperText('Seleccione la categoría a la que desea mover los productos'),
-                        ])
-                        ->action(function (Collection $records, array $data) {
-                            $count = $records->count();
-
-                            foreach ($records as $record) {
-                                $record->update([
-                                    'categoria_id' => $data['nueva_categoria_id']
-                                ]);
-                            }
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('Productos movidos exitosamente')
-                                ->body($count . ' producto(s) fueron movidos a la nueva categoría')
-                                ->success()
-                                ->send();
-                        })
-                        ->deselectRecordsAfterCompletion(),
-                ]),
-            ])
+            ->bulkActions([])
             ->emptyStateHeading('No hay productos en esta categoría')
             ->emptyStateDescription('Esta categoría aún no tiene productos asociados.')
             ->emptyStateIcon('heroicon-o-cube');
