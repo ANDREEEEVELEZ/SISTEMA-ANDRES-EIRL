@@ -18,9 +18,26 @@ class EditCategoria extends EditRecord
             ->icon('heroicon-o-arrows-right-left')
             ->color('warning')
             ->visible(fn () => $this->record->productos()->count() > 0)
-            ->modalHeading('Mover todos los productos de esta categoría')
-            ->modalDescription('Seleccione la categoría destino. Todos los productos de esta categoría serán movidos a la categoría seleccionada.')
+            ->modalHeading('Mover productos a otra categoría')
+            ->modalDescription('Seleccione los productos que desea mover y la categoría destino.')
+            ->modalWidth('2xl')
             ->form([
+                \Filament\Forms\Components\CheckboxList::make('productos_ids')
+                    ->label('Productos a mover')
+                    ->options(fn () => $this->record->productos()
+                        ->orderBy('nombre_producto')
+                        ->get()
+                        ->mapWithKeys(function ($producto) {
+                            $stockInfo = " (Stock: {$producto->stock_total})";
+                            return [$producto->id => $producto->nombre_producto . $stockInfo];
+                        }))
+                    ->required()
+                    ->searchable()
+                    ->bulkToggleable()
+                    ->columns(1)
+                    ->helperText('Seleccione uno o más productos para mover. Puede usar "Seleccionar todo" para mover todos los productos.')
+                    ->default(fn () => $this->record->productos()->pluck('id')->toArray()),
+                
                 \Filament\Forms\Components\Select::make('nueva_categoria_id')
                     ->label('Categoría Destino')
                     ->options(fn () => \App\Models\Categoria::where('estado', true)
@@ -32,17 +49,26 @@ class EditCategoria extends EditRecord
                     ->helperText('Solo se muestran categorías activas.'),
             ])
             ->action(function (array $data) {
-                $productos = $this->record->productos;
-                $count = $productos->count();
-                foreach ($productos as $producto) {
-                    $producto->categoria_id = $data['nueva_categoria_id'];
-                    $producto->save();
+                $productosIds = $data['productos_ids'];
+                $count = count($productosIds);
+                
+                $categoriaAnterior = $this->record->NombreCategoria;
+                $categoriaNueva = \App\Models\Categoria::find($data['nueva_categoria_id'])->NombreCategoria ?? 'Desconocida';
+                
+                foreach ($productosIds as $productoId) {
+                    $producto = \App\Models\Producto::find($productoId);
+                    if ($producto) {
+                        $producto->categoria_id = $data['nueva_categoria_id'];
+                        $producto->save();
+                    }
                 }
+                
                 \Filament\Notifications\Notification::make()
                     ->title('Productos movidos exitosamente')
-                    ->body($count . ' producto(s) fueron movidos a la nueva categoría.')
+                    ->body("{$count} producto(s) fueron movidos de '{$categoriaAnterior}' a '{$categoriaNueva}'.")
                     ->success()
                     ->send();
+                    
                 $this->refreshFormData(['productos']);
             });
         // No se permite eliminación por políticas de seguridad
