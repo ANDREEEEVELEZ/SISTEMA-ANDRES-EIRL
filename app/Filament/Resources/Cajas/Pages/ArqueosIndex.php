@@ -13,6 +13,7 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Actions\Action;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class ArqueosIndex extends Page implements HasTable
 {
@@ -27,7 +28,14 @@ class ArqueosIndex extends Page implements HasTable
 
     protected function getTableQuery(): Builder
     {
-        return Arqueo::query()->with(['caja', 'user']);
+        $query = Arqueo::query()->with(['caja', 'user']);
+
+        $user = Auth::user();
+        if ($user && ! $user->hasRole('super_admin')) {
+            $query->where('user_id', $user->id);
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table

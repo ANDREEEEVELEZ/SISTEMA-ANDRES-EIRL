@@ -158,7 +158,6 @@ class ClienteForm
 
                                             if ($nombreCompleto && strlen($nombreCompleto) > 3) {
                                                 $set('nombre_razon', $nombreCompleto);
-
                                                 Notification::make()
                                                     ->title('Datos encontrados')
                                                     ->body('Información completada: ' . $nombreCompleto)
