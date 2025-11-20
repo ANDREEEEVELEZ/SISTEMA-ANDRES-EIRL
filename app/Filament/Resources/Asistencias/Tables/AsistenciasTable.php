@@ -78,11 +78,13 @@ class AsistenciasTable
                         \Filament\Forms\Components\DatePicker::make('fecha_inicio')
                             ->label('Desde')
                             ->native(false)
-                            ->displayFormat('d/m/Y'),
+                            ->displayFormat('d/m/Y')
+                            ->placeholder('dd/mm/aaaa'),
                         \Filament\Forms\Components\DatePicker::make('fecha_fin')
                             ->label('Hasta')
                             ->native(false)
-                            ->displayFormat('d/m/Y'),
+                            ->displayFormat('d/m/Y')
+                            ->placeholder('dd/mm/aaaa'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         try {
