@@ -51,7 +51,6 @@ class AsistenciaForm
                     ->label('Estado de Asistencia')
                     ->options([
                         'presente' => 'Presente',
-                        'tardanza' => 'Tardanza',
                         'falta' => 'Falta',
                         //'permiso' => 'Permiso',
                         //'licencia' => 'Licencia',

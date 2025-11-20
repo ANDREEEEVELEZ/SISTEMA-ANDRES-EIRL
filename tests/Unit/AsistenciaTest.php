@@ -114,7 +114,7 @@ class AsistenciaTest extends TestCase
     {
         $asistencia = new Asistencia();
         
-        $estadosValidos = ['presente', 'tardanza', 'falta', 'permiso'];
+        $estadosValidos = ['presente', 'falta', 'permiso'];
         
         foreach ($estadosValidos as $estado) {
             $asistencia->estado = $estado;

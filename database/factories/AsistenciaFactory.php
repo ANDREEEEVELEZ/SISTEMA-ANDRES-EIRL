@@ -21,7 +21,7 @@ class AsistenciaFactory extends Factory
             'fecha' => $fecha->format('Y-m-d'),
             'hora_entrada' => $horaEntrada,
             'hora_salida' => $horaSalida,
-            'estado' => fake()->randomElement(['presente', 'tardanza', 'falta', 'permiso']),
+            'estado' => fake()->randomElement(['presente', 'falta', 'permiso']),
             'observacion' => fake()->optional()->sentence(),
             'metodo_registro' => fake()->randomElement(['facial', 'manual_dni']),
             'razon_manual' => null,
@@ -34,16 +34,6 @@ class AsistenciaFactory extends Factory
             'estado' => 'presente',
             'hora_entrada' => '08:00',
             'hora_salida' => '17:00',
-        ]);
-    }
-
-    public function tardanza(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'estado' => 'tardanza',
-            'hora_entrada' => '09:30',
-            'hora_salida' => '17:00',
-            'observacion' => 'Llegó tarde',
         ]);
     }
 

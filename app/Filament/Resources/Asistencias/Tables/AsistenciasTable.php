@@ -41,13 +41,11 @@ class AsistenciasTable
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'presente' => 'success',
-                        'tardanza' => 'warning',
                         'ausente' => 'danger',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'presente' => 'Trabajado',
-                        'tardanza' => 'Tardanza',
                         'ausente' => 'Ausencia',
                         default => ucfirst($state),
                     }),
@@ -124,7 +122,6 @@ class AsistenciasTable
                     ->label('Estado')
                     ->options([
                         'presente' => 'Trabajado',
-                        'tardanza' => 'Tardanza',
                         'ausente' => 'Ausencia',
                     ])
                     ->query(function (Builder $query, $value) {
