@@ -35,18 +35,18 @@ class ProductosTable
                         $record->tieneStockBajo() => 'warning',
                         default => null,
                     }),
-                
+
                 TextColumn::make('categoria.NombreCategoria')
                     ->label('Categoría')
                     ->sortable()
                     ->searchable()
                     ->badge()
                     ->color('info'),
-                
+
                 TextColumn::make('unidad_medida')
                     ->label('Unidad')
                     ->searchable(),
-                
+
                 TextColumn::make('stock_total')
                     ->label('Stock Actual')
                     ->numeric()
@@ -78,13 +78,13 @@ class ProductosTable
                         $excedente = $record->stock_total - $record->stock_minimo;
                         return '🟢 Stock normal: ' . $record->stock_total . ' unidades disponibles (' . $excedente . ' unidades por encima del mínimo).';
                     }),
-                
+
                 TextColumn::make('stock_minimo')
                     ->label('Stock Mínimo')
                     ->numeric()
                     ->sortable()
                     ->alignCenter(),
-                
+
                 TextColumn::make('preciosProductos')
                     ->label('Precios')
                     ->formatStateUsing(function ($record) {
@@ -110,7 +110,7 @@ class ProductosTable
                             return "Desde {$precio->cantidad_minima} unidades: S/ " . number_format($precio->precio_unitario, 2);
                         })->join("\n");
                     }),
-                
+
                 BadgeColumn::make('estado')
                     ->label('Estado')
                     ->colors([
@@ -118,28 +118,9 @@ class ProductosTable
                         'danger' => 'inactivo',
                     ])
                     ->sortable(),
-                
-                TextColumn::make('descripcion')
-                    ->label('Descripción')
-                    ->searchable()
-                    ->limit(50)
-                    ->tooltip(function (TextColumn $column): ?string {
-                        $state = $column->getState();
-                        if (strlen($state) <= 50) {
-                            return null;
-                        }
-                        return $state;
-                    }),
-                
-                TextColumn::make('created_at')
-                    ->label('Creado')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
-                
-                TextColumn::make('updated_at')
-                    ->label('Actualizado')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+
+                // Columnas removidas de la vista principal: 'descripcion', 'created_at', 'updated_at'
+                // Se mantienen disponibles en la vista de detalle si es necesario.
             ])
             ->filters([
                 SelectFilter::make('categoria_id')
@@ -147,14 +128,14 @@ class ProductosTable
                     ->relationship('categoria', 'NombreCategoria')
                     ->searchable()
                     ->preload(),
-                
+
                 SelectFilter::make('estado')
                     ->label('Estado')
                     ->options([
                         'activo' => 'Activo',
                         'inactivo' => 'Inactivo',
                     ]),
-                
+
                 Filter::make('estado_stock')
                     ->label('Estado de Stock')
                     ->form([
@@ -191,7 +172,7 @@ class ProductosTable
                         if (!isset($data['tipo'])) {
                             return null;
                         }
-                        
+
                         return match($data['tipo']) {
                             'agotado' => 'Productos Agotados',
                             'bajo' => 'Stock Bajo',

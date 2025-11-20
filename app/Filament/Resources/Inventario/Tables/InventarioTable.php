@@ -38,15 +38,7 @@ class InventarioTable
                     })
                     ->label('Tipo'),
                 
-                TextColumn::make('metodo_ajuste')
-                    ->badge()
-                    ->color('info')
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'absoluto' => 'Absoluto',
-                        'relativo' => 'Relativo',
-                        default => '-',
-                    })
-                    ->label('Método'),
+                // Columna 'metodo_ajuste' removida de la vista principal para simplificar la tabla.
                 
                 TextColumn::make('motivo_ajuste')
                     ->badge()
@@ -97,15 +89,7 @@ class InventarioTable
                     ->sortable()
                     ->label('Fecha'),
                 
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->label('Creado'),
-                
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->label('Actualizado'),
+                // 'created_at' y 'updated_at' removidos de la vista principal.
             ])
             ->filters([
                 SelectFilter::make('tipo')
@@ -137,6 +121,6 @@ class InventarioTable
             ])
             // No se permiten acciones de eliminación masiva por políticas de seguridad
             ->toolbarActions([])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('fecha_movimiento', 'desc');
     }
 }
