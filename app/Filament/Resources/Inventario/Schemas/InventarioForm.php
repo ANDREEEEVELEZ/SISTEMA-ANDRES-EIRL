@@ -111,6 +111,7 @@ class InventarioForm
                     ])
                     ->visible(fn ($get) => $get('tipo') === 'ajuste')
                     ->required(fn ($get) => $get('tipo') === 'ajuste')
+                    ->live()
                     ->label('Motivo del Ajuste'),
                 
                 TextInput::make('cantidad_movimiento')
@@ -138,9 +139,12 @@ class InventarioForm
                     ->label('Cantidad'),
                 
                 Textarea::make('motivo_movimiento')
-                    ->required()
+                    ->visible(fn ($get) => $get('tipo') === 'ajuste' && $get('motivo_ajuste') === 'otro')
+                    ->required(fn ($get) => $get('tipo') === 'ajuste' && $get('motivo_ajuste') === 'otro')
                     ->maxLength(255)
-                    ->label('Motivo del Movimiento'),
+                    ->label('Motivo del Ajuste (Especificar)')
+                    ->placeholder('Ingrese el motivo específico del ajuste...')
+                    ->helperText('Campo obligatorio cuando selecciona "Otro" como motivo'),
                 
                 DatePicker::make('fecha_movimiento')
                     ->required()

@@ -32,6 +32,18 @@ class CreateInventario extends CreateRecord
             $data['tipo'] = 'ajuste';
         }
         
+        // Si es ajuste y NO es "otro", llenar motivo_movimiento automáticamente con el motivo_ajuste
+        if ($data['tipo'] === 'ajuste' && isset($data['motivo_ajuste']) && $data['motivo_ajuste'] !== 'otro') {
+            $motivosTexto = [
+                'conteo_fisico' => 'Conteo Físico (Diferencia en inventario)',
+                'vencido' => 'Productos Vencidos',
+                'danado' => 'Productos Dañados',
+                'robo' => 'Robo o Pérdida',
+            ];
+            
+            $data['motivo_movimiento'] = $motivosTexto[$data['motivo_ajuste']] ?? $data['motivo_ajuste'];
+        }
+        
         return $data;
     }
 
