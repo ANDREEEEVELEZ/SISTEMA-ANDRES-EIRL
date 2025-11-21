@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Empleados\Pages;
 
 use App\Filament\Resources\Empleados\EmpleadoResource;
 use App\Services\FaceRecognitionService;
-use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
@@ -15,7 +14,7 @@ class EditEmpleado extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            // Los empleados no se eliminan, solo se inactivan
         ];
     }
 

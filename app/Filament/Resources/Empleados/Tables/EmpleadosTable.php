@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Empleados\Tables;
 
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\Action;
 use Filament\Tables\Columns\ImageColumn;
@@ -288,8 +287,7 @@ class EmpleadosTable
                                 ->success()
                                 ->send();
                         }),
-
-                    DeleteBulkAction::make(),
+                    // Los empleados no se eliminan, solo se inactivan
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
