@@ -19,13 +19,10 @@ class SuperAdminSeeder extends Seeder
 
         // Crear usuario super admin (cambia estos datos)
         $user = User::updateOrCreate(
-            ['email' => 'andreevelez2020@gmail.com'], // ⚠️
-
+            ['email' => 'andreevelez2020@gmail.com'],
             [
                 'name' => 'Super Administrador',
-                'password' => Hash::make('73688748'), // ⚠️
-
-                'is_active' => true,
+                'password' => Hash::make('73688748'),
             ]
         );
 
@@ -34,7 +31,8 @@ class SuperAdminSeeder extends Seeder
             $user->assignRole($role);
         }
 
-        $this->command->info('✅
- Super Admin creado: ' . $user->email);
+        if ($this->command) {
+            $this->command->info('Super Admin creado: ' . $user->email);
+        }
     }
 }
