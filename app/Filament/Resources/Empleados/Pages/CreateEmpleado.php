@@ -16,6 +16,14 @@ class CreateEmpleado extends CreateRecord
     protected static string $resource = EmpleadoResource::class;
 
     /**
+     * Redirigir a la lista de empleados después de crear
+     */
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
+    /**
      * Validar datos antes de crear
      */
     protected function getFormRules(): array
