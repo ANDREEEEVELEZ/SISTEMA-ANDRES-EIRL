@@ -37,6 +37,11 @@ class CreateEmpleado extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        // Establecer estado_empleado por defecto si no está presente
+        if (empty($data['estado_empleado'])) {
+            $data['estado_empleado'] = 'activo';
+        }
+        
         // Convertir fecha de nacimiento del formato dd/mm/yyyy a yyyy-mm-dd
         if (!empty($data['fecha_nacimiento'])) {
             try {

@@ -32,6 +32,11 @@ class CreateInventario extends CreateRecord
             $data['tipo'] = 'ajuste';
         }
         
+        // Si es entrada y no tiene motivo, establecer uno por defecto
+        if ($data['tipo'] === 'entrada' && empty($data['motivo_movimiento'])) {
+            $data['motivo_movimiento'] = 'Entrada de inventario';
+        }
+        
         // Si es ajuste y NO es "otro", llenar motivo_movimiento automáticamente con el motivo_ajuste
         if ($data['tipo'] === 'ajuste' && isset($data['motivo_ajuste']) && $data['motivo_ajuste'] !== 'otro') {
             $motivosTexto = [
