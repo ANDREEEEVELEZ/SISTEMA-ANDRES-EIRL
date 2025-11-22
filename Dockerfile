@@ -54,4 +54,4 @@ EXPOSE 8080
 # -----------------------------
 # 10. Comando de inicio
 # -----------------------------
-CMD php artisan storage:link && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8080
+CMD php artisan storage:link && php artisan migrate --force && (php artisan queue:work --tries=3 --timeout=90 &) && php artisan serve --host=0.0.0.0 --port=8080
