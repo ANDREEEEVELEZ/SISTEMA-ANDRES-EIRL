@@ -978,7 +978,7 @@ class VentaForm
                                     ->where('stock_total', '>', 0)
                                     ->get()
                                     ->mapWithKeys(fn ($producto) => [
-                                        $producto->id => "{$producto->nombre_producto} (Stock: {$producto->stock_total} {$producto->unidad_medida})"
+                                        $producto->id => "{$producto->nombre_producto} {$producto->unidad_medida} ({$producto->stock_total} unidades)"
                                     ])
                             )
                             ->searchable()
