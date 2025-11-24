@@ -53,6 +53,39 @@ class ListCajas extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+
+        // Mostrar la caja actualmente seleccionada por el super_admin (botón deshabilitado)
+                    Action::make('currentCaja')
+                        ->label(function () {
+                            $esSuperAdmin = Auth::check() && Auth::user()->hasRole('super_admin');
+                            if (! $esSuperAdmin) return '';
+                            $selected = session('admin_selected_caja_id');
+                            $c = null;
+                            if ($selected) {
+                                $c = Caja::find($selected);
+                                if ($c && $c->estado !== 'abierta') {
+                                    // La caja seleccionada fue cerrada: limpiar la selección y forzar recálculo
+                                    session()->forget('admin_selected_caja_id');
+                                    $c = null;
+                                }
+                            }
+                            // Si no hay selección, preferir la caja abierta del propio super_admin
+                            if (! $c) {
+                                $c = Caja::where('estado', 'abierta')
+                                    ->where('user_id', Auth::id())
+                                    ->orderByDesc('fecha_apertura')
+                                    ->first();
+                            }
+                            // Fallback: cualquier caja abierta
+                            if (! $c) {
+                                $c = Caja::where('estado', 'abierta')->orderByDesc('fecha_apertura')->first();
+                            }
+                            if (! $c) return '';
+                            return 'Caja #' . $c->numero_secuencial . ' — ' . ($c->user?->name ?? 'Usuario') . ' — ' . ($c->fecha_apertura?->format('d/m/Y H:i') ?? '');
+                        })
+                        ->visible(fn () => Auth::check() && Auth::user()->hasRole('super_admin'))
+                        ->disabled(true)
+                        ->color('secondary'),
             Action::make('registrarMovimiento')
                 ->label('Registrar movimiento')
               //  ->icon('heroicon-o-plus')
@@ -264,6 +297,33 @@ class ListCajas extends ListRecords
                     // Intentar forzar descarga automática en el navegador (evita pop-ups)
                     $params['download'] = 1;
                     return redirect()->to(route('reportes.cajas_export', $params));
+                }),
+            // Acción para que el super_admin seleccione la caja a visualizar en widgets
+            Action::make('seleccionarCaja')
+                ->label('Seleccionar caja')
+                ->visible(fn () => Auth::check() && Auth::user()->hasRole('super_admin'))
+                ->modalHeading('Seleccionar Caja Abierta')
+                ->form([
+                    Select::make('caja_id')
+                        ->label('Caja abierta')
+                        ->required()
+                        ->options(fn () => Caja::where('estado', 'abierta')->orderByDesc('fecha_apertura')->get()->mapWithKeys(function ($c) {
+                            $label = $c->fecha_apertura ? $c->fecha_apertura->format('d/m/Y H:i') . ' — ' . ($c->user?->name ?? 'Usuario') : ('Caja #' . $c->numero_secuencial);
+                            return [$c->id => $label];
+                        })->toArray()),
+                ])
+                ->action(function (array $data) {
+                    if (empty($data['caja_id'])) {
+                        Notification::make()->title('Caja no seleccionada')->danger()->body('Seleccione una caja.')->send();
+                        return null;
+                    }
+
+                    session(['admin_selected_caja_id' => $data['caja_id']]);
+
+                    Notification::make()->title('Caja seleccionada')->success()->body('Se ha seleccionado la caja para visualización.')->send();
+
+                    // Redirigir a la misma página para forzar recarga de widgets
+                    return redirect()->to(CajaResource::getUrl('index'));
                 }),
         ];
     }

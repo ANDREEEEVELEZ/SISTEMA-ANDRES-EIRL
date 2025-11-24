@@ -16,12 +16,34 @@ class TotalesCajaWidget extends BaseWidget
 
         $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
 
-        $cajaQuery = Caja::where('estado', 'abierta')->orderBy('fecha_apertura', 'desc');
-        if (! $esSuperAdmin) {
-            $cajaQuery->where('user_id', Auth::id());
+        // Si super_admin seleccionó una caja en la sesión, respetarla
+        $selected = null;
+        if ($esSuperAdmin) {
+            $selected = session('admin_selected_caja_id');
         }
 
-        $caja = $cajaQuery->first();
+        $caja = null;
+        if ($selected) {
+            $caja = Caja::find($selected);
+            // Si la caja seleccionada ya no existe o no está abierta, limpiar la selección
+            if (! $caja || $caja->estado !== 'abierta') {
+                session()->forget('admin_selected_caja_id');
+                $caja = null;
+            }
+        }
+
+        // Si no hay selección válida y es super_admin, preferir su propia caja abierta
+        if (! $caja && $esSuperAdmin) {
+            $caja = Caja::where('estado', 'abierta')
+                ->where('user_id', Auth::id())
+                ->orderByDesc('fecha_apertura')
+                ->first();
+        }
+
+        // Fallback: última caja abierta global
+        if (! $caja) {
+            $caja = Caja::where('estado', 'abierta')->orderBy('fecha_apertura', 'desc')->first();
+        }
 
         if (! $caja) {
             $totalVentasEfectivo = 0;

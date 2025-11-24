@@ -58,9 +58,41 @@ class MovimientosCajaTable extends TableWidget
 
     protected function getTableQuery(): Builder
     {
-        $cajaAbierta = Caja::where('estado', 'abierta')
-            ->whereDate('fecha_apertura', today())
-            ->first();
+        $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
+
+        // Si super_admin seleccionó una caja en sesión, usarla
+        $cajaAbierta = null;
+        if ($esSuperAdmin && session('admin_selected_caja_id')) {
+            $cajaAbierta = Caja::find(session('admin_selected_caja_id'));
+            if (! $cajaAbierta || $cajaAbierta->estado !== 'abierta') {
+                // La caja seleccionada ya no es válida -> limpiar y continuar con fallbacks
+                session()->forget('admin_selected_caja_id');
+                $cajaAbierta = null;
+            }
+        }
+
+        if (! $cajaAbierta) {
+            // Preferir caja propia del super_admin del día actual
+            if ($esSuperAdmin) {
+                $cajaAbierta = Caja::where('estado', 'abierta')
+                    ->whereDate('fecha_apertura', today())
+                    ->where('user_id', \Illuminate\Support\Facades\Auth::id())
+                    ->orderByDesc('fecha_apertura')
+                    ->first();
+            }
+        }
+
+        if (! $cajaAbierta) {
+            $query = Caja::where('estado', 'abierta')
+                ->whereDate('fecha_apertura', today())
+                ->orderByDesc('fecha_apertura');
+
+            if (! $esSuperAdmin) {
+                $query->where('user_id', \Illuminate\Support\Facades\Auth::id());
+            }
+
+            $cajaAbierta = $query->first();
+        }
 
         if (!$cajaAbierta) {
             return MovimientoCaja::query()->whereRaw('1 = 0'); // Query vacío
@@ -72,8 +104,14 @@ class MovimientosCajaTable extends TableWidget
 
     public function isTableVisible(): bool
     {
-        return Caja::where('estado', 'abierta')
-            ->whereDate('fecha_apertura', today())
-            ->exists();
+        $query = Caja::where('estado', 'abierta')
+            ->whereDate('fecha_apertura', today());
+
+        $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
+        if (! $esSuperAdmin) {
+            $query->where('user_id', \Illuminate\Support\Facades\Auth::id());
+        }
+
+        return $query->exists();
     }
 }

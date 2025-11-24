@@ -31,15 +31,23 @@ class CreateCaja extends CreateRecord
             return;
         }
 
-        // Verificar si hay una caja del día actual
+        // Verificar si hay una caja del día actual (solo propia, salvo super_admin)
         if (CajaService::tieneCajaAbiertaHoy()) {
-            $cajaHoy = Caja::where('estado', 'abierta')->first();
-            Notification::make()
-                ->title('Ya existe una caja abierta hoy')
-                ->warning()
-                ->body("Hay una caja abierta desde el {$cajaHoy->fecha_apertura->format('H:i')}. No puede crear otra caja el mismo día.")
-                ->persistent()
-                ->send();
+            $query = Caja::where('estado', 'abierta')->whereDate('fecha_apertura', today())->orderByDesc('fecha_apertura');
+            $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
+            if (! $esSuperAdmin) {
+                $query->where('user_id', \Illuminate\Support\Facades\Auth::id());
+            }
+
+            $cajaHoy = $query->first();
+            if ($cajaHoy) {
+                Notification::make()
+                    ->title('Ya existe una caja abierta hoy')
+                    ->warning()
+                    ->body("Hay una caja abierta desde el {$cajaHoy->fecha_apertura->format('H:i')}. No puede crear otra caja el mismo día.")
+                    ->persistent()
+                    ->send();
+            }
         }
     }
 

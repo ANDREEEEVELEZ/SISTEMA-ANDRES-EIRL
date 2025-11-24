@@ -18,6 +18,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ArqueoCaja extends Page implements HasForms
 {
@@ -54,12 +55,60 @@ class ArqueoCaja extends Page implements HasForms
             return;
         }
 
-        $this->caja = $this->getCajaAbierta();
+        // Forzar selección: primero buscar la caja ABIERTA del usuario autenticado.
+        // Si no existe y el usuario es super_admin, usar cualquier caja abierta.
+        $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
+
+            $this->caja = null;
+            if ($esSuperAdmin && session('admin_selected_caja_id')) {
+                $this->caja = Caja::find(session('admin_selected_caja_id'));
+                // Si la caja seleccionada ya no existe o está cerrada, limpiar la sesión
+                if (! $this->caja || $this->caja->estado !== 'abierta') {
+                    session()->forget('admin_selected_caja_id');
+                    $this->caja = null;
+                }
+            }
+
+            // si aun no hay caja seleccionada, preferir la caja propia del super_admin
+            if (! $this->caja && $esSuperAdmin) {
+                $this->caja = Caja::where('estado', 'abierta')
+                    ->where('user_id', Auth::id())
+                    ->orderByDesc('fecha_apertura')
+                    ->first();
+            }
+
+            // por defecto, buscar caja abierta del usuario autenticado (vendedor)
+            if (! $this->caja) {
+                $this->caja = Caja::where('estado', 'abierta')
+                    ->where('user_id', Auth::id())
+                    ->orderByDesc('fecha_apertura')
+                    ->first();
+            }
+
+        // Log adicional: registrar si la URL pide un arqueo específico
+        Log::info('ArqueoCaja: mount params', [
+            'query_arqueo_id' => request()->query('arqueo_id'),
+            'selected_caja_id' => $this->caja?->id,
+        ]);
         // Si se pasa ?arqueo_id= en la URL intentamos cargar ese arqueo (independiente de la caja abierta)
         $requestedId = request()->query('arqueo_id');
         if ($requestedId) {
             $loaded = Arqueo::with('caja')->find($requestedId);
             if ($loaded) {
+                // Si el usuario no es super_admin, sólo permitir cargar arqueos relacionados con su propia caja
+                if (! (Auth::check() && optional(Auth::user())->hasRole('super_admin'))) {
+                    if (! $loaded->caja || ($loaded->caja->user_id ?? null) !== Auth::id()) {
+                        Notification::make()
+                            ->title('Acceso denegado')
+                            ->body('No tiene permiso para ver ese arqueo.')
+                            ->danger()
+                            ->send();
+
+                        $this->redirect(CajaResource::getUrl('index'));
+                        return;
+                    }
+                }
+
                 $this->arqueo = $loaded;
                 // Usar la caja asociada al arqueo para mostrar su información
                 $this->caja = $this->arqueo->caja;
@@ -126,6 +175,10 @@ class ArqueoCaja extends Page implements HasForms
                             <div style="background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 0.375rem;">
                                 <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.25rem;">Caja</div>
                                 <div style="color: white; font-size: 1.125rem; font-weight: bold;">Caja #' . $this->caja->numero_secuencial . '</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 0.375rem;">
+                                <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.25rem;">Usuario</div>
+                                <div style="color: white; font-size: 0.875rem; font-weight: 600;">' . ($this->caja->user?->name ?? '-') . '</div>
                             </div>
                             <div style="background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 0.375rem;">
                                 <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.25rem;">Apertura</div>
@@ -245,15 +298,25 @@ class ArqueoCaja extends Page implements HasForms
 
     protected function tieneCajaAbierta(): bool
     {
-        // Considerar caja abierta si existe cualquier registro con estado 'abierta'
-        // (no filtrar por fecha para evitar falsos negativos por diferencias de zona/fecha)
-        return Caja::where('estado', 'abierta')->exists();
+        // Considerar caja abierta pero solamente la(s) caja(s) del usuario actual
+        // Si el usuario es super_admin, permitimos ver cualquier caja abierta
+        $query = Caja::where('estado', 'abierta');
+        if (! (Auth::check() && optional(Auth::user())->hasRole('super_admin'))) {
+            $query->where('user_id', Auth::id());
+        }
+
+        return $query->exists();
     }
 
     protected function getCajaAbierta(): ?Caja
     {
-        // Retornar la primera caja abierta (si existe). No filtramos por fecha.
-        return Caja::where('estado', 'abierta')->first();
+        // Retornar la primera caja abierta del usuario (si existe). Super admin puede ver cualquier caja abierta.
+        $query = Caja::where('estado', 'abierta')->orderBy('fecha_apertura', 'desc');
+        if (! (Auth::check() && optional(Auth::user())->hasRole('super_admin'))) {
+            $query->where('user_id', Auth::id());
+        }
+
+        return $query->first();
     }
 
     protected function getInfoCajaAbierta(): string
@@ -316,6 +379,14 @@ class ArqueoCaja extends Page implements HasForms
     {
         $state = $this->form->getState();
 
+        // Seguridad: asegurar que el usuario sólo pueda guardar arqueos para su propia caja
+        if (! (Auth::check() && optional(Auth::user())->hasRole('super_admin'))) {
+            if (! $this->caja || ($this->caja->user_id ?? null) !== Auth::id()) {
+                Notification::make()->title('Acceso denegado')->body('No tiene permiso para realizar arqueos en esta caja.')->danger()->send();
+                return;
+            }
+        }
+
         if (!isset($state['efectivo_contado'])) {
             Notification::make()->title('Error')->body('Ingrese el efectivo contado')->danger()->send();
             return;
@@ -375,6 +446,14 @@ class ArqueoCaja extends Page implements HasForms
     public function confirmar(): void
     {
         $state = $this->form->getState();
+
+        // Seguridad: asegurar que el usuario sólo pueda confirmar arqueos para su propia caja
+        if (! (Auth::check() && optional(Auth::user())->hasRole('super_admin'))) {
+            if (! $this->caja || ($this->caja->user_id ?? null) !== Auth::id()) {
+                Notification::make()->title('Acceso denegado')->body('No tiene permiso para confirmar arqueos en esta caja.')->danger()->send();
+                return;
+            }
+        }
 
         if (!isset($state['efectivo_contado'])) {
             Notification::make()->title('Error')->body('Ingrese el efectivo contado')->danger()->send();

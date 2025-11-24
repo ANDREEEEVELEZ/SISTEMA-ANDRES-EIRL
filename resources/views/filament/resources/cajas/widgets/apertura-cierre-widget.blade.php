@@ -10,6 +10,7 @@
     </div>
 
     <div class="flex flex-col items-center text-center" style="padding: 0.25rem 1.5rem 1rem 1.5rem;">
+        {{-- Selector para admin movido al header (acción 'Seleccionar caja') --}}
         @if(\App\Services\CajaService::tieneCajaAbiertaDiaAnterior())
           <div class="rounded-lg bg-danger-50 text-sm text-danger-600 dark:bg-danger-400/10 dark:text-danger-400 text-center w-full"
               style="margin-top: 0rem; padding: 0.25rem;">

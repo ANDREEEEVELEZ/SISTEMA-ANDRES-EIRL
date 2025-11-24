@@ -23,6 +23,10 @@ class AperturaCierreWidget extends Widget
     public $ultimaCajaAbiertaId = null;
     // Guardamos el saldo inicial en memoria para mostrarlo inmediatamente tras crear la caja
     public $ultimaCajaAbiertaSaldo = null;
+    // Para super_admin: id de caja seleccionada en la UI
+    public $selectedCajaId = null;
+    // Lista de cajas abiertas (solo para super_admin)
+    public $openCajas = [];
 
     /**
      * Hook que se ejecuta al cargar el widget.
@@ -31,6 +35,52 @@ class AperturaCierreWidget extends Widget
     public function mount(): void
     {
         $this->cargarSaldoCierreDesdeArqueo();
+
+        // Si es super_admin, cargar lista de cajas abiertas y selección previa
+        $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
+        if ($esSuperAdmin) {
+            $this->openCajas = Caja::where('estado', 'abierta')->orderByDesc('fecha_apertura')->get()->map(fn($c) => [
+                'id' => $c->id,
+                'label' => sprintf('Caja #%d — %s — %s', $c->numero_secuencial, $c->user?->name, $c->fecha_apertura?->format('d/m/Y H:i')),
+            ])->toArray();
+            // Prioridad de selección para super_admin:
+            // 1) selección en sesión válida
+            // 2) su propia caja abierta (si la tiene)
+            // 3) la primera caja abierta global
+            $this->selectedCajaId = null;
+
+            $sessionSelected = session('admin_selected_caja_id');
+            if ($sessionSelected) {
+                $c = Caja::find($sessionSelected);
+                if ($c && $c->estado === 'abierta') {
+                    $this->selectedCajaId = $sessionSelected;
+                } else {
+                    session()->forget('admin_selected_caja_id');
+                }
+            }
+
+            // Si no hay selección en sesión, preferir la caja propia del super_admin
+            if (! $this->selectedCajaId) {
+                $propia = Caja::where('estado', 'abierta')
+                    ->where('user_id', \Illuminate\Support\Facades\Auth::id())
+                    ->orderByDesc('fecha_apertura')
+                    ->first();
+                if ($propia) {
+                    $this->selectedCajaId = $propia->id;
+                }
+            }
+
+            // Si aún no hay selección, usar la primera caja abierta global
+            if (! $this->selectedCajaId) {
+                $this->selectedCajaId = $this->openCajas[0]['id'] ?? null;
+            }
+
+            if ($this->selectedCajaId) {
+                $this->ultimaCajaAbiertaId = $this->selectedCajaId;
+                $c = Caja::find($this->selectedCajaId);
+                $this->ultimaCajaAbiertaSaldo = $c?->saldo_inicial;
+            }
+        }
     }
 
     /**
@@ -159,6 +209,28 @@ class AperturaCierreWidget extends Widget
             // si no existe o no está abierta, limpiar referencia
             $this->ultimaCajaAbiertaId = null;
         }
+        // Si es super_admin y existe una selección en sesión, respetarla
+        $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
+        if ($esSuperAdmin) {
+            $sessionSelected = session('admin_selected_caja_id');
+            if ($sessionSelected) {
+                $caja = Caja::find($sessionSelected);
+                if ($caja && $caja->estado === 'abierta') {
+                    return $caja;
+                } else {
+                    session()->forget('admin_selected_caja_id');
+                }
+            }
+
+            // Preferir la caja propia del super_admin si la tiene abierta
+            $propia = Caja::where('estado', 'abierta')
+                ->where('user_id', \Illuminate\Support\Facades\Auth::id())
+                ->orderByDesc('fecha_apertura')
+                ->first();
+            if ($propia) {
+                return $propia;
+            }
+        }
 
         // Obtiene la última caja abierta (la más reciente) desde la base de datos
         // Si el usuario NO es super_admin, limitar a sus propias cajas
@@ -170,6 +242,17 @@ class AperturaCierreWidget extends Widget
         }
 
         return $query->first();
+    }
+
+    // Acción Livewire para que super_admin cambie la caja seleccionada
+    public function updatedSelectedCajaId($value): void
+    {
+        if (! $value) return;
+        session(['admin_selected_caja_id' => $value]);
+        $this->ultimaCajaAbiertaId = $value;
+        $c = Caja::find($value);
+        $this->ultimaCajaAbiertaSaldo = $c?->saldo_inicial;
+        $this->emitSelf('refreshWidgets');
     }
 
     public function calcularSaldoEsperado(): float

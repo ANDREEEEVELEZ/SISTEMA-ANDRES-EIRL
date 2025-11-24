@@ -121,16 +121,35 @@ class RegistrarMovimiento extends Page implements HasForms
 
     protected function tieneCajaAbierta(): bool
     {
-        return Caja::where('estado', 'abierta')
-            ->whereDate('fecha_apertura', today())
-            ->exists();
+        $query = Caja::where('estado', 'abierta')
+            ->whereDate('fecha_apertura', today());
+
+        // Si el usuario no es super_admin, limitar a sus propias cajas
+        $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
+        if (! $esSuperAdmin) {
+            $query->where('user_id', \Illuminate\Support\Facades\Auth::id());
+        }
+
+        return $query->exists();
     }
 
     protected function getCajaAbierta(): ?Caja
     {
-        return Caja::where('estado', 'abierta')
+        $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
+
+        if ($esSuperAdmin && session('admin_selected_caja_id')) {
+            return Caja::find(session('admin_selected_caja_id'));
+        }
+
+        $query = Caja::where('estado', 'abierta')
             ->whereDate('fecha_apertura', today())
-            ->first();
+            ->orderByDesc('fecha_apertura');
+
+        if (! $esSuperAdmin) {
+            $query->where('user_id', \Illuminate\Support\Facades\Auth::id());
+        }
+
+        return $query->first();
     }
 
     protected function getInfoCajaAbierta(): string
