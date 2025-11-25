@@ -55,6 +55,8 @@
                     </tr>
                 </table>
 
+
+
                 <table>
                     <tr>
                         <th>Saldo inicial</th>
@@ -102,6 +104,29 @@
                     </table>
                 @endif
             @endif
+
+            <!-- Resumen de recaudación del día: mostrar efectivo contado (arqueo si existe), ventas por otros medios y total recaudado -->
+            <div style="margin-top:8px;">
+                <table>
+                    <tr>
+                        <th>Concepto</th>
+                        <th>Monto</th>
+                    </tr>
+                    <tr>
+                        <td>Efectivo físico contado</td>
+                        <td>S/ {{ number_format($r['efectivo_contado'] ?? 0, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Ventas por otros medios de pago (tarjeta, yape, transferencia, etc.)</td>
+                        <td>S/ {{ number_format($r['total_ventas_otros_medios'] ?? 0, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:800;">TOTAL RECAUDADO EN EL DÍA</td>
+                        <td style="font-weight:800;">S/ {{ number_format($r['total_recaudado'] ?? 0, 2) }}</td>
+                    </tr>
+                </table>
+                <div style="font-size:10px;color:#666;margin-top:6px;">* Las ventas por otros medios de pago no se cuentan en el saldo físico de efectivo, pero sí forman parte del total recaudado del día.</div>
+            </div>
         </div>
     @endforeach
 

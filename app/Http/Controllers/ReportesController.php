@@ -79,6 +79,27 @@ class ReportesController extends Controller
                 ->where('metodo_pago', 'efectivo')
                 ->whereBetween('fecha_venta', [$inicio, $fin])
                 ->sum('total_venta');
+            // Ventas por otros medios (tarjeta, yape, transferencia, etc.)
+            $totalVentasOtrosMedios = (float) Venta::where('caja_id', $caja->id)
+                ->where('metodo_pago', '!=', 'efectivo')
+                ->whereBetween('fecha_venta', [$inicio, $fin])
+                ->where('estado_venta', '!=', 'anulada')
+                ->sum('total_venta');
+
+            // Intentar tomar el efectivo contado desde un arqueo confirmado dentro del periodo
+            $arqueoConfirmado = Arqueo::where('caja_id', $caja->id)
+                ->where('estado', 'confirmado')
+                ->whereBetween('created_at', [$inicio, $fin])
+                ->first();
+
+            if ($arqueoConfirmado && $arqueoConfirmado->efectivo_contado !== null) {
+                $efectivoContado = (float) $arqueoConfirmado->efectivo_contado;
+            } else {
+                // Si no hay arqueo confirmado, usar la suma de ventas en efectivo como aproximación
+                $efectivoContado = $totalVentas;
+            }
+
+            $totalRecaudado = $efectivoContado + $totalVentasOtrosMedios;
             $totalIngresos = (float) MovimientoCaja::where('caja_id', $caja->id)
                 ->where('tipo', 'ingreso')
                 ->whereBetween('fecha_movimiento', [$inicio, $fin])
@@ -100,6 +121,9 @@ class ReportesController extends Controller
             $reportes[] = [
                 'caja' => $caja,
                 'total_ventas' => $totalVentas,
+                'total_ventas_otros_medios' => $totalVentasOtrosMedios,
+                'efectivo_contado' => $efectivoContado,
+                'total_recaudado' => $totalRecaudado,
                 'total_ingresos' => $totalIngresos,
                 'total_egresos' => $totalEgresos,
                 'movimientos' => $movimientos,
@@ -148,7 +172,7 @@ class ReportesController extends Controller
         $empleadoId = $request->query('empleado_id');
         $fechaInicio = Carbon::parse($request->query('fecha_inicio'))->startOfDay();
         $fechaFin = Carbon::parse($request->query('fecha_fin'))->endOfDay();
-        
+
         $incluirResumen = $request->boolean('incluir_resumen');
         $incluirDetalle = $request->boolean('incluir_detalle');
         $incluirObservaciones = $request->boolean('incluir_observaciones');
@@ -161,7 +185,7 @@ class ReportesController extends Controller
             }
 
             $empleado = Empleado::findOrFail($empleadoId);
-            
+
             // Obtener asistencias del período
             $asistencias = Asistencia::where('empleado_id', $empleadoId)
                 ->whereBetween('fecha', [$fechaInicio, $fechaFin])
@@ -173,7 +197,7 @@ class ReportesController extends Controller
             $diasTrabajados = $asistencias->where('estado', 'presente')->count();
             $ausencias = $totalDias - $diasTrabajados;
             $porcentajeAsistencia = $totalDias > 0 ? ($diasTrabajados / $totalDias) * 100 : 0;
-            
+
             // Calcular total de horas trabajadas
             $totalMinutos = 0;
             $diasConSalidaRegistrada = 0;
@@ -185,13 +209,13 @@ class ReportesController extends Controller
                     $diasConSalidaRegistrada++;
                 }
             }
-            
+
             $totalHoras = floor($totalMinutos / 60);
             $totalMinutosRestantes = $totalMinutos % 60;
             $promedioHorasDia = $diasConSalidaRegistrada > 0 ? $totalMinutos / $diasConSalidaRegistrada : 0;
             $promedioHoras = floor($promedioHorasDia / 60);
             $promedioMinutos = round($promedioHorasDia % 60);
-            
+
             // Estadísticas adicionales
             $registrosFaciales = $asistencias->where('metodo_registro', 'facial')->count();
             $registrosManuales = $asistencias->where('metodo_registro', 'manual_dni')->count();
@@ -283,8 +307,8 @@ class ReportesController extends Controller
 
             // Calcular resumen general
             $totalTrabajadores = count($reporteGeneral);
-            $promedioAsistenciaGeneral = $totalTrabajadores > 0 
-                ? collect($reporteGeneral)->avg('porcentaje_asistencia') 
+            $promedioAsistenciaGeneral = $totalTrabajadores > 0
+                ? collect($reporteGeneral)->avg('porcentaje_asistencia')
                 : 0;
             $totalHorasGenerales = collect($reporteGeneral)->sum(function ($item) {
                 return ($item['total_horas'] * 60) + $item['total_minutos'];
