@@ -26,6 +26,8 @@ class CreateVenta extends CreateRecord
 
     // Almacenar temporalmente los datos del comprobante
     protected array $datosComprobante = [];
+    // Monto pagado temporal (no persistido en BD)
+    protected ?float $montoPagadoTemporal = null;
 
     protected function getHeaderActions(): array
     {
@@ -232,6 +234,13 @@ class CreateVenta extends CreateRecord
             $data['nombre_cliente_temporal'] = $data['cliente_ticket_nombre'];
         }
 
+        // Capturar monto_pagado (campo UI-only). Lo guardamos temporalmente en la propiedad
+        if (isset($data['monto_pagado'])) {
+            $this->montoPagadoTemporal = is_numeric($data['monto_pagado']) ? (float) $data['monto_pagado'] : null;
+            // Remover para evitar intento de guardado accidental
+            unset($data['monto_pagado']);
+        }
+
         // Eliminar campos que no pertenecen a la tabla ventas
         unset($data['tipo_comprobante']);
         unset($data['serie']);
@@ -397,6 +406,16 @@ class CreateVenta extends CreateRecord
                 ->success()
                 ->duration(8000)
                 ->send();
+
+                // Guardar monto_pagado en session para poder mostrarlo en edición/impresión
+                try {
+                    if (!is_null($this->montoPagadoTemporal)) {
+                        $sessionKey = 'venta_monto_pagado_' . $this->record->id;
+                        session()->put($sessionKey, $this->montoPagadoTemporal);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('No se pudo guardar monto_pagado en session: ' . $e->getMessage());
+                }
 
             // Alertas de stock bajo (si aplica)
             if (!empty($alertasStockBajo)) {

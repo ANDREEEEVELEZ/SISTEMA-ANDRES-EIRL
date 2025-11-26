@@ -77,12 +77,11 @@ class ArqueoCaja extends Page implements HasForms
                     ->first();
             }
 
-            // por defecto, buscar caja abierta del usuario autenticado (vendedor)
+            // por defecto, intentar obtener la caja abierta correspondiente.
+            // Para super_admin: si no tiene caja propia ni selección en sesión,
+            // usar la primera caja abierta global. Para vendedores, usar su propia caja.
             if (! $this->caja) {
-                $this->caja = Caja::where('estado', 'abierta')
-                    ->where('user_id', Auth::id())
-                    ->orderByDesc('fecha_apertura')
-                    ->first();
+                $this->caja = $this->getCajaAbierta();
             }
 
         // Log adicional: registrar si la URL pide un arqueo específico
@@ -337,6 +336,16 @@ class ArqueoCaja extends Page implements HasForms
 
     protected function calcularTotales(): void
     {
+        if (! $this->caja) {
+            // No hay caja asignada: inicializar totales a cero y salir.
+            $this->totalVentas = 0.0;
+            $this->totalVentasOtrosMedios = 0.0;
+            $this->totalIngresos = 0.0;
+            $this->totalEgresos = 0.0;
+            $this->saldoTeorico = 0.0;
+            return;
+        }
+
         $inicio = $this->caja->fecha_apertura;
         $fin = now();
 
