@@ -28,7 +28,8 @@ class EmpleadosTable
                     ->defaultImageUrl(url('/images/default-avatar.png'))
                     ->getStateUsing(function ($record) {
                         if ($record->foto_facial_path && Storage::disk('public')->exists($record->foto_facial_path)) {
-                            return asset('storage/' . $record->foto_facial_path);
+                            // Usar url() para generar URL absoluta basada en la petición actual
+                            return url('storage/' . $record->foto_facial_path);
                         }
                         return url('/images/default-avatar.png');
                     })
