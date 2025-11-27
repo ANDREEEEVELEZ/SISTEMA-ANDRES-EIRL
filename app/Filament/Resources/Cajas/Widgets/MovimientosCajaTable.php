@@ -60,9 +60,10 @@ class MovimientosCajaTable extends TableWidget
     {
         $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
 
-        // Si super_admin seleccionó una caja en sesión, usarla
+        // Si super_admin seleccionó una caja en sesión y no se fuerza usar solo cajas propias, usarla
         $cajaAbierta = null;
-        if ($esSuperAdmin && session('admin_selected_caja_id')) {
+        $forceOwn = session('admin_force_own_caja');
+        if ($esSuperAdmin && session('admin_selected_caja_id') && ! $forceOwn) {
             $cajaAbierta = Caja::find(session('admin_selected_caja_id'));
             if (! $cajaAbierta || $cajaAbierta->estado !== 'abierta') {
                 // La caja seleccionada ya no es válida -> limpiar y continuar con fallbacks
@@ -79,6 +80,11 @@ class MovimientosCajaTable extends TableWidget
                     ->where('user_id', \Illuminate\Support\Facades\Auth::id())
                     ->orderByDesc('fecha_apertura')
                     ->first();
+
+                // Si se fuerza usar solo propias y no hay caja propia, retornar query vacía
+                if ($forceOwn && ! $cajaAbierta) {
+                    return MovimientoCaja::query()->whereRaw('1 = 0');
+                }
             }
         }
 

@@ -50,7 +50,10 @@ class AperturaCierreWidget extends Widget
             $this->selectedCajaId = null;
 
             $sessionSelected = session('admin_selected_caja_id');
-            if ($sessionSelected) {
+            $forceOwn = session('admin_force_own_caja');
+
+            // Si hay una selección en sesión y NO se está forzando "usar solo mis cajas", úsala
+            if ($sessionSelected && ! $forceOwn) {
                 $c = Caja::find($sessionSelected);
                 if ($c && $c->estado === 'abierta') {
                     $this->selectedCajaId = $sessionSelected;
@@ -59,7 +62,7 @@ class AperturaCierreWidget extends Widget
                 }
             }
 
-            // Si no hay selección en sesión, preferir la caja propia del super_admin
+            // Si no hay selección en sesión o se fuerza usar solo cajas propias, preferir la caja propia del super_admin
             if (! $this->selectedCajaId) {
                 $propia = Caja::where('estado', 'abierta')
                     ->where('user_id', \Illuminate\Support\Facades\Auth::id())
@@ -70,15 +73,22 @@ class AperturaCierreWidget extends Widget
                 }
             }
 
-            // Si aún no hay selección, usar la primera caja abierta global
-            if (! $this->selectedCajaId) {
-                $this->selectedCajaId = $this->openCajas[0]['id'] ?? null;
-            }
+            // Si se está forzando usar solo cajas propias y no tiene caja propia, dejar selected null
+            if ($forceOwn && ! $this->selectedCajaId) {
+                $this->selectedCajaId = null;
+                $this->ultimaCajaAbiertaId = null;
+                $this->ultimaCajaAbiertaSaldo = null;
+            } else {
+                // Si aún no hay selección, usar la primera caja abierta global
+                if (! $this->selectedCajaId) {
+                    $this->selectedCajaId = $this->openCajas[0]['id'] ?? null;
+                }
 
-            if ($this->selectedCajaId) {
-                $this->ultimaCajaAbiertaId = $this->selectedCajaId;
-                $c = Caja::find($this->selectedCajaId);
-                $this->ultimaCajaAbiertaSaldo = $c?->saldo_inicial;
+                if ($this->selectedCajaId) {
+                    $this->ultimaCajaAbiertaId = $this->selectedCajaId;
+                    $c = Caja::find($this->selectedCajaId);
+                    $this->ultimaCajaAbiertaSaldo = $c?->saldo_inicial;
+                }
             }
         }
     }
@@ -211,14 +221,19 @@ class AperturaCierreWidget extends Widget
         }
         // Si es super_admin y existe una selección en sesión, respetarla
         $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
+        $forceOwn = session('admin_force_own_caja');
+
         if ($esSuperAdmin) {
-            $sessionSelected = session('admin_selected_caja_id');
-            if ($sessionSelected) {
-                $caja = Caja::find($sessionSelected);
-                if ($caja && $caja->estado === 'abierta') {
-                    return $caja;
-                } else {
-                    session()->forget('admin_selected_caja_id');
+            // Si se fuerza usar solo las cajas propias, no respetamos la selección global
+            if (! $forceOwn) {
+                $sessionSelected = session('admin_selected_caja_id');
+                if ($sessionSelected) {
+                    $caja = Caja::find($sessionSelected);
+                    if ($caja && $caja->estado === 'abierta') {
+                        return $caja;
+                    } else {
+                        session()->forget('admin_selected_caja_id');
+                    }
                 }
             }
 
@@ -227,8 +242,14 @@ class AperturaCierreWidget extends Widget
                 ->where('user_id', \Illuminate\Support\Facades\Auth::id())
                 ->orderByDesc('fecha_apertura')
                 ->first();
+
             if ($propia) {
                 return $propia;
+            }
+
+            // Si se está forzando usar solo cajas propias y no encontró ninguna, devolver null
+            if ($forceOwn) {
+                return null;
             }
         }
 

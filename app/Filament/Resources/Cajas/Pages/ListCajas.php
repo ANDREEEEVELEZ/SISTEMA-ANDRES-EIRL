@@ -122,7 +122,6 @@ class ListCajas extends ListRecords
                         ->placeholder('Todas las cajas')
                         ->reactive()
                         ->visible(fn ($get) => (bool) $get('seleccionar_caja'))
-                        //->searchable()
                         ->afterStateUpdated(function ($state, callable $set) {
                             // Cuando se selecciona una caja, auto-llenar rango de fechas con la apertura/cierre de la caja
                             if ($state) {
@@ -304,21 +303,48 @@ class ListCajas extends ListRecords
                 ->visible(fn () => Auth::check() && Auth::user()->hasRole('super_admin'))
                 ->modalHeading('Seleccionar Caja Abierta')
                 ->form([
+                    \Filament\Forms\Components\Checkbox::make('abrir_mi_caja')
+                        ->label('Abrir mi propia caja (vaciar vista y crear nueva)')
+                        ->reactive()
+                        ->default(false)
+                     //   ->helperText('Si marca esto será llevado al formulario de apertura y se limpiará la selección actual.')
+                        ->columnSpanFull(),
+
                     Select::make('caja_id')
                         ->label('Caja abierta')
-                        ->required()
+                        ->visible(fn ($get) => ! (bool) ($get('abrir_mi_caja') ?? false))
+                        ->required(fn ($get) => ! (bool) ($get('abrir_mi_caja') ?? false))
                         ->options(fn () => Caja::where('estado', 'abierta')->orderByDesc('fecha_apertura')->get()->mapWithKeys(function ($c) {
                             $label = $c->fecha_apertura ? $c->fecha_apertura->format('d/m/Y H:i') . ' — ' . ($c->user?->name ?? 'Usuario') : ('Caja #' . $c->numero_secuencial);
                             return [$c->id => $label];
                         })->toArray()),
                 ])
                 ->action(function (array $data) {
+                    // Si eligió abrir su propia caja: limpiar selección y forzar preferencia, luego redirigir a crear caja
+                    if (! empty($data['abrir_mi_caja'])) {
+                        // Limpiar selección y activar preferencia para usar solo cajas propias
+                        session()->forget('admin_selected_caja_id');
+                        session(['admin_force_own_caja' => true]);
+
+                        Notification::make()->title('Selección vaciada')
+                            ->success()
+                            ->body('Se limpió la selección. El módulo mostrará su propia caja (si existe) o podrá aperturar su nueva caja')
+                            ->send();
+
+                        // Recargar la misma página para que los widgets y el estado se actualicen automáticamente
+                        return redirect()->to(CajaResource::getUrl('index'));
+                    }
+
+                    // Si no, proceder con la selección normal de caja
                     if (empty($data['caja_id'])) {
                         Notification::make()->title('Caja no seleccionada')->danger()->body('Seleccione una caja.')->send();
                         return null;
                     }
 
                     session(['admin_selected_caja_id' => $data['caja_id']]);
+
+                    // Si el super_admin selecciona una caja explícita, quitar preferencia de "usar solo mis cajas"
+                    session()->forget('admin_force_own_caja');
 
                     Notification::make()->title('Caja seleccionada')->success()->body('Se ha seleccionado la caja para visualización.')->send();
 

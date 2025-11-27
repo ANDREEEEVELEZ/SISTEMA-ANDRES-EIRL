@@ -16,9 +16,10 @@ class TotalesCajaWidget extends BaseWidget
 
         $esSuperAdmin = Auth::check() && optional(Auth::user())->hasRole('super_admin');
 
-        // Si super_admin seleccionó una caja en la sesión, respetarla
+        // Si super_admin seleccionó una caja en la sesión, respetarla (salvo que se fuerce usar solo cajas propias)
         $selected = null;
-        if ($esSuperAdmin) {
+        $forceOwn = session('admin_force_own_caja');
+        if ($esSuperAdmin && ! $forceOwn) {
             $selected = session('admin_selected_caja_id');
         }
 
@@ -38,6 +39,36 @@ class TotalesCajaWidget extends BaseWidget
                 ->where('user_id', Auth::id())
                 ->orderByDesc('fecha_apertura')
                 ->first();
+
+            // Si se está forzando usar solo cajas propias y no encontró ninguna, dejar totales en cero
+            if ($forceOwn && ! $caja) {
+                $totalVentasEfectivo = 0;
+                $totalVentasOtrosMedios = 0;
+                $totalIngresos = 0;
+                $totalEgresos = 0;
+
+                return [
+                    Stat::make('Total de Ventas (Efectivo)', 'S/ ' . number_format($totalVentasEfectivo, 2))
+                        ->description('Caja abierta')
+                        ->descriptionIcon('heroicon-m-banknotes')
+                        ->color('success'),
+
+                    Stat::make('Ventas (Otros medios)', 'S/ ' . number_format($totalVentasOtrosMedios, 2))
+                        ->description('Yape, Plin, Transferencia, Tarjeta')
+                        ->descriptionIcon('heroicon-m-credit-card')
+                        ->color('info'),
+
+                    Stat::make('Total de Ingresos', 'S/ ' . number_format($totalIngresos, 2))
+                        ->description('Caja abierta')
+                        ->descriptionIcon('heroicon-m-plus')
+                        ->color('primary'),
+
+                    Stat::make('Total de Egresos', 'S/ ' . number_format($totalEgresos, 2))
+                        ->description('Caja abierta')
+                        ->descriptionIcon('heroicon-m-minus')
+                        ->color('danger'),
+                ];
+            }
         }
 
         // Fallback: última caja abierta global

@@ -31,22 +31,49 @@ class CreateCaja extends CreateRecord
             return;
         }
 
-        // Verificar si hay una caja del día actual (solo propia, salvo super_admin)
+        // Verificar si hay una caja del día actual
         if (CajaService::tieneCajaAbiertaHoy()) {
             $query = Caja::where('estado', 'abierta')->whereDate('fecha_apertura', today())->orderByDesc('fecha_apertura');
             $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
-            if (! $esSuperAdmin) {
-                $query->where('user_id', \Illuminate\Support\Facades\Auth::id());
-            }
 
-            $cajaHoy = $query->first();
-            if ($cajaHoy) {
+            // Buscar si el usuario actual ya tiene una caja abierta hoy
+            $cajaPropia = (clone $query)->where('user_id', \Illuminate\Support\Facades\Auth::id())->first();
+
+            // Buscar la caja abierta más reciente (cualquiera)
+            $cajaHoy = (clone $query)->first();
+
+            if ($cajaPropia) {
+                // El usuario ya tiene su propia caja abierta hoy -> mostrar aviso y no permitir crear otra
                 Notification::make()
-                    ->title('Ya existe una caja abierta hoy')
+                    ->title('Ya tiene una caja abierta hoy')
                     ->warning()
-                    ->body("Hay una caja abierta desde el {$cajaHoy->fecha_apertura->format('H:i')}. No puede crear otra caja el mismo día.")
+                    ->body("Usted ya abrió una caja hoy a las {$cajaPropia->fecha_apertura->format('H:i')}. No puede abrir otra caja el mismo día.")
                     ->persistent()
                     ->send();
+            } else {
+                // El usuario NO tiene caja propia abierta hoy
+                if ($esSuperAdmin) {
+                    // Para super_admin: permitir crear SU propia caja aunque exista otra abierta por otro usuario.
+                    // Mostramos una notificación informativa, pero NO redirigimos ni bloqueamos.
+                    if ($cajaHoy) {
+                        Notification::make()
+                            ->title('Atención: otra caja abierta')
+                            ->warning()
+                            ->body("Hay otra caja abierta hoy (usuario #{$cajaHoy->user_id}) desde las {$cajaHoy->fecha_apertura->format('H:i')}. Como super_admin puede crear su propia caja si lo desea.")
+                            ->persistent()
+                            ->send();
+                    }
+                } else {
+                    // No es super_admin: comportamiento previene crear otra caja
+                    if ($cajaHoy) {
+                        Notification::make()
+                            ->title('Ya existe una caja abierta hoy')
+                            ->warning()
+                            ->body("Hay una caja abierta desde las {$cajaHoy->fecha_apertura->format('H:i')}. No puede crear otra caja el mismo día.")
+                            ->persistent()
+                            ->send();
+                    }
+                }
             }
         }
     }
@@ -65,16 +92,40 @@ class CreateCaja extends CreateRecord
             $this->halt();
         }
 
-        // Verificar caja del día actual
+        // Verificar caja del día actual: permitir que super_admin cree su propia caja
         if (CajaService::tieneCajaAbiertaHoy()) {
-            Notification::make()
-                ->title('No se puede crear la caja')
-                ->danger()
-                ->body('Ya existe una caja abierta hoy. Solo se puede tener una caja por día.')
-                ->persistent()
-                ->send();
+            $esSuperAdmin = \Illuminate\Support\Facades\Auth::check() && optional(\Illuminate\Support\Facades\Auth::user())->hasRole('super_admin');
 
-            $this->halt();
+            // Si el usuario ya tiene una caja abierta hoy, impedir creación
+            $cajaPropia = Caja::where('estado', 'abierta')
+                ->whereDate('fecha_apertura', today())
+                ->where('user_id', \Illuminate\Support\Facades\Auth::id())
+                ->first();
+
+            if ($cajaPropia) {
+                Notification::make()
+                    ->title(' ERROR: Ya tiene una caja abierta')
+                    ->danger()
+                    ->body('Usted ya tiene una caja abierta hoy. No puede crear otra.')
+                    ->persistent()
+                    ->send();
+
+                $this->halt();
+            }
+
+            // Si NO es super_admin y NO tiene caja propia, bloquear la creación
+            if (! $esSuperAdmin) {
+                Notification::make()
+                    ->title('No se puede crear la caja')
+                    ->danger()
+                    ->body('Ya existe una caja abierta hoy. Solo se puede tener una caja por día.')
+                    ->persistent()
+                    ->send();
+
+                $this->halt();
+            }
+
+            // Si es super_admin y NO tiene caja propia -> permitimos crear (solo aviso mostrado en beforeFill)
         }
     }
 
