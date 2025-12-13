@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y \
     libicu-dev libzip-dev libpng-dev libjpeg-dev libfreetype6-dev \
     libxml2-dev \
     && docker-php-ext-configure intl \
-    && docker-php-ext-install intl zip pdo pdo_mysql soap
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install intl zip pdo pdo_mysql soap gd
 
 # -----------------------------
 # 2. Instalar Node.js 20 LTS (requerido por Vite 7)
