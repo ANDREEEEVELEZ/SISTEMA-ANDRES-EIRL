@@ -1179,46 +1179,32 @@ class VentaForm
                     ,
                     //->helperText('Las ventas se registran automáticamente como "Emitida"'),
 
-                // --- Monto Pagado y Vuelto (UI only) ---
+                // --- Monto Pagado y Vuelto ---
                 TextInput::make('monto_pagado')
                     ->label('Monto Pagado')
                     ->numeric()
                     ->prefix('S/')
                     ->step(0.01)
-                    ->reactive()
-                    ->dehydrated(false) // no guardamos directamente en la tabla ventas (solo interfaz)
-                    ->disabled(fn (callable $get) => self::shouldDisableFields() || !$get('caja_id'))
-                    ->visible(fn (callable $get) => empty($get('id')))
+                    ->live(debounce: 300)
+                    ->dehydrated()
+                    ->disabled(fn (callable $get) => !empty($get('id'))) // Deshabilitado al editar
                     ->helperText('Ingrese el monto pagado por el cliente')
-                    ->columnSpan(1),
-
-                // Mostrar "Vuelto" como Placeholder reactivo porque la versión de Filament
-                // no soporta `getStateUsing` en `TextInput` (evita BadMethodCallException).
-                \Filament\Forms\Components\Placeholder::make('vuelto')
-                    ->label('Vuelto')
-                    ->visible(fn (callable $get) => empty($get('id')))
-                    ->content(function (callable $get) {
-                        $montoPagado = (float) ($get('monto_pagado') ?? 0);
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        // Calcular vuelto automáticamente
+                        $montoPagado = (float) ($state ?? 0);
                         $total = (float) ($get('total_venta') ?? 0);
                         $vuelto = round($montoPagado - $total, 2);
-
-                        // Formatear el valor a mostrar
-                        $display = ($vuelto >= 0)
-                            ? 'S/ ' . number_format($vuelto, 2, '.', ',')
-                            : 'Cliente debe S/ ' . number_format(abs($vuelto), 2, '.', ',');
-
-                        // Estilos para que el input luzca como un TextInput deshabilitado de Filament
-                        $inputStyle = 'width:100%; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px; background:#f9fafb; font-weight:600;';
-                        $helperHtml = '';
-                        if ($vuelto < 0) {
-                            $helperHtml = '<div style="color:#b91c1c; font-size:0.85rem; margin-top:4px;">Cliente debe S/ ' . number_format(abs($vuelto), 2, '.', ',') . '</div>';
-                        }
-
-                        $html = '<input type="text" disabled value="' . e($display) . '" style="' . $inputStyle . '">';
-                        $html .= $helperHtml;
-
-                        return new \Illuminate\Support\HtmlString($html);
+                        $set('vuelto', $vuelto);
                     })
+                    ->columnSpan(1),
+
+                TextInput::make('vuelto')
+                    ->label('Vuelto')
+                    ->numeric()
+                    ->prefix('S/')
+                    ->step(0.01)
+                    ->disabled()
+                    ->dehydrated()
                     ->columnSpan(1),
             ]);
     }

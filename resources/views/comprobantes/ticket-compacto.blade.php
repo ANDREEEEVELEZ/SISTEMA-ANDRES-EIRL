@@ -349,6 +349,13 @@
                     <span class="value">Cliente General</span>
                 </div>
             @endif
+
+            @if(isset($comprobante) && in_array($comprobante->tipo, ['boleta', 'factura']))
+            <div class="info-row">
+                <span class="bold">Forma de pago:</span>
+                <span class="value">Contado</span>
+            </div>
+            @endif
         </div>
 
         <div class="separator"></div>
@@ -381,50 +388,64 @@
 
         <!-- Totales (compacto) -->
         <div class="totales">
-            @if($venta->descuento_total > 0)
-            <div class="total-row">
-                <span>Descuento:</span>
-                <span>-S/ {{ number_format($venta->descuento_total, 2) }}</span>
-            </div>
-            @endif
-            <div class="total-row total-final">
-                <span class="bold">TOTAL A PAGAR:</span>
-                <span class="bold">S/ {{ number_format($venta->total_venta, 2) }}</span>
-            </div>
-        </div>
-
-        <!-- Método de pago -->
-        <div class="pago">
             @if(isset($comprobante) && in_array($comprobante->tipo, ['boleta', 'factura']))
-                <p>
-                    <span class="bold">Forma de pago: </span>Contado
-                </p>
-            @endif
-            <p>
-                <span class="bold">Método de Pago: </span>
-                @switch($venta->metodo_pago)
-                    @case('efectivo')
-                        EFECTIVO
-                        @break
-                    @case('tarjeta')
-                        TARJETA
-                        @break
-                    @case('yape')
-                        YAPE
-                        @break
-                    @case('plin')
-                        PLIN
-                        @break
-                    @case('transferencia')
-                        TRANSFERENCIA
-                        @break
-                    @default
-                        {{ strtoupper($venta->metodo_pago) }}
-                @endswitch
-                @if($venta->cod_operacion)
-                    &nbsp;&nbsp;|&nbsp;&nbsp;<span class="bold">Op:</span> {{ $venta->cod_operacion }}
+                {{-- Desglose completo para Factura y Boleta --}}
+                <div class="total-row">
+                    <span>OP. EXONERADA</span>
+                    <span>S/ 0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>OP. INAFECTA</span>
+                    <span>S/ 0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>OP. GRAVADA</span>
+                    <span>S/ {{ number_format($venta->subtotal_venta, 2) }}</span>
+                </div>
+                <div class="total-row">
+                    <span>I.G.V. 18%</span>
+                    <span>S/ {{ number_format($venta->igv, 2) }}</span>
+                </div>
+                <div class="separator"></div>
+                <div class="total-row total-final">
+                    <span class="bold">TOTAL A PAGAR</span>
+                    <span class="bold">S/ {{ number_format($venta->total_venta, 2) }}</span>
+                </div>
+                <div class="separator"></div>
+                @if($venta->monto_pagado)
+                <div class="total-row">
+                    <span>MONTO PAGADO:</span>
+                    <span>S/ {{ number_format($venta->monto_pagado, 2) }}</span>
+                </div>
+                <div class="total-row">
+                    <span>VUELTO:</span>
+                    <span>S/ {{ number_format($venta->vuelto ?? 0, 2) }}</span>
+                </div>
                 @endif
-            </p>
+            @else
+                {{-- Formato simple para Ticket de venta --}}
+                @if($venta->descuento_total > 0)
+                <div class="total-row">
+                    <span>Descuento:</span>
+                    <span>-S/ {{ number_format($venta->descuento_total, 2) }}</span>
+                </div>
+                @endif
+                <div class="total-row total-final">
+                    <span class="bold">TOTAL A PAGAR:</span>
+                    <span class="bold">S/ {{ number_format($venta->total_venta, 2) }}</span>
+                </div>
+                <div class="separator"></div>
+                @if($venta->monto_pagado)
+                <div class="total-row">
+                    <span>MONTO PAGADO:</span>
+                    <span>S/ {{ number_format($venta->monto_pagado, 2) }}</span>
+                </div>
+                <div class="total-row">
+                    <span>VUELTO:</span>
+                    <span>S/ {{ number_format($venta->vuelto ?? 0, 2) }}</span>
+                </div>
+                @endif
+            @endif
         </div>
 
         <!-- Footer -->

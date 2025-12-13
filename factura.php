@@ -39,7 +39,7 @@ $invoice = (new Invoice())
     ->setUblVersion('2.1')
     ->setTipoOperacion('0101') // Venta - Catalog. 51
     ->setTipoDoc('01') // Factura - Catalog. 01
-    ->setSerie('F001')
+    ->setSerie('F003')
     ->setCorrelativo('1')
     ->setFechaEmision(new DateTime('2020-08-24 13:05:00-05:00')) // Zona horaria: Lima
     ->setFormaPago(new FormaPagoContado()) // FormaPago: Contado

@@ -50,14 +50,14 @@ class InventarioResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         $user = Auth::user();
-        
+
         // Si el usuario es super_admin, ve todos los registros
         if ($user && $user->hasRole('super_admin')) {
             return $query;
         }
-        
+
         // Si no es super_admin, solo ve sus propios movimientos
         return $query->where('user_id', Auth::id());
     }

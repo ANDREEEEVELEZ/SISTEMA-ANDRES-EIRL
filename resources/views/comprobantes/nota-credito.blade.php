@@ -433,15 +433,24 @@
         <!-- Totales -->
         <div class="totales">
             <div class="total-row">
-                <span>SUBTOTAL:</span>
+                <span>OP. EXONERADA</span>
+                <span>S/ 0.00</span>
+            </div>
+            <div class="total-row">
+                <span>OP. INAFECTA</span>
+                <span>S/ 0.00</span>
+            </div>
+            <div class="total-row">
+                <span>OP. GRAVADA</span>
                 <span>S/ {{ number_format($nota->sub_total, 2) }}</span>
             </div>
             <div class="total-row">
-                <span>IGV (18%):</span>
+                <span>I.G.V. 18%</span>
                 <span>S/ {{ number_format($nota->igv, 2) }}</span>
             </div>
+            <div class="separator"></div>
             <div class="total-row total-final">
-                <span>TOTAL {{ $nota->tipo === 'nota de credito' ? 'A DEVOLVER' : 'A COBRAR' }}:</span>
+                <span>TOTAL {{ $nota->tipo === 'nota de credito' ? 'A DEVOLVER' : 'A COBRAR' }}</span>
                 <span>S/ {{ number_format($nota->total, 2) }}</span>
             </div>
         </div>

@@ -37,11 +37,11 @@ $company = (new Company())
 $note = (new Note())
     ->setUblVersion('2.1')
     ->setTipoDoc('07') // 07 = Nota de Crédito, 08 = Nota de Débito
-    ->setSerie('FC01')
+    ->setSerie('FC03')
     ->setCorrelativo('1')
     ->setFechaEmision(new DateTime())
     ->setTipDocAfectado('01') // Factura afectada
-    ->setNumDocfectado('F001-1') // Factura a la que se refiere (usa API Greenter: numDocfectado)
+    ->setNumDocfectado('F003-1') // Factura a la que se refiere (usa API Greenter: numDocfectado)
     ->setCodMotivo('01') // Anulación de la operación
     ->setDesMotivo('ERROR EN PRECIO')
     ->setTipoMoneda('PEN')

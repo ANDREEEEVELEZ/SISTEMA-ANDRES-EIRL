@@ -119,9 +119,9 @@ class ListVentas extends ListRecords
                             } else {
                                 // Fallbacks comunes
                                 if ($state === 'boleta') {
-                                    $set('serie', 'B001');
+                                    $set('serie', 'B003');
                                 } elseif ($state === 'factura') {
-                                    $set('serie', 'F001');
+                                    $set('serie', 'F003');
                                 } elseif ($state === 'ticket') {
                                     // Si no hay serie configurada para ticket, dejar T001 por defecto
                                     $set('serie', 'T001');
@@ -634,8 +634,8 @@ class ListVentas extends ListRecords
         } else {
             // Valor por defecto según el tipo
             $serieDefault = $tipoComprobante === 'boleta'
-                ? ($tipoNota === 'credito' ? 'BC01' : 'BD01')
-                : ($tipoNota === 'credito' ? 'FC01' : 'FD01');
+                ? ($tipoNota === 'credito' ? 'BC03' : 'BD03')
+                : ($tipoNota === 'credito' ? 'FC03' : 'FD03');
 
             $set('serie_nota', $serieDefault);
             $set('numero_nota', 1);
@@ -651,7 +651,7 @@ class ListVentas extends ListRecords
             $set('serie', $serieComprobante->serie);
         } else {
             // Valor por defecto
-            $set('serie', $tipoComprobante === 'boleta' ? 'B001' : 'F001');
+            $set('serie', $tipoComprobante === 'boleta' ? 'B003' : 'F003');
         }
 
         Log::info('Series cargadas automáticamente', [

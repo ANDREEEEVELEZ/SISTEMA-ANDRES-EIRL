@@ -39,7 +39,7 @@ $boleta = (new Invoice())
     ->setUblVersion('2.1')
     ->setTipoOperacion('0101')
     ->setTipoDoc('03') // Boleta - Catalog. 01
-    ->setSerie('B001')
+    ->setSerie('B003')
     ->setCorrelativo('1')
     ->setFechaEmision(new DateTime())
     ->setFormaPago(new FormaPagoContado())

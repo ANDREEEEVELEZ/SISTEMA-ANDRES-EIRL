@@ -127,7 +127,7 @@ class EditVenta extends EditRecord
                     ->latest('id')
                     ->first();
 
-                $serieNotaDefault = $tipoComprobante === 'boleta' ? 'BC01' : 'FC01';
+                $serieNotaDefault = $tipoComprobante === 'boleta' ? 'BC03' : 'FC03';
                 $numeroNotaDefault = $serieNota ? ($serieNota->ultimo_numero + 1) : 1;
 
                 return [

@@ -24,14 +24,14 @@ $company->setRuc('20123456789')
 // Detalle 1: Factura a dar de baja
 $detail1 = new VoidedDetail();
 $detail1->setTipoDoc('01') // Factura
-    ->setSerie('F001')
+    ->setSerie('F003')
     ->setCorrelativo('1')
     ->setDesMotivoBaja('ERROR EN CÁLCULOS');
 
 // Detalle 2: Nota de Crédito de Factura a dar de baja
 $detail2 = new VoidedDetail();
 $detail2->setTipoDoc('07') // Nota de Crédito
-    ->setSerie('FC01')
+    ->setSerie('FC03')
     ->setCorrelativo('1')
     ->setDesMotivoBaja('ERROR DE RUC');
 

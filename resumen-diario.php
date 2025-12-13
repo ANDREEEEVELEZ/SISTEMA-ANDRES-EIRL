@@ -25,10 +25,10 @@ $company->setRuc('20123456789')
 // Detalle 1: Nota de Crédito de Boleta
 $detail = new SummaryDetail();
 $detail->setTipoDoc('07') // Nota de Credito
-    ->setSerieNro('BC01-1')
+    ->setSerieNro('BC03-1')
     ->setDocReferencia((new Document()) // Documento relacionado (Boleta)
         ->setTipoDoc('03')
-        ->setNroDoc('B001-1'))
+        ->setNroDoc('B003-1'))
     ->setEstado('1') // Emisión
     ->setClienteTipo('1') // Tipo documento identidad: DNI
     ->setClienteNro('12345678') // Nro de documento identidad
@@ -39,7 +39,7 @@ $detail->setTipoDoc('07') // Nota de Credito
 // Detalle 2: Boleta emitida
 $detail2 = new SummaryDetail();
 $detail2->setTipoDoc('03') // Boleta
-    ->setSerieNro('B001-2')
+    ->setSerieNro('B003-2')
     ->setEstado('1') // Emisión
     ->setClienteTipo('1')
     ->setClienteNro('87654321')
@@ -50,7 +50,7 @@ $detail2->setTipoDoc('03') // Boleta
 // Detalle 3: Boleta anulada
 $detail3 = new SummaryDetail();
 $detail3->setTipoDoc('03') // Boleta
-    ->setSerieNro('B001-3')
+    ->setSerieNro('B003-3')
     ->setEstado('3') // Anulación
     ->setClienteTipo('1')
     ->setClienteNro('11223344')

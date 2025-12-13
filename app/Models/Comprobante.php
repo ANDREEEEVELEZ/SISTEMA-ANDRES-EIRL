@@ -182,7 +182,7 @@ class Comprobante extends Model
     /**
      * Genera el nombre estándar del comprobante según SUNAT.
      * Formato: {RUC}-{Tipo}-{Serie}-{Correlativo}
-     * Ejemplo: 20123456789-01-F001-123
+     * Ejemplo: 20123456789-01-F003-123
      */
     public function getNombreComprobanteAttribute(): string
     {

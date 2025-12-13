@@ -21,6 +21,8 @@ class Venta extends Model
         'igv',
         'descuento_total',
         'total_venta',
+        'monto_pagado',
+        'vuelto',
         'fecha_venta',
         'hora_venta',
         'estado_venta',
@@ -34,6 +36,8 @@ class Venta extends Model
         'igv' => 'decimal:2',
         'descuento_total' => 'decimal:2',
         'total_venta' => 'decimal:2',
+        'monto_pagado' => 'decimal:2',
+        'vuelto' => 'decimal:2',
         'fecha_venta' => 'date',
         'hora_venta' => 'datetime:H:i:s',
     ];
