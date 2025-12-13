@@ -451,6 +451,14 @@
         <!-- Footer -->
         <div class="footer">
             <p class="bold">¡Gracias por su compra!</p>
+
+
+            @if(isset($qrText) && $qrText)
+            <div class="center" style="margin: 8px 0;">
+                {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(70)->generate($qrText) !!}
+            </div>
+            @endif
+
             <p style="font-size: 9px; margin-top: 3px;">Comprobante interno no válido para fines tributarios</p>
         </div>
     </div>

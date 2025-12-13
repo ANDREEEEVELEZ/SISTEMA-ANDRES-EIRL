@@ -270,10 +270,10 @@
             <h2>{{ $empresa['nombre'] }}</h2>
             <p>RUC: {{ $empresa['ruc'] }}</p>
             <p>{{ $empresa['direccion'] }}</p>
-            <p>Tel: {{ $empresa['telefono'] }}</p>
+           <!-- <p>Tel: {{ $empresa['telefono'] }}</p>
             @if(isset($empresa['email']))
             <p>{{ $empresa['email'] }}</p>
-            @endif
+            @endif-->
         </div>
 
         <!-- Tipo de comprobante -->
@@ -461,14 +461,16 @@
             @if(isset($empresa['web']))
             <p>{{ $empresa['web'] }}</p>
             @endif
-            <p style="font-size: 9px; margin-top: 10px;">
-                Representación impresa de comprobante electrónico
-            </p>
-            @if($nota->hash_sunat)
-            <p style="font-size: 8px; word-break: break-all;">
-                Hash: {{ substr($nota->hash_sunat, 0, 30) }}...
-            </p>
+
+            @if(isset($qrText) && $qrText)
+            <div class="center" style="margin: 10px 0;">
+                {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(80)->generate($qrText) !!}
+            </div>
             @endif
+
+            <p style="font-size: 9px; margin-top: 10px;">
+                Representación impresa de comprobante electrónico. Consulte su documento con su clave sol
+            </p>
         </div>
     </div>
 

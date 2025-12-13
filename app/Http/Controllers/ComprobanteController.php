@@ -35,14 +35,32 @@ class ComprobanteController extends Controller
         // Datos de la empresa desde configuración
         $empresa = config('empresa');
 
+        // Generar texto del QR según formato SUNAT
+        $qrText = null;
+        if ($comprobante && in_array($comprobante->tipo, ['factura', 'boleta'])) {
+            // Formato: RUC_DNI_CLIENTE|TIPO_DOC|SERIE-CORRELATIVO|SUBTOTAL|IGV|TOTAL|FECHA| | |
+            $tipoDoc = $comprobante->tipo === 'factura' ? '01' : '03'; // 01=Factura, 03=Boleta
+            $serie = $comprobante->serie;
+            $correlativo = $comprobante->correlativo; // Sin padding
+            $subtotal = number_format($venta->subtotal_venta, 2, '.', '');
+            $igv = number_format($venta->igv, 2, '.', '');
+            $total = number_format($venta->total_venta, 2, '.', '');
+            $fecha = $venta->fecha_venta->format('Y-m-d');
+
+            // RUC o DNI del cliente
+            $numDocCliente = $venta->cliente ? $venta->cliente->num_doc : '00000000';
+
+            $qrText = "{$numDocCliente}|{$tipoDoc}|{$serie}-{$correlativo}|{$subtotal}|{$igv}|{$total}|{$fecha}| | |";
+        }
+
         // Si tiene comprobante electrónico (Factura o Boleta), usar formato completo
         // Si es solo ticket interno, usar formato compacto
         if ($comprobante && in_array($comprobante->tipo, ['factura', 'boleta', 'nota_credito'])) {
             // Formato completo para documentos electrónicos (Facturas y Boletas)
-            return view('comprobantes.ticket-termico', compact('venta', 'comprobante', 'empresa'));
+            return view('comprobantes.ticket-termico', compact('venta', 'comprobante', 'empresa', 'qrText'));
         } else {
             // Formato compacto para tickets internos
-            return view('comprobantes.ticket-compacto', compact('venta', 'comprobante', 'empresa'));
+            return view('comprobantes.ticket-compacto', compact('venta', 'comprobante', 'empresa', 'qrText'));
         }
     }
 
@@ -87,8 +105,27 @@ class ComprobanteController extends Controller
         // Datos de la empresa
         $empresa = config('empresa');
 
+        // Generar texto del QR para la nota de crédito según formato SUNAT
+        $qrText = null;
+        if ($nota) {
+            $venta = $nota->venta;
+            // Formato: RUC_DNI_CLIENTE|TIPO_DOC|SERIE-CORRELATIVO|SUBTOTAL|IGV|TOTAL|FECHA| | |
+            $tipoDoc = '07'; // 07=Nota de Crédito, 08=Nota de Débito
+            $serie = $nota->serie;
+            $correlativo = $nota->correlativo; // Sin padding
+            $subtotal = number_format($venta->subtotal_venta, 2, '.', '');
+            $igv = number_format($venta->igv, 2, '.', '');
+            $total = number_format($venta->total_venta, 2, '.', '');
+            $fecha = $nota->fecha_emision ? $nota->fecha_emision->format('Y-m-d') : $venta->fecha_venta->format('Y-m-d');
+
+            // RUC o DNI del cliente
+            $numDocCliente = $venta->cliente ? $venta->cliente->num_doc : '00000000';
+
+            $qrText = "{$numDocCliente}|{$tipoDoc}|{$serie}-{$correlativo}|{$subtotal}|{$igv}|{$total}|{$fecha}| | |";
+        }
+
         // Renderizar vista de nota de crédito/débito
-        return view('comprobantes.nota-credito', compact('nota', 'comprobanteOriginal', 'empresa'));
+        return view('comprobantes.nota-credito', compact('nota', 'comprobanteOriginal', 'empresa', 'qrText'));
     }
 }
 
