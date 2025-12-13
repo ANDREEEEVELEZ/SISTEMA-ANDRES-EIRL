@@ -588,8 +588,7 @@ class VentasTable
                     ->icon('heroicon-o-printer')
                     ->color('success')
                     ->url(fn ($record) => route('comprobante.imprimir', $record->id))
-                    ->extraAttributes(['style' => 'min-width:110px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; padding-left:2px; margin-right:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:4px 4px; line-height:1;'])
-                    ->openUrlInNewTab(true),
+                    ->extraAttributes(['style' => 'min-width:110px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; padding-left:2px; margin-right:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:4px 4px; line-height:1;']),
 
                 // BOTÓN 3: Imprimir Nota O Anular/Emitir Nota (uno u otro, siempre 2 botones totales)
                 // Opción A: Imprimir Nota (si existe nota emitida)
@@ -611,8 +610,7 @@ class VentasTable
                             ->first();
                         return route('nota.imprimir', $nota->id);
                     })
-                    ->extraAttributes(['style' => 'min-width:110px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; padding-left:2px; margin-right:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:4px 4px; line-height:1;'])
-                    ->openUrlInNewTab(true),
+                    ->extraAttributes(['style' => 'min-width:110px; display:inline-flex; align-items:center; justify-content:flex-start; gap:2px; padding-left:2px; margin-right:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:4px 4px; line-height:1;']),
 
                 // Opción B: Anular/Emitir Nota (si NO hay nota emitida Y está emitido)
                 Action::make('anular')

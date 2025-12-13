@@ -243,7 +243,7 @@
             top: 20px;
             left: 20px;
             padding: 10px 20px;
-            background: #f44336;
+            background: #2196F3;
             color: white;
             border: none;
             border-radius: 5px;
@@ -255,14 +255,35 @@
         }
 
         .close-button:hover {
-            background: #da190b;
+            background: #0b7dda;
+        }
+
+        .list-button {
+            position: fixed;
+            top: 20px;
+            left: 200px;
+            padding: 10px 20px;
+            background: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .list-button:hover {
+            background: #e68900;
         }
     </style>
 </head>
 <body>
     <!-- Botones de acción (no se imprimen) -->
     <button class="print-button no-print" onclick="window.print()">🖨️ Imprimir</button>
-    <button class="close-button no-print" onclick="window.close()">✖️ Cerrar</button>
+    <button class="close-button no-print" onclick="window.close()">Registrar nueva venta</button>
+    <button class="list-button no-print" onclick="window.location.href='{{ route('filament.admin.resources.ventas.index') }}'">📋 Listado de ventas</button>
 
     <div class="ticket">
         <!-- Encabezado de la empresa -->
