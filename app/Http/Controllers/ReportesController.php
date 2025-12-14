@@ -172,6 +172,10 @@ class ReportesController extends Controller
         $empleadoId = $request->query('empleado_id');
         $fechaInicio = Carbon::parse($request->query('fecha_inicio'))->startOfDay();
         $fechaFin = Carbon::parse($request->query('fecha_fin'))->endOfDay();
+        
+        // Para cálculo de días, usar solo la fecha sin horas
+        $fechaInicioCalculo = Carbon::parse($request->query('fecha_inicio'))->startOfDay();
+        $fechaFinCalculo = Carbon::parse($request->query('fecha_fin'))->startOfDay();
 
         $incluirResumen = $request->boolean('incluir_resumen');
         $incluirDetalle = $request->boolean('incluir_detalle');
@@ -193,7 +197,7 @@ class ReportesController extends Controller
                 ->get();
 
             // Calcular estadísticas
-            $totalDias = $fechaInicio->diffInDays($fechaFin) + 1;
+            $totalDias = (int) ($fechaInicioCalculo->diffInDays($fechaFinCalculo) + 1);
             $diasTrabajados = $asistencias->where('estado', 'presente')->count();
             $ausencias = $totalDias - $diasTrabajados;
             $porcentajeAsistencia = $totalDias > 0 ? ($diasTrabajados / $totalDias) * 100 : 0;
@@ -270,7 +274,7 @@ class ReportesController extends Controller
                 ->get();
 
             $reporteGeneral = [];
-            $totalDias = $fechaInicio->diffInDays($fechaFin) + 1;
+            $totalDias = (int) ($fechaInicioCalculo->diffInDays($fechaFinCalculo) + 1);
 
             foreach ($empleados as $empleado) {
                 $asistencias = Asistencia::where('empleado_id', $empleado->id)
