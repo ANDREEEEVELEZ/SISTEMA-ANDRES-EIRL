@@ -37,12 +37,11 @@
                 
                 {{-- Botones y Selector en la derecha --}}
                 <div style="display: flex; align-items: center; gap: 1rem;">
-                    {{-- Botón Generar Reporte (solo para super_admin) --}}
+                    {{-- Botones de acciones (solo para super_admin) --}}
                     @if(auth()->user()->hasRole('super_admin'))
-                        <x-filament-actions::group 
-                            :actions="$this->getCachedHeaderActions()" 
-                            :label="null"
-                        />
+                        @foreach($this->getCachedHeaderActions() as $action)
+                            {{ $action }}
+                        @endforeach
                     @endif
                     
                     {{-- Selector de Empleado (solo para super_admin) --}}
