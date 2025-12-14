@@ -10,6 +10,7 @@ use Filament\Tables\Table;
 use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\DatePicker;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class CajasTable
 {
@@ -19,9 +20,20 @@ class CajasTable
             ->heading('Registros de Cajas')
             ->defaultSort('fecha_apertura', 'desc') // Mostrar registros más recientes primero
             ->columns([
+                TextColumn::make('id')
+                    ->label('Nº Caja')
+                    ->sortable()
+                    ->visible(fn () => Auth::user()->hasRole('super_admin')),
+                TextColumn::make('user.name')
+                    ->label('Abierta por')
+                    ->sortable()
+                    ->searchable()
+                    ->visible(fn () => Auth::user()->hasRole('super_admin')),
                 TextColumn::make('fecha_apertura')
-                    ->dateTime()
-                    ->sortable(),
+                    ->label('Fecha apertura')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->visible(fn () => Auth::user()->hasRole('super_admin')),
                 TextColumn::make('fecha_cierre')
                     ->dateTime()
                     ->sortable(),

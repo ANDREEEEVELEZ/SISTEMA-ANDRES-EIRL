@@ -83,7 +83,25 @@ class ListCajas extends ListRecords
                             if (! $c) return '';
                             return 'Caja #' . $c->numero_secuencial . ' — ' . ($c->user?->name ?? 'Usuario') . ' — ' . ($c->fecha_apertura?->format('d/m/Y H:i') ?? '');
                         })
-                        ->visible(fn () => Auth::check() && Auth::user()->hasRole('super_admin'))
+                        ->visible(function () {
+                            if (! Auth::check() || ! Auth::user()->hasRole('super_admin')) return false;
+                            // Verificar si hay alguna caja abierta
+                            $selected = session('admin_selected_caja_id');
+                            $c = null;
+                            if ($selected) {
+                                $c = Caja::where('id', $selected)->where('estado', 'abierta')->first();
+                            }
+                            if (! $c) {
+                                $c = Caja::where('estado', 'abierta')
+                                    ->where('user_id', Auth::id())
+                                    ->orderByDesc('fecha_apertura')
+                                    ->first();
+                            }
+                            if (! $c) {
+                                $c = Caja::where('estado', 'abierta')->orderByDesc('fecha_apertura')->first();
+                            }
+                            return $c !== null;
+                        })
                         ->disabled(true)
                         ->color('secondary'),
             Action::make('registrarMovimiento')
