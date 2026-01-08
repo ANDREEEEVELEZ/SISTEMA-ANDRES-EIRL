@@ -5,6 +5,6 @@ use Greenter\See;
 $see = new See();
 $see->setCertificate(file_get_contents(__DIR__.'/certificate.pem'));
 $see->setService(SunatEndpoints::FE_BETA);
-$see->setClaveSOL('20000000001', 'MODDATOS', 'moddatos');
+$see->setClaveSOL('10036736475', 'MODDATOS', 'moddatos');
 
 return $see;

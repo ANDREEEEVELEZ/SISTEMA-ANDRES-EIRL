@@ -11,16 +11,16 @@ require __DIR__.'/vendor/autoload.php';
 $see = require __DIR__.'/config.php';
 
 $company = new Company();
-$company->setRuc('20123456789')
-    ->setRazonSocial('GREEN SAC')
-    ->setNombreComercial('GREEN')
+$company->setRuc('10036736475')
+    ->setRazonSocial('SOBRINO REQUENA DE SIANCAS LEONOR')
+    ->setNombreComercial('SNACKS MR CHIPS')
     ->setAddress((new Address())
-        ->setUbigueo('150101')
-        ->setDepartamento('LIMA')
-        ->setProvincia('LIMA')
-        ->setDistrito('LIMA')
-        ->setUrbanizacion('-')
-        ->setDireccion('Av. Villa Nueva 221'));
+        ->setUbigueo('200601')
+        ->setDepartamento('PIURA')
+        ->setProvincia('SULLANA')
+        ->setDistrito('SULLANA')
+        ->setUrbanizacion('A.H. SANCHEZ CERRO')
+        ->setDireccion('AV. JOSE DE LAMA NRO. 1192'));
 
 // Detalle 1: Nota de Crédito de Boleta
 $detail = new SummaryDetail();

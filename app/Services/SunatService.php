@@ -58,18 +58,29 @@ class SunatService
 
         $this->see->setCertificate($certContent);
 
-        // Configurar endpoint (BETA o PRODUCCIÓN)
+        // Configurar endpoint (DEMO NUBEFACT OSE o PRODUCCIÓN)
         $mode = config('sunat.mode', 'BETA');
-        $endpoint = $mode === 'PROD'
-            ? SunatEndpoints::FE_PRODUCCION
-            : SunatEndpoints::FE_BETA;
-        $this->see->setService($endpoint);
-
-        // Configurar credenciales Clave SOL
-        $ruc = config('sunat.ruc', '20000000001');
-        $user = config('sunat.user', 'MODDATOS');
-        $pass = config('sunat.pass', 'moddatos');
-        $this->see->setClaveSOL($ruc, $user, $pass);
+        
+        if ($mode === 'DEMO') {
+            // 🟢 CONFIGURACIÓN NUBEFACT OSE DEMO
+            // Usuario formato: RUC+USUARIO (ej: 10036736475MODDATOS)
+            $this->see->setCredentials(config('sunat.user'), config('sunat.pass'));
+            
+            // URL del servicio SIN ?wsdl
+            $this->see->setService('https://demo-ose.nubefact.com/ol-ti-itcpe/billService');
+        } else {
+            // Configurar endpoint SUNAT directo (BETA o PRODUCCIÓN)
+            $endpoint = $mode === 'PROD'
+                ? SunatEndpoints::FE_PRODUCCION
+                : SunatEndpoints::FE_BETA;
+            $this->see->setService($endpoint);
+            
+            // Configurar credenciales Clave SOL para SUNAT directo
+            $ruc = config('sunat.ruc', '10036736475');
+            $user = config('sunat.user', 'MODDATOS');
+            $pass = config('sunat.pass', 'moddatos');
+            $this->see->setClaveSOL($ruc, $user, $pass);
+        }
     }
 
     /**
@@ -78,18 +89,18 @@ class SunatService
     protected function initializeCompany(): void
     {
         $address = (new Address())
-            ->setUbigueo(config('empresa.ubigeo', '150101'))
-            ->setDepartamento(config('empresa.departamento', 'LIMA'))
-            ->setProvincia(config('empresa.provincia', 'LIMA'))
-            ->setDistrito(config('empresa.distrito', 'LIMA'))
+            ->setUbigueo(config('empresa.ubigeo', '200601'))
+            ->setDepartamento(config('empresa.departamento', 'PIURA'))
+            ->setProvincia(config('empresa.provincia', 'SULLANA'))
+            ->setDistrito(config('empresa.distrito', 'SULLANA'))
             ->setUrbanizacion(config('empresa.urbanizacion', '-'))
-            ->setDireccion(config('empresa.direccion', 'Av. Principal 123'))
+            ->setDireccion(config('empresa.direccion', 'AV. JOSE DE LAMA NRO. 1192'))
             ->setCodLocal('0000'); // Código de establecimiento (0000 = principal)
 
         $this->company = (new Company())
-            ->setRuc(config('empresa.ruc', '20123456789'))
-            ->setRazonSocial(config('empresa.razon_social', 'EMPRESA SAC'))
-            ->setNombreComercial(config('empresa.nombre_comercial', 'EMPRESA'))
+            ->setRuc(config('empresa.ruc', '10036736475'))
+            ->setRazonSocial(config('empresa.razon_social', 'SOBRINO REQUENA DE SIANCAS LEONOR'))
+            ->setNombreComercial(config('empresa.nombre_comercial', 'SNACKS MR CHIPS'))
             ->setAddress($address);
     }
 
@@ -715,6 +726,9 @@ class SunatService
     public function enviarResumenDiario(\DateTime $fechaEmision): array
     {
         try {
+            // ═══════════════════════════════════════════════════════════════
+            // 1. OBTENER BOLETAS EMITIDAS DEL DÍA
+            // ═══════════════════════════════════════════════════════════════
             // Obtener boletas del día que NO tienen ticket_sunat (no enviadas en resumen)
             // y que NO estén anuladas (estado='anulado')
             // y que NO tengan Notas de Crédito relacionadas (anulación antes del envío)
@@ -735,29 +749,64 @@ class SunatService
                 })
                 ->get();
 
-            if ($boletas->isEmpty()) {
+            // ═══════════════════════════════════════════════════════════════
+            // 2. OBTENER NOTAS DE CRÉDITO DE BOLETAS DEL DÍA
+            // ═══════════════════════════════════════════════════════════════
+            // Notas de crédito que anulan boletas ya enviadas (con ticket_sunat)
+            $notasCredito = Comprobante::with(['venta.cliente', 'serieComprobante', 'comprobanteRelaciones.comprobanteRelacionado'])
+                ->whereHas('serieComprobante', function ($query) {
+                    $query->where('codigo_tipo_comprobante', '07'); // Notas de Crédito
+                })
+                ->whereDate('fecha_emision', $fechaEmision->format('Y-m-d'))
+                ->whereNull('ticket_sunat') // No enviadas en resumen
+                ->where('estado', 'emitido')
+                // Solo NC que anulan boletas (no facturas)
+                ->whereHas('comprobanteRelaciones', function ($query) {
+                    $query->whereHas('comprobanteRelacionado', function ($q) {
+                        $q->whereHas('serieComprobante', function ($sq) {
+                            $sq->where('codigo_tipo_comprobante', '03'); // Boletas
+                        })
+                        ->whereNotNull('ticket_sunat'); // Boleta ya enviada
+                    });
+                })
+                ->get();
+
+            // ═══════════════════════════════════════════════════════════════
+            // 3. VALIDAR QUE HAYA ALGO QUE ENVIAR
+            // ═══════════════════════════════════════════════════════════════
+            $totalItems = $boletas->count() + $notasCredito->count();
+
+            if ($totalItems === 0) {
                 return [
                     'success' => false,
                     'ticket' => null,
-                    'message' => 'No hay boletas pendientes para la fecha ' . $fechaEmision->format('Y-m-d'),
+                    'message' => 'No hay boletas ni notas de crédito pendientes para la fecha ' . $fechaEmision->format('Y-m-d'),
                     'xml_path' => null,
                 ];
             }
 
-            Log::info("📦 Preparando Resumen Diario con {$boletas->count()} boletas de {$fechaEmision->format('Y-m-d')}");
+            Log::info("📦 Preparando Resumen Diario de {$fechaEmision->format('Y-m-d')}", [
+                'boletas' => $boletas->count(),
+                'notas_credito' => $notasCredito->count(),
+                'total' => $totalItems,
+            ]);
 
-            // Crear objeto Summary de Greenter
+            // ═══════════════════════════════════════════════════════════════
+            // 4. CREAR OBJETO SUMMARY DE GREENTER
+            // ═══════════════════════════════════════════════════════════════
             $summary = new \Greenter\Model\Summary\Summary();
 
             // Obtener correlativo del resumen (basado en fecha)
             $correlativo = $this->obtenerCorrelativoResumen($fechaEmision);
 
-            $summary->setFecGeneracion($fechaEmision) // Fecha de emisión de las boletas
+            $summary->setFecGeneracion($fechaEmision) // Fecha de emisión de los documentos
                 ->setFecResumen(new \DateTime()) // Fecha de envío del resumen (hoy)
                 ->setCorrelativo(str_pad($correlativo, 3, '0', STR_PAD_LEFT))
                 ->setCompany($this->company);
 
-            // Agregar detalles de cada boleta
+            // ═══════════════════════════════════════════════════════════════
+            // 5. AGREGAR DETALLES: BOLETAS
+            // ═══════════════════════════════════════════════════════════════
             $details = [];
             foreach ($boletas as $boleta) {
                 $detail = new \Greenter\Model\Summary\SummaryDetail();
@@ -770,16 +819,51 @@ class SunatService
                     ->setEstado('1') // 1 = Adicionar, 3 = Anular
                     ->setClienteTipo($boleta->venta->cliente->tipo_documento ?? '1')
                     ->setClienteNro($boleta->venta->cliente->numero_documento ?? '00000000')
-                    ->setTotal((float) $boleta->importe_total)
-                    ->setMtoOperGravadas((float) $boleta->base_imponible)
+                    ->setTotal((float) $boleta->total)
+                    ->setMtoOperGravadas((float) $boleta->sub_total)
                     ->setMtoIGV((float) $boleta->igv);
+
+                $details[] = $detail;
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // 6. AGREGAR DETALLES: NOTAS DE CRÉDITO DE BOLETAS
+            // ═══════════════════════════════════════════════════════════════
+            foreach ($notasCredito as $nc) {
+                $detail = new \Greenter\Model\Summary\SummaryDetail();
+
+                // Obtener la boleta que anula
+                $relacion = $nc->comprobanteRelaciones->first();
+                $boletaAnulada = $relacion ? $relacion->comprobanteRelacionado : null;
+
+                if (!$boletaAnulada) {
+                    Log::warning("NC sin boleta relacionada", ['nc_id' => $nc->id]);
+                    continue;
+                }
+
+                $serieCorrelativoNC = $nc->serieComprobante->serie . '-' . $nc->correlativo;
+                $serieCorrelativoBoleta = $boletaAnulada->serieComprobante->serie . '-' . $boletaAnulada->correlativo;
+
+                $detail->setTipoDoc('07') // 07 = Nota de Crédito
+                    ->setSerieNro($serieCorrelativoNC)
+                    ->setDocReferencia((new \Greenter\Model\Sale\Document())
+                        ->setTipoDoc('03') // Boleta
+                        ->setNroDoc($serieCorrelativoBoleta))
+                    ->setEstado('1') // 1 = Emisión (la NC se emite, no se anula)
+                    ->setClienteTipo($nc->venta->cliente->tipo_documento ?? '1')
+                    ->setClienteNro($nc->venta->cliente->numero_documento ?? '00000000')
+                    ->setTotal((float) $nc->total)
+                    ->setMtoOperGravadas((float) $nc->sub_total)
+                    ->setMtoIGV((float) $nc->igv);
 
                 $details[] = $detail;
             }
 
             $summary->setDetails($details);
 
-            // Enviar a SUNAT
+            // ═══════════════════════════════════════════════════════════════
+            // 7. ENVIAR A SUNAT
+            // ═══════════════════════════════════════════════════════════════
             $result = $this->see->send($summary);
 
             // Guardar XML del resumen
@@ -793,7 +877,7 @@ class SunatService
                 $error = $result->getError();
                 $errorMessage = "Código: {$error->getCode()} - {$error->getMessage()}";
 
-                Log::error(" Error al enviar Resumen Diario: {$errorMessage}");
+                Log::error("❌ Error al enviar Resumen Diario: {$errorMessage}");
 
                 return [
                     'success' => false,
@@ -803,13 +887,27 @@ class SunatService
                 ];
             }
 
-            // SUNAT devuelve un TICKET (respuesta asíncrona)
+            // ═══════════════════════════════════════════════════════════════
+            // 8. SUNAT DEVUELVE UN TICKET (respuesta asíncrona)
+            // ═══════════════════════════════════════════════════════════════
             $ticket = $result->getTicket();
 
-            Log::info("Resumen Diario enviado. Ticket: {$ticket}");
+            Log::info("✅ Resumen Diario enviado", [
+                'ticket' => $ticket,
+                'boletas' => $boletas->count(),
+                'notas_credito' => $notasCredito->count(),
+            ]);
 
-            // Actualizar boletas con el ticket
+            // Actualizar BOLETAS con el ticket
             Comprobante::whereIn('id', $boletas->pluck('id'))
+                ->update([
+                    'ticket_sunat' => $ticket,
+                    'fecha_envio_sunat' => now(),
+                    'error_envio' => null,
+                ]);
+
+            // Actualizar NOTAS DE CRÉDITO con el ticket
+            Comprobante::whereIn('id', $notasCredito->pluck('id'))
                 ->update([
                     'ticket_sunat' => $ticket,
                     'fecha_envio_sunat' => now(),
@@ -819,7 +917,7 @@ class SunatService
             return [
                 'success' => true,
                 'ticket' => $ticket,
-                'message' => "Resumen enviado correctamente. Ticket: {$ticket}. Total boletas: {$boletas->count()}",
+                'message' => "Resumen enviado correctamente. Ticket: {$ticket}. Boletas: {$boletas->count()}, NC: {$notasCredito->count()}",
                 'xml_path' => $xmlPath,
             ];
 
@@ -934,5 +1032,197 @@ class SunatService
         }
 
         return 1;
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════
+     * CONSULTA DE ESTADO POR CDR (getStatusCdr)
+     * ═══════════════════════════════════════════════════════════════
+     */
+
+    /**
+     * Consulta el estado de un comprobante específico en SUNAT usando getStatusCdr.
+     * 
+     * Este método permite verificar si un comprobante ya fue procesado por SUNAT
+     * sin necesidad de tener el ticket. Útil para:
+     * - Verificar facturas enviadas
+     * - Consultar boletas después del resumen diario
+     * - Validar notas de crédito
+     * 
+     * @param string $ruc RUC del emisor
+     * @param string $tipoComprobante Código tipo: 01=Factura, 03=Boleta, 07=NC, 08=ND
+     * @param string $serie Serie del comprobante (ej: F001, B001, FC01)
+     * @param string|int $numero Número correlativo del comprobante
+     * @return array ['success' => bool, 'estado' => string, 'codigo' => string|null, 'mensaje' => string, 'cdr' => string|null]
+     */
+    public function consultarEstadoComprobante(string $ruc, string $tipoComprobante, string $serie, $numero): array
+    {
+        try {
+            Log::info("🔍 Consultando estado de comprobante", [
+                'ruc' => $ruc,
+                'tipo' => $tipoComprobante,
+                'serie' => $serie,
+                'numero' => $numero,
+            ]);
+
+            // Crear servicio de consulta CDR
+            $consultService = new \Greenter\Ws\Services\ConsultCdrService();
+            
+            // Configurar el mismo cliente SOAP que usa el See
+            $mode = config('sunat.mode', 'BETA');
+            
+            if ($mode === 'DEMO') {
+                // Configurar para Nubefact OSE DEMO
+                $ws = new \Greenter\Ws\Services\SoapClient(
+                    'https://demo-ose.nubefact.com/ol-ti-itcpe/billService?wsdl'
+                );
+                $ws->setCredentials(config('sunat.user'), config('sunat.pass'));
+                $ws->setService('https://demo-ose.nubefact.com/ol-ti-itcpe/billService');
+                $consultService->setClient($ws);
+            } else {
+                // Configurar para SUNAT directo (BETA o PROD)
+                $endpoint = $mode === 'PROD'
+                    ? SunatEndpoints::FE_PRODUCCION
+                    : SunatEndpoints::FE_BETA;
+                    
+                $ws = new \Greenter\Ws\Services\SoapClient($endpoint);
+                $rucConfig = config('sunat.ruc');
+                $user = config('sunat.user');
+                $pass = config('sunat.pass');
+                $ws->setCredentials($rucConfig . $user, $pass);
+                $ws->setService($endpoint);
+                $consultService->setClient($ws);
+            }
+
+            // Consultar estado
+            $statusResult = $consultService->getStatusCdr($ruc, $tipoComprobante, $serie, (int) $numero);
+
+            if (!$statusResult->isSuccess()) {
+                $error = $statusResult->getError();
+                
+                Log::warning("⚠️ Comprobante no encontrado o rechazado", [
+                    'codigo' => $error->getCode(),
+                    'mensaje' => $error->getMessage(),
+                ]);
+
+                return [
+                    'success' => false,
+                    'estado' => 'no_encontrado',
+                    'codigo' => $error->getCode(),
+                    'mensaje' => $error->getMessage(),
+                    'cdr' => null,
+                ];
+            }
+
+            // Obtener información del CDR
+            $codigo = $statusResult->getCode();
+            $mensaje = $statusResult->getMessage();
+
+            Log::info("✅ Estado obtenido", [
+                'codigo' => $codigo,
+                'mensaje' => $mensaje,
+            ]);
+
+            // Determinar estado
+            $estado = 'desconocido';
+            if ($codigo === '0') {
+                $estado = 'aceptado';
+            } elseif ($codigo >= '2000' && $codigo <= '3999') {
+                $estado = 'rechazado';
+            } elseif ($codigo >= '4000') {
+                $estado = 'observado';
+            }
+
+            // Obtener contenido del CDR (si está disponible)
+            $cdrContent = $statusResult->getCdrZip();
+
+            return [
+                'success' => true,
+                'estado' => $estado,
+                'codigo' => $codigo,
+                'mensaje' => $mensaje,
+                'cdr' => $cdrContent,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("❌ Excepción en consultarEstadoComprobante", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'estado' => 'error',
+                'codigo' => null,
+                'mensaje' => 'Error: ' . $e->getMessage(),
+                'cdr' => null,
+            ];
+        }
+    }
+
+    /**
+     * Consulta el estado de un comprobante desde la BD y actualiza su información.
+     * 
+     * @param Comprobante $comprobante
+     * @return array
+     */
+    public function consultarYActualizarComprobante(Comprobante $comprobante): array
+    {
+        try {
+            // Obtener datos del comprobante
+            $comprobante->load('serieComprobante');
+            
+            $ruc = config('empresa.ruc', '10036736475');
+            $tipoComprobante = $comprobante->serieComprobante->codigo_tipo_comprobante ?? '01';
+            $serie = $comprobante->serie;
+            $numero = $comprobante->correlativo;
+
+            // Consultar estado en SUNAT
+            $resultado = $this->consultarEstadoComprobante($ruc, $tipoComprobante, $serie, $numero);
+
+            if (!$resultado['success']) {
+                return $resultado;
+            }
+
+            // Actualizar comprobante en BD si fue aceptado
+            if ($resultado['estado'] === 'aceptado') {
+                $updateData = [
+                    'estado' => 'emitido',
+                    'codigo_sunat' => $resultado['codigo'],
+                    'error_envio' => null,
+                ];
+
+                // Guardar CDR si viene en la respuesta
+                if (!empty($resultado['cdr']) && empty($comprobante->ruta_cdr)) {
+                    $nombreBase = "{$ruc}-{$tipoComprobante}-{$serie}-{$numero}";
+                    $cdrPath = "sunat/cdr/R-{$nombreBase}.zip";
+                    Storage::disk('sunat')->put($cdrPath, $resultado['cdr']);
+                    $updateData['ruta_cdr'] = $cdrPath;
+                }
+
+                $comprobante->update($updateData);
+
+                Log::info("✅ Comprobante actualizado desde SUNAT", [
+                    'comprobante_id' => $comprobante->id,
+                    'serie' => $serie . '-' . $numero,
+                ]);
+            }
+
+            return $resultado;
+
+        } catch (\Exception $e) {
+            Log::error("❌ Error al consultar y actualizar comprobante", [
+                'comprobante_id' => $comprobante->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'estado' => 'error',
+                'codigo' => null,
+                'mensaje' => 'Error: ' . $e->getMessage(),
+                'cdr' => null,
+            ];
+        }
     }
 }

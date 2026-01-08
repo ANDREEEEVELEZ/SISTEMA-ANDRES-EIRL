@@ -312,13 +312,11 @@
     <div class="ticket">
         <!-- Encabezado empresa (compacto) -->
         <div class="empresa">
-            <h2>{{ $empresa['nombre'] }}</h2>
+            <h2>{{ $empresa['razon_social'] }}</h2>
             <p>RUC: {{ $empresa['ruc'] }}</p>
-            @if(isset($comprobante) && $comprobante->tipo === 'ticket')
-                <p>AV. RAMON CASTILLA NRO 123 CERCADO</p>
-            @else
-                <p>{{ $empresa['telefono'] }}</p>
-            @endif
+            <p>{{ $empresa['direccion'] }}</p>
+            <p>{{ $empresa['distrito'] }}, {{ $empresa['provincia'] }}, {{ $empresa['departamento'] }}</p>
+            <p>Local: {{ $empresa['nombre_comercial'] }}</p>
         </div>
 
         <!-- Título -->

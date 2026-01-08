@@ -288,13 +288,11 @@
     <div class="ticket">
         <!-- Encabezado de la empresa -->
         <div class="empresa">
-            <h2>{{ $empresa['nombre'] }}</h2>
+            <h2>{{ $empresa['razon_social'] }}</h2>
             <p>RUC: {{ $empresa['ruc'] }}</p>
             <p>{{ $empresa['direccion'] }}</p>
-           <!-- <p>Tel: {{ $empresa['telefono'] }}</p>
-            @if(isset($empresa['email']))
-            <p>{{ $empresa['email'] }}</p>
-            @endif-->
+            <p>{{ $empresa['distrito'] }}, {{ $empresa['provincia'] }}, {{ $empresa['departamento'] }}</p>
+            <p>Local: {{ $empresa['nombre_comercial'] }}</p>
         </div>
 
         <!-- Tipo de comprobante -->

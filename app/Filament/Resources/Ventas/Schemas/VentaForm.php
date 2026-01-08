@@ -1196,6 +1196,17 @@ class VentaForm
                         $vuelto = round($montoPagado - $total, 2);
                         $set('vuelto', $vuelto);
                     })
+                    ->rule(function (callable $get) {
+                        return function (string $attribute, $value, \Closure $fail) use ($get) {
+                            $montoPagado = (float) ($value ?? 0);
+                            $total = (float) ($get('total_venta') ?? 0);
+
+                            if ($montoPagado < $total) {
+                                $falta = round($total - $montoPagado, 2);
+                                $fail("El monto pagado no puede ser menor al total a pagar. Falta: S/ " . number_format($falta, 2));
+                            }
+                        };
+                    })
                     ->columnSpan(1),
 
                 TextInput::make('vuelto')
@@ -1205,6 +1216,18 @@ class VentaForm
                     ->step(0.01)
                     ->disabled()
                     ->dehydrated()
+                    ->helperText(fn (callable $get) => function () use ($get) {
+                        $vuelto = (float) ($get('vuelto') ?? 0);
+                        if ($vuelto < 0) {
+                            return '⚠️ FALTA: S/ ' . number_format(abs($vuelto), 2);
+                        }
+                        return null;
+                    })
+                    ->extraAttributes(fn (callable $get) => [
+                        'style' => (float) ($get('vuelto') ?? 0) < 0
+                            ? 'border: 2px solid #ef4444; background-color: #fee2e2;'
+                            : ''
+                    ])
                     ->columnSpan(1),
             ]);
     }

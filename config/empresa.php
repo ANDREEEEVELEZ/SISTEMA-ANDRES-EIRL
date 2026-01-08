@@ -11,16 +11,16 @@ return [
     |
     */
 
-    'nombre' => env('EMPRESA_NOMBRE', 'CHIFLES ANDRES E.I.R.L.'),
-    'ruc' => env('EMPRESA_RUC', '20609709406'),
-    'razon_social' => env('EMPRESA_RAZON_SOCIAL', 'CHIFLES ANDRES E.I.R.L.'),
-    'nombre_comercial' => env('EMPRESA_NOMBRE_COMERCIAL', 'CHIFLES ANDRES'),
-    'direccion' => env('EMPRESA_DIRECCION', 'AV. RAMON CASTILLA NRO 123 CERCADO'),
-    'ubigeo' => env('EMPRESA_UBIGEO', '200101'), // Código UBIGEO INEI
+    'nombre' => env('EMPRESA_NOMBRE', 'SNACKS MR CHIPS'),
+    'ruc' => env('EMPRESA_RUC', '10036736475'),
+    'razon_social' => env('EMPRESA_RAZON_SOCIAL', 'SOBRINO REQUENA DE SIANCAS LEONOR'),
+    'nombre_comercial' => env('EMPRESA_NOMBRE_COMERCIAL', 'SNACKS MR CHIPS'),
+    'direccion' => env('EMPRESA_DIRECCION', 'AV. JOSE DE LAMA NRO. 1192 A.H. SANCHEZ CERRO'),
+    'ubigeo' => env('EMPRESA_UBIGEO', '200601'), // Código UBIGEO INEI - SULLANA
     'departamento' => env('EMPRESA_DEPARTAMENTO', 'PIURA'),
-    'provincia' => env('EMPRESA_PROVINCIA', 'PIURA'),
-    'distrito' => env('EMPRESA_DISTRITO', 'PIURA'),
-    'urbanizacion' => env('EMPRESA_URBANIZACION', '-'),
+    'provincia' => env('EMPRESA_PROVINCIA', 'SULLANA'),
+    'distrito' => env('EMPRESA_DISTRITO', 'SULLANA'),
+    'urbanizacion' => env('EMPRESA_URBANIZACION', 'A.H. SANCHEZ CERRO'),
     'telefono' => env('EMPRESA_TELEFONO', '- -'),
    // 'email' => env('EMPRESA_EMAIL', 'ventas@andreseirl.com'),
    // 'web' => env('EMPRESA_WEB', 'www.andreseirl.com'),

@@ -588,11 +588,86 @@ class ListVentas extends ListRecords
                 }
             }
 
-            Notification::make()
-                ->title('Nota Creada')
-                ->body("Se creó la " . ucwords(str_replace('_', ' ', $data['tipo_nota'])) . " {$data['serie_nota']}-{$data['numero_nota']} para anular el {$comprobante->tipo}. El inventario ha sido restablecido.")
-                ->success()
-                ->send();
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // ENVIAR NOTA DE CRÉDITO A SUNAT (solo si el comprobante original ya fue enviado)
+            // ═══════════════════════════════════════════════════════════════════════════════
+            try {
+                // FORZAR RECARGA DEL COMPROBANTE ORIGEN DESDE BD
+                $comprobante = \App\Models\Comprobante::find($comprobante->id);
+                
+                // Verificar si el comprobante original fue enviado a SUNAT
+                $yaEnviadoASunat = !empty($comprobante->ruta_xml) || !empty($comprobante->ruta_cdr) || !empty($comprobante->codigo_sunat);
+
+                // Para boletas, verificar que tengan ticket_sunat (fueron enviadas en resumen)
+                if ($comprobante->tipo === 'boleta') {
+                    $yaEnviadoASunat = $yaEnviadoASunat && !empty($comprobante->ticket_sunat);
+                }
+
+                if ($yaEnviadoASunat) {
+                    if ($comprobante->tipo === 'boleta') {
+                        // BOLETA: La NC irá en el próximo Resumen Diario
+                        Notification::make()
+                            ->title('✅ Nota de Crédito Creada')
+                            ->body("Se creó la Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} para la boleta {$comprobante->serie}-{$comprobante->correlativo}.\n\n📅 Se enviará automáticamente en el PRÓXIMO RESUMEN DIARIO.\n\n✅ El inventario ha sido restablecido.")
+                            ->success()
+                            ->duration(12000)
+                            ->send();
+                    } else {
+                        // FACTURA: Enviar NC inmediatamente
+                        $sunatService = new \App\Services\SunatService();
+                        $resultadoEnvio = $sunatService->enviarNotaCredito($nota);
+
+                        if ($resultadoEnvio['success']) {
+                            Notification::make()
+                                ->title('✅ Nota de Crédito Aceptada por SUNAT')
+                                ->body("Se creó y envió exitosamente la Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} a SUNAT. El inventario ha sido restablecido.\n\nCódigo SUNAT: {$resultadoEnvio['codigo']}")
+                                ->success()
+                                ->duration(10000)
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('⚠️ Nota de Crédito Creada (Error en envío)')
+                                ->body("Se creó la Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} pero falló el envío a SUNAT:\n\n{$resultadoEnvio['message']}\n\nCódigo: {$resultadoEnvio['codigo']}\n\nUse el botón 'Reenviar a SUNAT' para intentar nuevamente.")
+                                ->warning()
+                                ->duration(15000)
+                                ->send();
+                        }
+                    }
+                } else {
+                    // El comprobante NO ha sido enviado a SUNAT todavía
+                    $tipoDoc = strtoupper($comprobante->tipo);
+                    $mensaje = "✅ Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} creada localmente.\n\n";
+
+                    if ($comprobante->tipo === 'boleta') {
+                        $mensaje .= "⚠️ La boleta {$comprobante->serie}-{$comprobante->correlativo} NO ha sido enviada a SUNAT aún.\n\n";
+                        $mensaje .= "📋 La boleta ANULADA será excluida automáticamente del próximo Resumen Diario.";
+                    } else {
+                        $mensaje .= "El {$tipoDoc} {$comprobante->serie}-{$comprobante->correlativo} no fue enviado a SUNAT.\n\n";
+                        $mensaje .= "✅ La Nota de Crédito está lista. Use 'Reenviar' si necesita enviarla después.";
+                    }
+
+                    Notification::make()
+                        ->title('✅ Nota de Crédito Creada')
+                        ->body($mensaje)
+                        ->success()
+                        ->duration(12000)
+                        ->send();
+                }
+            } catch (\Exception $envioException) {
+                \Illuminate\Support\Facades\Log::error('❌ Error al enviar nota de crédito a SUNAT', [
+                    'nota_id' => $nota->id,
+                    'nota_serie' => $nota->serie . '-' . $nota->correlativo,
+                    'error' => $envioException->getMessage(),
+                    'trace' => $envioException->getTraceAsString(),
+                ]);
+
+                Notification::make()
+                    ->title('⚠️ Nota de Crédito Creada (Error en envío)')
+                    ->body("Se creó la Nota de Crédito {$data['serie_nota']}-{$data['numero_nota']} pero falló el envío a SUNAT:\n\n{$envioException->getMessage()}\n\nUse el botón 'Reenviar a SUNAT' para intentar nuevamente.")
+                    ->warning()
+                    ->duration(15000)
+                    ->send();
+            }
 
             $this->ventaEncontrada = null;
 

@@ -20,18 +20,18 @@ $client = (new Client())
 
 // Emisor
 $address = (new Address())
-    ->setUbigueo('150101')
-    ->setDepartamento('LIMA')
-    ->setProvincia('LIMA')
-    ->setDistrito('LIMA')
-    ->setUrbanizacion('-')
-    ->setDireccion('Av. Villa Nueva 221')
+    ->setUbigueo('200601')
+    ->setDepartamento('PIURA')
+    ->setProvincia('SULLANA')
+    ->setDistrito('SULLANA')
+    ->setUrbanizacion('A.H. SANCHEZ CERRO')
+    ->setDireccion('AV. JOSE DE LAMA NRO. 1192')
     ->setCodLocal('0000');
 
 $company = (new Company())
-    ->setRuc('20123456789')
-    ->setRazonSocial('GREEN SAC')
-    ->setNombreComercial('GREEN')
+    ->setRuc('10036736475')
+    ->setRazonSocial('SOBRINO REQUENA DE SIANCAS LEONOR')
+    ->setNombreComercial('SNACKS MR CHIPS')
     ->setAddress($address);
 
 // Boleta
